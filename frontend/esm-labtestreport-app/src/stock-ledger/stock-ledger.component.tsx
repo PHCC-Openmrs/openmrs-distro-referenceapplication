@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, ContentSwitcher, InlineLoading, Search, Select, SelectItem, Switch } from '@carbon/react';
 import { ChevronDown, ChevronRight } from '@carbon/react/icons';
-import { useLocations } from '@openmrs/esm-framework';
+import { useLocations, formatDate, parseDate } from '@openmrs/esm-framework';
 import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import SimpleBarChart from '../reports-shell/simple-bar-chart.component';
 import SimpleLineChart from '../reports-shell/simple-line-chart.component';
@@ -23,6 +23,8 @@ interface LedgerItem {
   itemName: string;
   locationId: number;
   locationName: string | null;
+  batchNo: string | null;
+  expirationDate: string | null;
 }
 
 interface DayBlock {
@@ -30,18 +32,34 @@ interface DayBlock {
   cells: Array<StockLedgerRow>;
 }
 
-function itemLocationKey(stockItemId: number, locationId: number): string {
-  return `${stockItemId}-${locationId}`;
+// Grouping key is per item/location/batch - a day's activity for the same item at the same
+// location can span multiple batches, each with its own opening/closing balance and expiry.
+function groupKey(stockItemId: number, locationId: number, batchNo: string | null): string {
+  return `${stockItemId}-${locationId}-${batchNo ?? ''}`;
 }
 
 function itemLocationLabel(itemName: string, locationName: string | null, showLocation: boolean): string {
   return showLocation ? `${itemName} — ${locationName ?? '?'}` : itemName;
 }
 
+function groupLabel(
+  itemName: string,
+  locationName: string | null,
+  batchNo: string | null,
+  showLocation: boolean,
+): string {
+  const base = itemLocationLabel(itemName, locationName, showLocation);
+  return batchNo ? `${base} (${batchNo})` : base;
+}
+
+function formatExpirationDate(expirationDate: string | null): string {
+  return expirationDate ? formatDate(parseDate(expirationDate), { mode: 'standard', time: false }) : '—';
+}
+
 function buildItemList(rows: Array<StockLedgerRow>): Array<LedgerItem> {
   const byKey = new Map<string, LedgerItem>();
   rows.forEach((row) => {
-    const key = itemLocationKey(row.stockItemId, row.locationId);
+    const key = groupKey(row.stockItemId, row.locationId, row.batchNo);
     if (!byKey.has(key)) {
       byKey.set(key, {
         key,
@@ -49,11 +67,16 @@ function buildItemList(rows: Array<StockLedgerRow>): Array<LedgerItem> {
         itemName: row.itemName,
         locationId: row.locationId,
         locationName: row.locationName,
+        batchNo: row.batchNo,
+        expirationDate: row.expirationDate,
       });
     }
   });
   return Array.from(byKey.values()).sort(
-    (a, b) => a.itemName.localeCompare(b.itemName) || (a.locationName ?? '').localeCompare(b.locationName ?? ''),
+    (a, b) =>
+      a.itemName.localeCompare(b.itemName) ||
+      (a.locationName ?? '').localeCompare(b.locationName ?? '') ||
+      (a.batchNo ?? '').localeCompare(b.batchNo ?? ''),
   );
 }
 
@@ -62,7 +85,7 @@ function buildDayBlocks(rows: Array<StockLedgerRow>, items: Array<LedgerItem>): 
   const unitNameByItem = new Map<string, string | null>();
   const allDates = new Set<string>();
   rows.forEach((row) => {
-    const key = itemLocationKey(row.stockItemId, row.locationId);
+    const key = groupKey(row.stockItemId, row.locationId, row.batchNo);
     if (!byItemAndDate.has(key)) {
       byItemAndDate.set(key, new Map());
     }
@@ -90,6 +113,8 @@ function buildDayBlocks(rows: Array<StockLedgerRow>, items: Array<LedgerItem>): 
           itemName: item.itemName,
           locationId: item.locationId,
           locationName: item.locationName,
+          batchNo: item.batchNo,
+          expirationDate: item.expirationDate,
           ledgerDate: date,
           actualQty: opening,
           incomingQty: 0,
@@ -125,6 +150,7 @@ function buildFlatRows(dayBlocks: Array<DayBlock>): Array<StockLedgerRow> {
       (a, b) =>
         a.itemName.localeCompare(b.itemName) ||
         (a.locationName ?? '').localeCompare(b.locationName ?? '') ||
+        (a.batchNo ?? '').localeCompare(b.batchNo ?? '') ||
         a.ledgerDate.localeCompare(b.ledgerDate),
     );
 }
@@ -133,6 +159,8 @@ interface LedgerGroup {
   key: string;
   itemName: string;
   locationName: string | null;
+  batchNo: string | null;
+  expirationDate: string | null;
   rows: Array<StockLedgerRow>;
   totalIncoming: number;
   totalOutgoing: number;
@@ -142,11 +170,13 @@ interface LedgerGroup {
 
 function buildGroupedRows(items: Array<LedgerItem>, flatRows: Array<StockLedgerRow>): Array<LedgerGroup> {
   return items.map((item) => {
-    const rows = flatRows.filter((row) => itemLocationKey(row.stockItemId, row.locationId) === item.key);
+    const rows = flatRows.filter((row) => groupKey(row.stockItemId, row.locationId, row.batchNo) === item.key);
     return {
       key: item.key,
       itemName: item.itemName,
       locationName: item.locationName,
+      batchNo: item.batchNo,
+      expirationDate: item.expirationDate,
       rows,
       totalIncoming: rows.reduce((sum, row) => sum + row.incomingQty, 0),
       totalOutgoing: rows.reduce((sum, row) => sum + row.outgoingQty, 0),
@@ -239,20 +269,22 @@ export default function StockLedgerReport() {
     const compareLatestBlock = compareDayBlocks[compareDayBlocks.length - 1];
     const currentByKey = new Map(
       (latestBlock?.cells ?? []).map((cell): [string, number] => [
-        itemLocationKey(cell.stockItemId, cell.locationId),
+        groupKey(cell.stockItemId, cell.locationId, cell.batchNo),
         cell.remainingQty,
       ]),
     );
     const compareByKey = new Map(
       (compareLatestBlock?.cells ?? []).map((cell): [string, number] => [
-        itemLocationKey(cell.stockItemId, cell.locationId),
+        groupKey(cell.stockItemId, cell.locationId, cell.batchNo),
         cell.remainingQty,
       ]),
     );
     const itemUnion = new Map<string, string>();
-    items.forEach((item) => itemUnion.set(item.key, itemLocationLabel(item.itemName, item.locationName, showLocationColumn)));
+    items.forEach((item) =>
+      itemUnion.set(item.key, groupLabel(item.itemName, item.locationName, item.batchNo, showLocationColumn)),
+    );
     compareItems.forEach((item) =>
-      itemUnion.set(item.key, itemLocationLabel(item.itemName, item.locationName, showLocationColumn)),
+      itemUnion.set(item.key, groupLabel(item.itemName, item.locationName, item.batchNo, showLocationColumn)),
     );
     return Array.from(itemUnion.entries())
       .sort((a, b) => a[1].localeCompare(b[1]))
@@ -269,7 +301,7 @@ export default function StockLedgerReport() {
       return [];
     }
     return latestBlock.cells.map((cell) => ({
-      label: itemLocationLabel(cell.itemName, cell.locationName, showLocationColumn),
+      label: groupLabel(cell.itemName, cell.locationName, cell.batchNo, showLocationColumn),
       value: cell.remainingQty,
     }));
   }, [dayBlocks, showLocationColumn]);
@@ -285,7 +317,9 @@ export default function StockLedgerReport() {
     }
     return dayBlocks
       .map((block) => {
-        const cell = block.cells.find((c) => itemLocationKey(c.stockItemId, c.locationId) === effectiveTrendItemKey);
+        const cell = block.cells.find(
+          (c) => groupKey(c.stockItemId, c.locationId, c.batchNo) === effectiveTrendItemKey,
+        );
         return cell ? { date: block.date, value: cell.remainingQty } : null;
       })
       .filter((point): point is { date: string; value: number } => point !== null);
@@ -297,6 +331,8 @@ export default function StockLedgerReport() {
       headers: [
         t('item', 'Item'),
         ...(showLocationColumn ? [t('location', 'Location')] : []),
+        t('batchNo', 'Batch No'),
+        t('expirationDate', 'Expiration Date'),
         t('date', 'Date'),
         t('openingBalance', 'Opening Balance'),
         t('incoming', 'Incoming'),
@@ -307,6 +343,8 @@ export default function StockLedgerReport() {
       rows: flatRows.map((row) => [
         row.itemName,
         ...(showLocationColumn ? [row.locationName ?? ''] : []),
+        row.batchNo ?? '',
+        row.expirationDate ? formatExpirationDate(row.expirationDate) : '',
         row.ledgerDate,
         row.actualQty,
         row.incomingQty,
@@ -478,6 +516,8 @@ export default function StockLedgerReport() {
                 <tr>
                   <th className="left">{t('item', 'Item')}</th>
                   {showLocationColumn && <th className="left">{t('location', 'Location')}</th>}
+                  <th className="left">{t('batchNo', 'Batch No')}</th>
+                  <th className="left">{t('expirationDate', 'Expiration Date')}</th>
                   <th className="left">{t('date', 'Date')}</th>
                   <th>{t('openingBalance', 'Opening Balance')}</th>
                   <th>{t('incoming', 'Incoming')}</th>
@@ -492,13 +532,15 @@ export default function StockLedgerReport() {
                   return (
                     <React.Fragment key={group.key}>
                       <tr className={pageStyles.categoryHeaderRow} onClick={() => toggleGroup(group.key)}>
-                        <td colSpan={showLocationColumn ? 3 : 2} className="left">
+                        <td colSpan={showLocationColumn ? 2 : 1} className="left">
                           <button className={pageStyles.collapseToggle} aria-expanded={expanded}>
                             {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                             {itemLocationLabel(group.itemName, group.locationName, showLocationColumn)} (
                             {t('nDays', '{{count}} days', { count: group.rows.length })})
                           </button>
                         </td>
+                        <td className="left">{group.batchNo ?? '—'}</td>
+                        <td className="left">{formatExpirationDate(group.expirationDate)}</td>
                         <td>{'—'}</td>
                         <td>{formatQuantity(group.totalIncoming, unitName)}</td>
                         <td>{formatQuantity(group.totalOutgoing, unitName)}</td>
@@ -508,9 +550,11 @@ export default function StockLedgerReport() {
                       </tr>
                       {expanded &&
                         group.rows.map((row) => (
-                          <tr key={`${row.stockItemId}-${row.locationId}-${row.ledgerDate}`}>
+                          <tr key={`${row.stockItemId}-${row.locationId}-${row.batchNo ?? ''}-${row.ledgerDate}`}>
                             <td className="left" />
                             {showLocationColumn && <td className="left" />}
+                            <td className="left" />
+                            <td className="left" />
                             <td className="left">{row.ledgerDate}</td>
                             <td>{formatQuantity(row.actualQty, row.unitName)}</td>
                             <td>{formatQuantity(row.incomingQty, row.unitName)}</td>
@@ -523,7 +567,7 @@ export default function StockLedgerReport() {
                 })}
                 {groupedRows.length === 0 && (
                   <tr>
-                    <td colSpan={showLocationColumn ? 7 : 6} className={pageStyles.emptyState}>
+                    <td colSpan={showLocationColumn ? 9 : 8} className={pageStyles.emptyState}>
                       {t('noDataForSelection', 'No data found for this selection.')}
                     </td>
                   </tr>
@@ -549,7 +593,10 @@ export default function StockLedgerReport() {
                 >
                   {items.map((item) => (
                     <React.Fragment key={item.key}>
-                      <SelectItem value={item.key} text={itemLocationLabel(item.itemName, item.locationName, showLocationColumn)} />
+                      <SelectItem
+                        value={item.key}
+                        text={groupLabel(item.itemName, item.locationName, item.batchNo, showLocationColumn)}
+                      />
                     </React.Fragment>
                   ))}
                 </Select>

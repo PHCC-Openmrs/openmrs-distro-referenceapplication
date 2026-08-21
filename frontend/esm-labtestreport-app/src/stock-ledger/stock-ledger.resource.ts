@@ -6,6 +6,8 @@ export interface StockLedgerRow {
   itemName: string;
   locationId: number;
   locationName: string | null;
+  batchNo: string | null;
+  expirationDate: string | null;
   ledgerDate: string;
   actualQty: number;
   incomingQty: number;

@@ -3,12 +3,12 @@ package org.openmrs.module.labtestreport;
 import java.util.Date;
 
 /**
- * One row of the stock inventory ledger report: a single stock item's activity at a single
- * location on a single day it actually had a transaction. {@link #actualQty} (opening balance for
- * the day) is derived as {@code remainingQty - incomingQty + outgoingQty}. Days a given
- * item/location had no activity at all are not represented here - the web layer densifies this
- * sparse list into a full item x location x day grid, carrying the last known balance forward
- * across gaps.
+ * One row of the stock inventory ledger report: a single stock item's activity in a single
+ * batch at a single location on a single day it actually had a transaction. {@link #actualQty}
+ * (opening balance for the day) is derived as {@code remainingQty - incomingQty + outgoingQty}.
+ * Days a given item/location/batch had no activity at all are not represented here - the web
+ * layer densifies this sparse list into a full item x location x batch x day grid, carrying the
+ * last known balance forward across gaps.
  */
 public class StockLedgerRow {
 
@@ -19,6 +19,10 @@ public class StockLedgerRow {
 	private Integer locationId;
 
 	private String locationName;
+
+	private String batchNo;
+
+	private Date expirationDate;
 
 	private Date ledgerDate;
 
@@ -62,6 +66,22 @@ public class StockLedgerRow {
 
 	public void setLocationName(String locationName) {
 		this.locationName = locationName;
+	}
+
+	public String getBatchNo() {
+		return batchNo;
+	}
+
+	public void setBatchNo(String batchNo) {
+		this.batchNo = batchNo;
+	}
+
+	public Date getExpirationDate() {
+		return expirationDate;
+	}
+
+	public void setExpirationDate(Date expirationDate) {
+		this.expirationDate = expirationDate;
 	}
 
 	public Date getLedgerDate() {

@@ -26,12 +26,14 @@ public class StockLedgerServiceImpl extends BaseOpenmrsService implements StockL
 			row.setItemName((String) r[1]);
 			row.setLocationId(toInteger(r[2]));
 			row.setLocationName((String) r[3]);
-			row.setLedgerDate((Date) r[4]);
-			row.setIncomingQty(toDouble(r[5]));
-			row.setOutgoingQty(toDouble(r[6]));
-			row.setRemainingQty(toDouble(r[7]));
+			row.setBatchNo((String) r[4]);
+			row.setExpirationDate((Date) r[5]);
+			row.setLedgerDate((Date) r[6]);
+			row.setIncomingQty(toDouble(r[7]));
+			row.setOutgoingQty(toDouble(r[8]));
+			row.setRemainingQty(toDouble(r[9]));
 			row.setActualQty(row.getRemainingQty() - row.getIncomingQty() + row.getOutgoingQty());
-			row.setUnitName((String) r[8]);
+			row.setUnitName((String) r[10]);
 			rows.add(row);
 		}
 		return rows;

@@ -16,9 +16,10 @@ FROM (
     p.party_id       AS locationId,
     l.name           AS locationName,
     DATE(sit.date_created) AS txDate,
-    SUM(SUM(sit.quantity)) OVER (PARTITION BY si.stock_item_id, p.party_id ORDER BY DATE(sit.date_created)) AS dayEndBalance
+    SUM(SUM(sit.quantity * puom.factor)) OVER (PARTITION BY si.stock_item_id, p.party_id ORDER BY DATE(sit.date_created)) AS dayEndBalance
   FROM stockmgmt_stock_item_transaction sit
   JOIN stockmgmt_stock_item si ON si.stock_item_id = sit.stock_item_id
+  JOIN stockmgmt_stock_item_packaging_uom puom ON puom.stock_item_packaging_uom_id = sit.stock_item_packaging_uom_id
   JOIN stockmgmt_party p ON p.party_id = sit.party_id
   LEFT JOIN location l ON l.location_id = p.location_id
   WHERE si.voided = 0

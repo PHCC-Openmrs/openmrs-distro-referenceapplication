@@ -127,6 +127,7 @@ export default function StockDistributionReport() {
       source: (row: StockLocationQtyRow) => row.sourceLocationName ?? '',
       location: (row: StockLocationQtyRow) => row.locationName ?? '',
       quantity: (row: StockLocationQtyRow) => row.quantity,
+      remainingQty: (row: StockLocationQtyRow) => row.remainingQty,
     }),
     [],
   );
@@ -140,6 +141,7 @@ export default function StockDistributionReport() {
         t('sourceLocation', 'Source Location'),
         t('destinationLocation', 'Destination Location'),
         t('quantitySent', 'Quantity Sent'),
+        t('remainingQty', 'Remaining Qty'),
         t('unit', 'Unit'),
       ],
       rows: rows.map((row) => [
@@ -147,6 +149,7 @@ export default function StockDistributionReport() {
         row.sourceLocationName ?? '',
         row.locationName ?? '',
         row.quantity,
+        row.remainingQty,
         row.unitName ?? '',
       ]),
     }),
@@ -327,6 +330,13 @@ export default function StockDistributionReport() {
                     direction={direction}
                     onSort={toggleSort}
                   />
+                  <SortableHeader
+                    label={t('remainingQty', 'Remaining Qty')}
+                    sortKey="remainingQty"
+                    activeSortKey={sortKey}
+                    direction={direction}
+                    onSort={toggleSort}
+                  />
                 </tr>
               </thead>
               <tbody>
@@ -336,11 +346,12 @@ export default function StockDistributionReport() {
                     <td className="left">{row.sourceLocationName ?? '—'}</td>
                     <td className="left">{row.locationName ?? '—'}</td>
                     <td>{formatQuantity(row.quantity, row.unitName)}</td>
+                    <td>{formatQuantity(row.remainingQty, row.unitName)}</td>
                   </tr>
                 ))}
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={4} className={pageStyles.emptyState}>
+                    <td colSpan={5} className={pageStyles.emptyState}>
                       {t('noDataForSelection', 'No data found for this selection.')}
                     </td>
                   </tr>

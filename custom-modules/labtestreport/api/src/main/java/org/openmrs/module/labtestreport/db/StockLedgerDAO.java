@@ -16,8 +16,8 @@ public interface StockLedgerDAO {
 	 * @param startDate only include activity on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only include activity through the end of this date (inclusive), or null for no upper bound
 	 * @param locationUuid only include this location's activity, or null for all locations combined
-	 * @return one row per stock item/location/day it had activity, each a 9-element array matching
-	 *         the column order of queries/stock_ledger_report.sql
+	 * @return one row per stock item/location/batch/day it had activity, each an 11-element array
+	 *         matching the column order of queries/stock_ledger_report.sql
 	 */
 	List<Object[]> getLedgerRows(Date startDate, Date endDate, String locationUuid) throws DAOException;
 }

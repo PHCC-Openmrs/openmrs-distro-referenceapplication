@@ -10,6 +10,8 @@ export interface StockLocationQtyRow {
   unitName: string | null;
   /** Only populated for the Distribution report - null for Consumption and Wastage. */
   sourceLocationName: string | null;
+  /** Current on-hand quantity at the row's location, as of now (not the moved quantity above). */
+  remainingQty: number;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {

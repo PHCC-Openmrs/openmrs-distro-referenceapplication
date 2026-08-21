@@ -119,6 +119,7 @@ export default function StockConsumptionReport() {
       item: (row: StockLocationQtyRow) => row.itemName,
       location: (row: StockLocationQtyRow) => row.locationName ?? '',
       quantity: (row: StockLocationQtyRow) => row.quantity,
+      remainingQty: (row: StockLocationQtyRow) => row.remainingQty,
     }),
     [],
   );
@@ -131,12 +132,13 @@ export default function StockConsumptionReport() {
         t('item', 'Item'),
         ...(showLocationInLabel ? [t('location', 'Location')] : []),
         t('quantityConsumed', 'Quantity Consumed'),
+        t('remainingQty', 'Remaining Qty'),
         t('unit', 'Unit'),
       ],
       rows: rows.map((row) =>
         showLocationInLabel
-          ? [row.itemName, row.locationName ?? '', row.quantity, row.unitName ?? '']
-          : [row.itemName, row.quantity, row.unitName ?? ''],
+          ? [row.itemName, row.locationName ?? '', row.quantity, row.remainingQty, row.unitName ?? '']
+          : [row.itemName, row.quantity, row.remainingQty, row.unitName ?? ''],
       ),
     }),
     [t, rows, showLocationInLabel],
@@ -312,6 +314,13 @@ export default function StockConsumptionReport() {
                     direction={direction}
                     onSort={toggleSort}
                   />
+                  <SortableHeader
+                    label={t('remainingQty', 'Remaining Qty')}
+                    sortKey="remainingQty"
+                    activeSortKey={sortKey}
+                    direction={direction}
+                    onSort={toggleSort}
+                  />
                 </tr>
               </thead>
               <tbody>
@@ -320,11 +329,12 @@ export default function StockConsumptionReport() {
                     <td className="left">{row.itemName}</td>
                     {showLocationInLabel && <td className="left">{row.locationName ?? '—'}</td>}
                     <td>{formatQuantity(row.quantity, row.unitName)}</td>
+                    <td>{formatQuantity(row.remainingQty, row.unitName)}</td>
                   </tr>
                 ))}
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={showLocationInLabel ? 3 : 2} className={pageStyles.emptyState}>
+                    <td colSpan={showLocationInLabel ? 4 : 3} className={pageStyles.emptyState}>
                       {t('noDataForSelection', 'No data found for this selection.')}
                     </td>
                   </tr>
