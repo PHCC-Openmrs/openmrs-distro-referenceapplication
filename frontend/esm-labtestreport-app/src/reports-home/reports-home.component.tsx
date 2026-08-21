@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ClickableTile, Grid, Column, InlineLoading, Tag } from '@carbon/react';
 import { ArrowRight, WarningAltFilled, CheckmarkFilled } from '@carbon/react/icons';
-import { navigate } from '@openmrs/esm-framework';
+import { navigate, useSession } from '@openmrs/esm-framework';
 import { useCmamSummaryReport } from '../cmam-summary/cmam-summary.resource';
 import pageStyles from '../reports-shell/reports-page.scss';
 import styles from './reports-home.scss';
@@ -30,6 +30,11 @@ interface ReportCategory {
  */
 export default function ReportsHome() {
   const { t } = useTranslation();
+  const session = useSession();
+  const isDoctor = session?.user?.roles?.some(
+    (role) => role.display === 'Organizational: Doctor' || role.display === 'PHCC doctor',
+  );
+  const isStockManager = session?.user?.privileges?.some((p) => p.display === 'App: stockmanagement.dashboard');
 
   const { rows: cmamAlertRows, isLoading: cmamAlertLoading } = useCmamSummaryReport();
   const cmamAlertCount = useMemo(
@@ -123,11 +128,17 @@ export default function ReportsHome() {
     },
   ];
 
+  const visibleCategories = isStockManager
+    ? categories.filter((category) => category.key === 'stock')
+    : isDoctor
+      ? categories.filter((category) => category.key !== 'stock')
+      : categories;
+
   return (
     <div>
       <div className={pageStyles.pageBody}>
         <h2 className={pageStyles.pageHeading}>{t('reports', 'Reports')}</h2>
-        {categories.map((category) => (
+        {visibleCategories.map((category) => (
           <div key={category.key} className={styles.categorySection}>
             <h3 className={styles.categoryLabel}>{category.label}</h3>
             <Grid className={styles.tileGrid}>
