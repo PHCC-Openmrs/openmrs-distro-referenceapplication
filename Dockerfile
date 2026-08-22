@@ -7,6 +7,23 @@ WORKDIR /openmrs_distro
 ARG MVN_ARGS="-s /usr/share/maven/ref/settings-docker.xml -U -P distro"
 ARG MVN_COMMAND="install"
 
+# Build locationbasedaccess from our fork and install it into the local Maven repo, so
+# distro/pom.xml can depend on it as a plain artifact (org.openmrs.module:locationbasedaccess-omod)
+# without vendoring a copy of its source into custom-modules/. The owa submodule is skipped: its
+# build tooling is unmaintained/broken on modern JDKs and this deployment doesn't use its
+# OWA/uiframework UI anyway (see the module's own config.xml for why).
+ARG LOCATIONBASEDACCESS_REPO=https://github.com/PHCC-Openmrs/openmrs-module-locationbasedaccess.git
+ARG LOCATIONBASEDACCESS_REF=master
+# Bump this (e.g. --build-arg LOCATIONBASEDACCESS_CACHE_BUST=$(date +%s)) to force a fresh clone;
+# otherwise Docker has no way to know the remote branch moved and will reuse a stale cached clone.
+ARG LOCATIONBASEDACCESS_CACHE_BUST=0
+RUN --mount=type=secret,id=m2settings,target=/usr/share/maven/ref/settings-docker.xml \
+    echo "cache-bust=${LOCATIONBASEDACCESS_CACHE_BUST}" && \
+    git clone --branch ${LOCATIONBASEDACCESS_REF} --depth 1 ${LOCATIONBASEDACCESS_REPO} /tmp/locationbasedaccess && \
+    cd /tmp/locationbasedaccess && \
+    mvn -s /usr/share/maven/ref/settings-docker.xml -DskipTests -pl api,omod -am install && \
+    rm -rf /tmp/locationbasedaccess
+
 # Copy build files
 COPY pom.xml ./
 COPY custom-modules ./custom-modules/
