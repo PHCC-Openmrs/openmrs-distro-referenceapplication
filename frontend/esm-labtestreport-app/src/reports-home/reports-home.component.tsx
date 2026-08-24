@@ -31,6 +31,9 @@ interface ReportCategory {
 export default function ReportsHome() {
   const { t } = useTranslation();
   const session = useSession();
+  const isSuperUser = session?.user?.roles?.some(
+    (role) => role.display === 'System Developer' || role.display === 'Application: Has Super User Privileges',
+  );
   const isDoctor = session?.user?.roles?.some(
     (role) => role.display === 'Organizational: Doctor' || role.display === 'PHCC doctor',
   );
@@ -128,11 +131,13 @@ export default function ReportsHome() {
     },
   ];
 
-  const visibleCategories = isStockManager
-    ? categories.filter((category) => category.key === 'stock')
-    : isDoctor
-      ? categories.filter((category) => category.key !== 'stock')
-      : categories;
+  const visibleCategories = isSuperUser
+    ? categories
+    : isStockManager
+      ? categories.filter((category) => category.key === 'stock')
+      : isDoctor
+        ? categories.filter((category) => category.key !== 'stock')
+        : categories;
 
   return (
     <div>
