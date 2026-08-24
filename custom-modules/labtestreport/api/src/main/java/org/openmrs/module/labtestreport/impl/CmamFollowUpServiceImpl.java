@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.openmrs.api.impl.BaseOpenmrsService;
+import org.openmrs.module.labtestreport.CmamAgeGroup;
 import org.openmrs.module.labtestreport.CmamFollowUpService;
 import org.openmrs.module.labtestreport.CmamPatientRow;
 import org.openmrs.module.labtestreport.CmamSummaryRow;
@@ -19,9 +20,9 @@ public class CmamFollowUpServiceImpl extends BaseOpenmrsService implements CmamF
 	}
 
 	@Override
-	public List<CmamSummaryRow> getSummaryReport(Date startDate, Date endDate) {
+	public List<CmamSummaryRow> getSummaryReport(CmamAgeGroup ageGroup, Date startDate, Date endDate) {
 		List<CmamSummaryRow> rows = new ArrayList<>();
-		for (Object[] r : dao.getSummaryRows(startDate, endDate)) {
+		for (Object[] r : dao.getSummaryRows(ageGroup, startDate, endDate)) {
 			CmamSummaryRow row = new CmamSummaryRow();
 			row.setDimension((String) r[0]);
 			row.setCategoryConceptId(toInteger(r[1]));
@@ -33,10 +34,11 @@ public class CmamFollowUpServiceImpl extends BaseOpenmrsService implements CmamF
 	}
 
 	@Override
-	public List<CmamPatientRow> getPatientsForCategory(String dimensionConceptUuid, Integer categoryConceptId,
-	        Date startDate, Date endDate) {
+	public List<CmamPatientRow> getPatientsForCategory(CmamAgeGroup ageGroup, String dimensionConceptUuid,
+	        Integer categoryConceptId, Date startDate, Date endDate) {
 		List<CmamPatientRow> rows = new ArrayList<>();
-		for (Object[] r : dao.getPatientsForCategory(dimensionConceptUuid, categoryConceptId, startDate, endDate)) {
+		for (Object[] r : dao.getPatientsForCategory(ageGroup, dimensionConceptUuid, categoryConceptId, startDate,
+		    endDate)) {
 			CmamPatientRow row = new CmamPatientRow();
 			row.setPatientId(toInteger(r[0]));
 			row.setPatientUuid((String) r[1]);

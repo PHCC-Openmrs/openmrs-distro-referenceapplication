@@ -8,14 +8,14 @@ WITH cmam_encounters AS (
     AND (:startDate IS NULL OR e.encounter_datetime >= :startDate)
     AND (:endDate IS NULL OR e.encounter_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
 ),
--- The CMAM form is also used for patients above 5 (see cmam_patients_for_category_above5.sql for
--- their drill-down); this report lists only those under 5 at their most recent CMAM encounter.
+-- Counterpart to cmam_patients_for_category.sql (which covers those under 5): this report lists
+-- only patients who were 5 or older at their most recent CMAM encounter.
 latest_encounters AS (
   SELECT ce.encounter_id, ce.patient_id
   FROM cmam_encounters ce
   JOIN person p ON p.person_id = ce.patient_id
   WHERE ce.rn = 1
-    AND TIMESTAMPDIFF(YEAR, p.birthdate, ce.encounter_datetime) < 5
+    AND TIMESTAMPDIFF(YEAR, p.birthdate, ce.encounter_datetime) >= 5
 )
 SELECT DISTINCT
   p.person_id                  AS patientId,
@@ -36,10 +36,10 @@ SELECT DISTINCT
   END                          AS alertStatus,
   nvd.value_datetime            AS nextVisitDate
 FROM latest_encounters le
--- Alert Status is matched against the computed category (see cmam_summary_report.sql) rather
--- than the raw recorded obs, so this stays consistent with the summary counts above it (matched
--- in the WHERE clause below via nvd, already joined for the nextVisitDate column). The other two
--- dimensions still match the literal recorded answer via matchDim.
+-- Alert Status is matched against the computed category (see cmam_summary_report_above5.sql)
+-- rather than the raw recorded obs, so this stays consistent with the summary counts above it
+-- (matched in the WHERE clause below via nvd, already joined for the nextVisitDate column). The
+-- other two dimensions still match the literal recorded answer via matchDim.
 LEFT JOIN obs matchDim ON matchDim.encounter_id = le.encounter_id
   AND matchDim.concept_id = (SELECT concept_id FROM concept WHERE uuid = :dimensionConceptUuid)
   AND matchDim.value_coded = :categoryConceptId AND matchDim.voided = 0

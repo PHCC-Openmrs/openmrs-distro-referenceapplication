@@ -17,6 +17,12 @@ public class HibernateStockFlowDAO implements StockFlowDAO {
 
 	private static final String WASTAGE_SQL = SqlResources.load("stock_wastage_by_location.sql");
 
+	private static final String CONSUMPTION_DRILLDOWN_SQL = SqlResources.load("stock_consumption_drilldown.sql");
+
+	private static final String WASTAGE_DRILLDOWN_SQL = SqlResources.load("stock_wastage_drilldown.sql");
+
+	private static final String DISTRIBUTION_DRILLDOWN_SQL = SqlResources.load("stock_distribution_drilldown.sql");
+
 	private DbSessionFactory sessionFactory;
 
 	public void setSessionFactory(DbSessionFactory sessionFactory) {
@@ -51,6 +57,43 @@ public class HibernateStockFlowDAO implements StockFlowDAO {
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
 		query.setParameter("locationUuid", locationUuid);
+		return query.list();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Object[]> getConsumptionDetailRows(Integer stockItemId, Integer locationId, Date startDate,
+	        Date endDate) throws DAOException {
+		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(CONSUMPTION_DRILLDOWN_SQL);
+		query.setParameter("stockItemId", stockItemId);
+		query.setParameter("locationId", locationId);
+		query.setParameter("startDate", startDate);
+		query.setParameter("endDate", endDate);
+		return query.list();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Object[]> getWastageDetailRows(Integer stockItemId, Integer locationId, Date startDate, Date endDate)
+	        throws DAOException {
+		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(WASTAGE_DRILLDOWN_SQL);
+		query.setParameter("stockItemId", stockItemId);
+		query.setParameter("locationId", locationId);
+		query.setParameter("startDate", startDate);
+		query.setParameter("endDate", endDate);
+		return query.list();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Object[]> getDistributionDetailRows(Integer stockItemId, Integer locationId,
+	        String sourceLocationUuid, Date startDate, Date endDate) throws DAOException {
+		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(DISTRIBUTION_DRILLDOWN_SQL);
+		query.setParameter("stockItemId", stockItemId);
+		query.setParameter("locationId", locationId);
+		query.setParameter("sourceLocationUuid", sourceLocationUuid);
+		query.setParameter("startDate", startDate);
+		query.setParameter("endDate", endDate);
 		return query.list();
 	}
 }

@@ -41,4 +41,25 @@ public interface StockFlowService extends OpenmrsService {
 	 * @return one row per stock item (and, when locationUuid is null, per location too)
 	 */
 	List<StockLocationQtyRow> getWastageByLocation(Date startDate, Date endDate, String locationUuid);
+
+	/**
+	 * @return how much of one Consumption summary cell's total (a single stock item at a single
+	 *         location) came from each batch, with that batch's vendor
+	 */
+	List<StockMovementDetailRow> getConsumptionDetails(Integer stockItemId, Integer locationId, Date startDate,
+	        Date endDate);
+
+	/**
+	 * @return how much of one Wastage summary cell's total (a single stock item at a single
+	 *         location) came from each batch, with that batch's vendor
+	 */
+	List<StockMovementDetailRow> getWastageDetails(Integer stockItemId, Integer locationId, Date startDate,
+	        Date endDate);
+
+	/**
+	 * @return how much of one Distribution summary cell's total (a single stock item at a single
+	 *         destination location) came from each batch, with that batch's vendor
+	 */
+	List<StockMovementDetailRow> getDistributionDetails(Integer stockItemId, Integer locationId,
+	        String sourceLocationUuid, Date startDate, Date endDate);
 }

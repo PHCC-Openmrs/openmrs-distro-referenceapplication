@@ -10,6 +10,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
 import org.openmrs.api.context.Context;
+import org.openmrs.module.labtestreport.CmamAgeGroup;
 import org.openmrs.module.labtestreport.CmamFollowUpService;
 import org.openmrs.module.labtestreport.CmamSummaryRow;
 import org.springframework.beans.propertyeditors.CustomDateEditor;
@@ -40,8 +41,8 @@ public class CmamSummaryReportController {
 	@RequestMapping(method = RequestMethod.GET)
 	public ModelAndView showReport(@RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate) {
-		List<CmamSummaryRow> rows = Context.getService(CmamFollowUpService.class).getSummaryReport(startDate,
-		    endDate);
+		List<CmamSummaryRow> rows = Context.getService(CmamFollowUpService.class).getSummaryReport(CmamAgeGroup.UNDER_5,
+		    startDate, endDate);
 
 		Map<String, List<CmamSummaryRow>> byDimension = new LinkedHashMap<>();
 		byDimension.put("currentDiagnosis", new ArrayList<>());

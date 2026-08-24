@@ -7,6 +7,7 @@ import java.util.List;
 import org.openmrs.api.impl.BaseOpenmrsService;
 import org.openmrs.module.labtestreport.StockFlowService;
 import org.openmrs.module.labtestreport.StockLocationQtyRow;
+import org.openmrs.module.labtestreport.StockMovementDetailRow;
 import org.openmrs.module.labtestreport.db.StockFlowDAO;
 
 public class StockFlowServiceImpl extends BaseOpenmrsService implements StockFlowService {
@@ -30,6 +31,39 @@ public class StockFlowServiceImpl extends BaseOpenmrsService implements StockFlo
 	@Override
 	public List<StockLocationQtyRow> getWastageByLocation(Date startDate, Date endDate, String locationUuid) {
 		return toRows(dao.getWastageRows(startDate, endDate, locationUuid));
+	}
+
+	@Override
+	public List<StockMovementDetailRow> getConsumptionDetails(Integer stockItemId, Integer locationId,
+	        Date startDate, Date endDate) {
+		return toDetailRows(dao.getConsumptionDetailRows(stockItemId, locationId, startDate, endDate));
+	}
+
+	@Override
+	public List<StockMovementDetailRow> getWastageDetails(Integer stockItemId, Integer locationId, Date startDate,
+	        Date endDate) {
+		return toDetailRows(dao.getWastageDetailRows(stockItemId, locationId, startDate, endDate));
+	}
+
+	@Override
+	public List<StockMovementDetailRow> getDistributionDetails(Integer stockItemId, Integer locationId,
+	        String sourceLocationUuid, Date startDate, Date endDate) {
+		return toDetailRows(dao.getDistributionDetailRows(stockItemId, locationId, sourceLocationUuid, startDate,
+		    endDate));
+	}
+
+	private static List<StockMovementDetailRow> toDetailRows(List<Object[]> results) {
+		List<StockMovementDetailRow> rows = new ArrayList<>();
+		for (Object[] r : results) {
+			StockMovementDetailRow row = new StockMovementDetailRow();
+			row.setBatchNo((String) r[0]);
+			row.setExpirationDate((java.util.Date) r[1]);
+			row.setVendorName((String) r[2]);
+			row.setQuantity(toDouble(r[3]));
+			row.setUnitName((String) r[4]);
+			rows.add(row);
+		}
+		return rows;
 	}
 
 	private static List<StockLocationQtyRow> toRows(List<Object[]> results) {

@@ -13,12 +13,14 @@ import org.openmrs.module.reporting.report.definition.ReportDefinition;
 import org.openmrs.module.reporting.report.manager.BaseReportManager;
 
 /**
- * Registers the session attendance report with the Reporting module so it also shows up in the
- * O3 Reports dashboard (as a plain data table, without the admin page's clickable rows).
+ * Registers the CMAM Follow-up report for patients 5 and older with the Reporting module so it
+ * also shows up in the O3 Reports dashboard (as a plain counts table, without the admin page's
+ * clickable drill-down). Counterpart to {@link CmamFollowUpReportManager}, which covers those
+ * under 5.
  */
-public class SessionAttendanceReportManager extends BaseReportManager {
+public class CmamAbove5FollowUpReportManager extends BaseReportManager {
 
-	public static final String UUID = "c3f7a1e2-9d4b-4a6f-8e1c-2b5d7f9a0c31";
+	public static final String UUID = "6e2f4a3d-8b1c-4e5a-9d6f-1a2b3c4d5e6f";
 
 	@Override
 	public String getUuid() {
@@ -27,13 +29,14 @@ public class SessionAttendanceReportManager extends BaseReportManager {
 
 	@Override
 	public String getName() {
-		return "Session Attendance Report";
+		return "CMAM Follow-up Summary Report (Above 5)";
 	}
 
 	@Override
 	public String getDescription() {
-		return "Individual and Group session attendance broken down by day, age group and gender. For clickable "
-		        + "drill-down to the patients behind each count, use the report under Administration instead.";
+		return "Patients 5 and older, by their most recent CMAM Follow-up encounter's Current Diagnosis, Child "
+		        + "Last Status and Alert Status. For clickable rows that jump to each patient's chart, use the "
+		        + "report under Administration instead.";
 	}
 
 	@Override
@@ -62,7 +65,7 @@ public class SessionAttendanceReportManager extends BaseReportManager {
 			dataSetDefinition.addParameter(parameter);
 		}
 
-		reportDefinition.addDataSetDefinition("sessionAttendance", Mapped.mapStraightThrough(dataSetDefinition));
+		reportDefinition.addDataSetDefinition("cmamAbove5FollowUpSummary", Mapped.mapStraightThrough(dataSetDefinition));
 
 		return reportDefinition;
 	}
@@ -83,15 +86,7 @@ public class SessionAttendanceReportManager extends BaseReportManager {
 	 * whatever columns the dataset returns.
 	 */
 	private static String buildPreviewSql() {
-		return "SELECT sessionDate AS `Date`, sessionType AS `Session Type`, sessionSubject AS `Session Subject`, "
-		        + "totalAttendees AS `Total Attendees`, "
-		        + "age_0_4_male AS `0-4 M`, age_0_4_female AS `0-4 F`, "
-		        + "age_5_14_male AS `5-14 M`, age_5_14_female AS `5-14 F`, "
-		        + "age_15_18_male AS `15-18 M`, age_15_18_female AS `15-18 F`, "
-		        + "age_19_49_male AS `19-49 M`, age_19_49_female AS `19-49 F`, "
-		        + "age_50_65_male AS `50-65 M`, age_50_65_female AS `50-65 F`, "
-		        + "age_65_plus_male AS `65+ M`, age_65_plus_female AS `65+ F`, "
-		        + "total AS `Total` "
-		        + "FROM (" + SqlResources.load("session_attendance_report.sql") + ") base";
+		return "SELECT dimension AS `Dimension`, category AS `Category`, total AS `Number of Patients` "
+		        + "FROM (" + SqlResources.load("cmam_summary_report_above5.sql") + ") base";
 	}
 }

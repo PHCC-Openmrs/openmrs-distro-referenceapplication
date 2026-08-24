@@ -9,6 +9,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
 import org.openmrs.api.context.Context;
+import org.openmrs.module.labtestreport.CmamAgeGroup;
 import org.openmrs.module.labtestreport.CmamFollowUpService;
 import org.openmrs.module.labtestreport.CmamPatientRow;
 import org.openmrs.module.labtestreport.CmamSummaryRow;
@@ -19,14 +20,13 @@ import org.openmrs.module.labtestreport.PatientEncounterDetailRow;
 import org.openmrs.module.labtestreport.PatientEncounterReportService;
 import org.openmrs.module.labtestreport.PatientEncounterSummaryRow;
 import org.openmrs.module.labtestreport.PatientRow;
-import org.openmrs.module.labtestreport.SessionAttendanceRow;
-import org.openmrs.module.labtestreport.SessionAttendanceService;
 import org.openmrs.module.labtestreport.StockBatchExpiryRow;
 import org.openmrs.module.labtestreport.StockDaysRemainingRow;
 import org.openmrs.module.labtestreport.StockFlowService;
 import org.openmrs.module.labtestreport.StockLedgerRow;
 import org.openmrs.module.labtestreport.StockLedgerService;
 import org.openmrs.module.labtestreport.StockLocationQtyRow;
+import org.openmrs.module.labtestreport.StockMovementDetailRow;
 import org.openmrs.module.labtestreport.StockReorderRow;
 import org.openmrs.module.labtestreport.StockStatusService;
 import org.openmrs.module.labtestreport.StockoutFrequencyRow;
@@ -133,26 +133,6 @@ public class LabTestReportRestController {
 		return jsonResponse(rows);
 	}
 
-	@RequestMapping(value = "/session-attendance.json", method = RequestMethod.GET)
-	@ResponseBody
-	public ResponseEntity<String> sessionAttendance(@RequestParam(value = "startDate", required = false) Date startDate,
-	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
-		List<SessionAttendanceRow> rows = Context.getService(SessionAttendanceService.class).getSummaryReport(startDate,
-		    endDate);
-		return jsonResponse(rows);
-	}
-
-	@RequestMapping(value = "/session-attendance-drilldown.json", method = RequestMethod.GET)
-	@ResponseBody
-	public ResponseEntity<String> sessionAttendanceDrilldown(@RequestParam("sessionDate") Date sessionDate,
-	        @RequestParam("sessionType") String sessionType,
-	        @RequestParam(value = "gender", required = false) String gender,
-	        @RequestParam(value = "ageGroup", required = false) String ageGroup) throws JsonProcessingException {
-		List<PatientRow> rows = Context.getService(SessionAttendanceService.class).getPatientsForCell(sessionDate,
-		    sessionType, gender, ageGroup);
-		return jsonResponse(rows);
-	}
-
 	@RequestMapping(value = "/stock-ledger.json", method = RequestMethod.GET)
 	@ResponseBody
 	public ResponseEntity<String> stockLedger(@RequestParam(value = "startDate", required = false) Date startDate,
@@ -191,6 +171,40 @@ public class LabTestReportRestController {
 	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
 		List<StockLocationQtyRow> rows = Context.getService(StockFlowService.class).getWastageByLocation(startDate,
 		    endDate, locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-consumption-drilldown.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockConsumptionDrilldown(@RequestParam("stockItemId") Integer stockItemId,
+	        @RequestParam("locationId") Integer locationId,
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		List<StockMovementDetailRow> rows = Context.getService(StockFlowService.class).getConsumptionDetails(
+		    stockItemId, locationId, startDate, endDate);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-wastage-drilldown.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockWastageDrilldown(@RequestParam("stockItemId") Integer stockItemId,
+	        @RequestParam("locationId") Integer locationId,
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		List<StockMovementDetailRow> rows = Context.getService(StockFlowService.class).getWastageDetails(stockItemId,
+		    locationId, startDate, endDate);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-distribution-drilldown.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockDistributionDrilldown(@RequestParam("stockItemId") Integer stockItemId,
+	        @RequestParam("locationId") Integer locationId,
+	        @RequestParam(value = "sourceLocationUuid", required = false) String sourceLocationUuid,
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		List<StockMovementDetailRow> rows = Context.getService(StockFlowService.class).getDistributionDetails(
+		    stockItemId, locationId, sourceLocationUuid, startDate, endDate);
 		return jsonResponse(rows);
 	}
 
@@ -234,9 +248,11 @@ public class LabTestReportRestController {
 
 	@RequestMapping(value = "/cmam-summary.json", method = RequestMethod.GET)
 	@ResponseBody
-	public ResponseEntity<String> cmamSummary(@RequestParam(value = "startDate", required = false) Date startDate,
+	public ResponseEntity<String> cmamSummary(@RequestParam(value = "ageGroup", required = false) String ageGroup,
+	        @RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
-		List<CmamSummaryRow> rows = Context.getService(CmamFollowUpService.class).getSummaryReport(startDate, endDate);
+		List<CmamSummaryRow> rows = Context.getService(CmamFollowUpService.class)
+		        .getSummaryReport(parseCmamAgeGroup(ageGroup), startDate, endDate);
 		return jsonResponse(rows);
 	}
 
@@ -252,10 +268,19 @@ public class LabTestReportRestController {
 		CMAM_DIMENSION_CONCEPT_UUIDS.put("alertStatus", "47266119-f616-4e8a-b094-518b4c2d660b");
 	}
 
+	/**
+	 * The CMAM form is used for both young children and older patients; "under5" (the default, for
+	 * backwards compatibility with any caller that omits it) and "above5" pick which population's
+	 * report to run - see {@link CmamAgeGroup}.
+	 */
+	private static CmamAgeGroup parseCmamAgeGroup(String ageGroup) {
+		return "above5".equals(ageGroup) ? CmamAgeGroup.ABOVE_5 : CmamAgeGroup.UNDER_5;
+	}
+
 	@RequestMapping(value = "/cmam-drilldown.json", method = RequestMethod.GET)
 	@ResponseBody
-	public ResponseEntity<String> cmamDrilldown(@RequestParam("dimension") String dimension,
-	        @RequestParam("categoryConceptId") Integer categoryConceptId,
+	public ResponseEntity<String> cmamDrilldown(@RequestParam(value = "ageGroup", required = false) String ageGroup,
+	        @RequestParam("dimension") String dimension, @RequestParam("categoryConceptId") Integer categoryConceptId,
 	        @RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
 		String dimensionConceptUuid = CMAM_DIMENSION_CONCEPT_UUIDS.get(dimension);
@@ -263,7 +288,8 @@ public class LabTestReportRestController {
 			throw new IllegalArgumentException("Unknown CMAM dimension: " + dimension);
 		}
 		List<CmamPatientRow> rows = Context.getService(CmamFollowUpService.class)
-		        .getPatientsForCategory(dimensionConceptUuid, categoryConceptId, startDate, endDate);
+		        .getPatientsForCategory(parseCmamAgeGroup(ageGroup), dimensionConceptUuid, categoryConceptId, startDate,
+		            endDate);
 		return jsonResponse(rows);
 	}
 

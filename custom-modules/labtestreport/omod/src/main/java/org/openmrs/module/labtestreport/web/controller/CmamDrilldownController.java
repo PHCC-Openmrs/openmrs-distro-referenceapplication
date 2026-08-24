@@ -7,6 +7,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.openmrs.api.context.Context;
+import org.openmrs.module.labtestreport.CmamAgeGroup;
 import org.openmrs.module.labtestreport.CmamFollowUpService;
 import org.openmrs.module.labtestreport.CmamPatientRow;
 import org.springframework.beans.propertyeditors.CustomDateEditor;
@@ -43,7 +44,7 @@ public class CmamDrilldownController {
 	        @RequestParam(value = "endDate", required = false) Date endDate) {
 
 		List<CmamPatientRow> patients = Context.getService(CmamFollowUpService.class).getPatientsForCategory(
-		    dimensionConceptUuid, categoryConceptId, startDate, endDate);
+		    CmamAgeGroup.UNDER_5, dimensionConceptUuid, categoryConceptId, startDate, endDate);
 
 		SimpleDateFormat dateFormat = new SimpleDateFormat(SummaryReportController.DATE_FORMAT);
 		ModelMap model = new ModelMap();

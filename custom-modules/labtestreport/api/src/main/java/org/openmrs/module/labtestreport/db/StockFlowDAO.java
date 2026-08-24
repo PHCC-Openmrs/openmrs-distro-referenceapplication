@@ -31,4 +31,25 @@ public interface StockFlowDAO {
 	 *         8-element array matching the column order of queries/stock_wastage_by_location.sql
 	 */
 	List<Object[]> getWastageRows(Date startDate, Date endDate, String locationUuid) throws DAOException;
+
+	/**
+	 * @return one row per batch behind a Consumption summary cell, each a 5-element array
+	 *         matching the column order of queries/stock_consumption_drilldown.sql
+	 */
+	List<Object[]> getConsumptionDetailRows(Integer stockItemId, Integer locationId, Date startDate, Date endDate)
+	        throws DAOException;
+
+	/**
+	 * @return one row per batch behind a Wastage summary cell, each a 5-element array matching
+	 *         the column order of queries/stock_wastage_drilldown.sql
+	 */
+	List<Object[]> getWastageDetailRows(Integer stockItemId, Integer locationId, Date startDate, Date endDate)
+	        throws DAOException;
+
+	/**
+	 * @return one row per batch behind a Distribution summary cell, each a 5-element array
+	 *         matching the column order of queries/stock_distribution_drilldown.sql
+	 */
+	List<Object[]> getDistributionDetailRows(Integer stockItemId, Integer locationId, String sourceLocationUuid,
+	        Date startDate, Date endDate) throws DAOException;
 }

@@ -27,13 +27,13 @@ public class CmamFollowUpReportManager extends BaseReportManager {
 
 	@Override
 	public String getName() {
-		return "CMAM Follow-up Summary Report";
+		return "CMAM Follow-up Summary Report (Under 5)";
 	}
 
 	@Override
 	public String getDescription() {
-		return "Children by their most recent CMAM Follow-up encounter's Current Diagnosis, Child Last Status "
-		        + "and Alert Status. For clickable rows that jump to each patient's chart, use the report "
+		return "Children under 5, by their most recent CMAM Follow-up encounter's Current Diagnosis, Child Last "
+		        + "Status and Alert Status. For clickable rows that jump to each patient's chart, use the report "
 		        + "under Administration instead.";
 	}
 

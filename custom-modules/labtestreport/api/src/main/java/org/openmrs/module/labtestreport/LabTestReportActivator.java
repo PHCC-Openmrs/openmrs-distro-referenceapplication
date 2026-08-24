@@ -1,11 +1,11 @@
 package org.openmrs.module.labtestreport;
 
 import org.openmrs.module.BaseModuleActivator;
+import org.openmrs.module.labtestreport.report.CmamAbove5FollowUpReportManager;
 import org.openmrs.module.labtestreport.report.CmamFollowUpReportManager;
 import org.openmrs.module.labtestreport.report.DiseaseSummaryReportManager;
 import org.openmrs.module.labtestreport.report.LabTestSummaryReportManager;
 import org.openmrs.module.labtestreport.report.PatientEncounterSummaryReportManager;
-import org.openmrs.module.labtestreport.report.SessionAttendanceReportManager;
 import org.openmrs.module.labtestreport.report.StockLedgerReportManager;
 import org.openmrs.module.reporting.report.manager.ReportManagerUtil;
 
@@ -19,9 +19,9 @@ public class LabTestReportActivator extends BaseModuleActivator {
 	public void started() {
 		ReportManagerUtil.setupReport(new LabTestSummaryReportManager());
 		ReportManagerUtil.setupReport(new CmamFollowUpReportManager());
+		ReportManagerUtil.setupReport(new CmamAbove5FollowUpReportManager());
 		ReportManagerUtil.setupReport(new PatientEncounterSummaryReportManager());
 		ReportManagerUtil.setupReport(new DiseaseSummaryReportManager());
-		ReportManagerUtil.setupReport(new SessionAttendanceReportManager());
 		ReportManagerUtil.setupReport(new StockLedgerReportManager());
 	}
 }

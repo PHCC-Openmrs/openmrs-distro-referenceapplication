@@ -8,14 +8,14 @@ WITH cmam_encounters AS (
     AND (:startDate IS NULL OR e.encounter_datetime >= :startDate)
     AND (:endDate IS NULL OR e.encounter_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
 ),
--- The CMAM form is also used for patients above 5 (see cmam_summary_report_above5.sql for their
--- summary); this report counts only those under 5 at their most recent CMAM encounter.
+-- Counterpart to cmam_summary_report.sql (which covers those under 5): this report counts only
+-- patients who were 5 or older at their most recent CMAM encounter.
 latest_encounters AS (
   SELECT ce.encounter_id, ce.patient_id
   FROM cmam_encounters ce
   JOIN person p ON p.person_id = ce.patient_id
   WHERE ce.rn = 1
-    AND TIMESTAMPDIFF(YEAR, p.birthdate, ce.encounter_datetime) < 5
+    AND TIMESTAMPDIFF(YEAR, p.birthdate, ce.encounter_datetime) >= 5
 )
 SELECT 'currentDiagnosis' AS dimension, c.concept_id AS categoryConceptId, cn.name AS category, COUNT(*) AS total
 FROM latest_encounters le
@@ -39,10 +39,10 @@ GROUP BY c.concept_id, cn.name
 
 UNION ALL
 
--- Alert Status is computed from the child's actual Appointments-module follow-up appointment
+-- Alert Status is computed from the patient's actual Appointments-module follow-up appointment
 -- (not the independently recorded, often-stale Alert Status answer, and not the CMAM form's own
 -- "next visit date" field - a doctor schedules the real follow-up as an Appointment): overdue if
--- that appointment date has passed, due soon if within 7 days, OK otherwise. A child with no
+-- that appointment date has passed, due soon if within 7 days, OK otherwise. A patient with no
 -- appointment scheduled at all falls into its own bucket - there's no date to compare, so it must
 -- not be silently counted as OK. That bucket has no backing concept, so it's given the sentinel
 -- categoryConceptId -1 (the drilldown query below special-cases it the same way).
