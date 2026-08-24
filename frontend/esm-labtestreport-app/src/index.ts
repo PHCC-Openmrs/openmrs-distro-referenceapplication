@@ -77,6 +77,16 @@ export const cmamAbove5SummaryReport = getAsyncLifecycle(
   options,
 );
 
+export const childUnder5Report = getAsyncLifecycle(
+  () => import('./nutrition-report/child-under-5-report.component'),
+  options,
+);
+
+export const childAbove5Report = getAsyncLifecycle(
+  () => import('./nutrition-report/child-above-5-report.component'),
+  options,
+);
+
 export const labTestSummaryLink = getAsyncLifecycle(() => import('./lab-test-summary-link.component'), options);
 
 export const patientEncounterSummaryLink = getAsyncLifecycle(

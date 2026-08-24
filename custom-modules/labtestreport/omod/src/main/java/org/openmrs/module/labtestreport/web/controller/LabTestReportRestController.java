@@ -16,6 +16,9 @@ import org.openmrs.module.labtestreport.CmamSummaryRow;
 import org.openmrs.module.labtestreport.DiseaseSummaryRow;
 import org.openmrs.module.labtestreport.DiseaseSummaryService;
 import org.openmrs.module.labtestreport.LabTestReportService;
+import org.openmrs.module.labtestreport.NutritionFilterOptions;
+import org.openmrs.module.labtestreport.NutritionReportService;
+import org.openmrs.module.labtestreport.NutritionSummaryRow;
 import org.openmrs.module.labtestreport.PatientEncounterDetailRow;
 import org.openmrs.module.labtestreport.PatientEncounterReportService;
 import org.openmrs.module.labtestreport.PatientEncounterSummaryRow;
@@ -291,6 +294,31 @@ public class LabTestReportRestController {
 		        .getPatientsForCategory(parseCmamAgeGroup(ageGroup), dimensionConceptUuid, categoryConceptId, startDate,
 		            endDate);
 		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/child-under-5-summary.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> childUnder5Summary(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		List<NutritionSummaryRow> rows = Context.getService(NutritionReportService.class).getSummaryReport(startDate,
+		    endDate, true);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/child-above-5-summary.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> childAbove5Summary(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		List<NutritionSummaryRow> rows = Context.getService(NutritionReportService.class).getSummaryReport(startDate,
+		    endDate, false);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/nutrition-filter-options.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> nutritionFilterOptions() throws JsonProcessingException {
+		NutritionFilterOptions options = Context.getService(NutritionReportService.class).getFilterOptions();
+		return jsonResponse(options);
 	}
 
 	private static <T> ResponseEntity<String> jsonResponse(T body) throws JsonProcessingException {
