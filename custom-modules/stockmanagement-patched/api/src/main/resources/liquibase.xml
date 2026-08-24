@@ -4717,4 +4717,26 @@ CREATE TRIGGER stockmgmt_location_after_delete
       </column>
     </addColumn>
   </changeSet>
+  <changeSet author="claude" id="stockmanagement-2026-08-24-0900">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="stockmgmt_stock_item_reference" />
+      <not>
+        <columnExists columnName="stock_item_packaging_uom_id" tableName="stockmgmt_stock_item_reference"/>
+      </not>
+    </preConditions>
+    <comment>
+      Adding column stock_item_packaging_uom_id on table stockmgmt_stock_item_reference, so each
+      vendor reference can record the pack size that vendor supplies the item in.
+    </comment>
+    <addColumn tableName="stockmgmt_stock_item_reference">
+      <column name="stock_item_packaging_uom_id" type="int">
+        <constraints nullable="true" />
+      </column>
+    </addColumn>
+    <addForeignKeyConstraint baseTableName="stockmgmt_stock_item_reference"
+                             baseColumnNames="stock_item_packaging_uom_id"
+                             referencedTableName="stockmgmt_stock_item_packaging_uom"
+                             referencedColumnNames="stock_item_packaging_uom_id"
+                             constraintName="stock_item_reference_packaging_uom_id_fk"/>
+  </changeSet>
 </databaseChangeLog>

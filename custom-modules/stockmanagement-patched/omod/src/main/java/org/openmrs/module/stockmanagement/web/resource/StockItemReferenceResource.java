@@ -76,9 +76,10 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 		description.addProperty("referenceCode");
 		description.addProperty("stockSourceUuid");
 		description.addProperty("stockItemUuid");
+		description.addProperty("packagingUnitUuid");
 		return description;
 	}
-	
+
 	@Override
 	public DelegatingResourceDescription getUpdatableProperties() {
 		DelegatingResourceDescription description = new DelegatingResourceDescription();
@@ -86,9 +87,10 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 		description.addProperty("referenceCode");
 		description.addProperty("stockSourceUuid");
 		description.addProperty("stockItemUuid");
+		description.addProperty("packagingUnitUuid");
 		return description;
 	}
-	
+
 	@Override
 	public DelegatingResourceDescription getRepresentationDescription(Representation rep) {
 		DelegatingResourceDescription description = new DelegatingResourceDescription();
@@ -98,17 +100,20 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 			description.addProperty("stockSourceUuid");
 			description.addProperty("stockSourceName");
 			description.addProperty("stockItemUuid");
-			
+			description.addProperty("packagingUnitUuid");
+			description.addProperty("packagingUnitName");
+			description.addProperty("packagingUnitFactor");
+
 		}
-		
+
 		if (rep instanceof DefaultRepresentation) {
 			description.addLink("full", ".?v=" + RestConstants.REPRESENTATION_FULL);
 		}
-		
+
 		if (rep instanceof FullRepresentation) {
 			description.addSelfLink();
 		}
-		
+
 		if (rep instanceof RefRepresentation) {
 			description.addProperty("uuid");
 			description.addProperty("stockSourceName");
@@ -117,8 +122,11 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 			description.addProperty("stockSourceUuid");
 			description.addProperty("stockSourceName");
 			description.addProperty("stockItemUuid");
+			description.addProperty("packagingUnitUuid");
+			description.addProperty("packagingUnitName");
+			description.addProperty("packagingUnitFactor");
 		}
-		
+
 		return description;
 	}
 	
@@ -137,18 +145,20 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 		if (rep instanceof DefaultRepresentation || rep instanceof FullRepresentation) {
 			modelImpl.property("uuid", new StringProperty()).property("referenceCode", new StringProperty())
 			        .property("stockSourceUuid", new StringProperty()).property("stockSourceName", new StringProperty())
-			        .property("stockItemUuid", new StringProperty());
+			        .property("stockItemUuid", new StringProperty()).property("packagingUnitUuid", new StringProperty())
+			        .property("packagingUnitName", new StringProperty());
 		}
 		if (rep instanceof DefaultRepresentation) {}
-		
+
 		if (rep instanceof FullRepresentation) {
-			
+
 		}
-		
+
 		if (rep instanceof RefRepresentation) {
 			modelImpl.property("uuid", new StringProperty()).property("referenceCode", new StringProperty())
 			        .property("stockSourceUuid", new StringProperty()).property("stockSourceName", new StringProperty())
-			        .property("stockItemUuid", new StringProperty());
+			        .property("stockItemUuid", new StringProperty()).property("packagingUnitUuid", new StringProperty())
+			        .property("packagingUnitName", new StringProperty());
 		}
 		
 		return modelImpl;
@@ -166,6 +176,13 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 			stockItemReferenceDTO.setReferenceCode(stockItemReference.getStockReferenceCode());
 			stockItemReferenceDTO.setUuid(stockItemReference.getUuid());
 			stockItemReferenceDTO.setVoided(stockItemReference.getVoided());
+			if (stockItemReference.getPackagingUnit() != null) {
+				stockItemReferenceDTO.setPackagingUnitId(stockItemReference.getPackagingUnit().getId());
+				stockItemReferenceDTO.setPackagingUnitUuid(stockItemReference.getPackagingUnit().getUuid());
+				stockItemReferenceDTO
+				        .setPackagingUnitName(stockItemReference.getPackagingUnit().getPackagingUom().getName().getName());
+				stockItemReferenceDTO.setPackagingUnitFactor(stockItemReference.getPackagingUnit().getFactor());
+			}
 			return stockItemReferenceDTO;
 		} else {
 			return null;
@@ -182,6 +199,12 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 			stockItemReference.setReferenceSource(stockManagementService.getStockSourceByUuid(dto.getStockSourceUuid()));
 			stockItemReference.setStockItem(stockManagementService.getStockItemByUuid(dto.getStockItemUuid()));
 			stockItemReference.setStockReferenceCode(dto.getReferenceCode());
+			if (dto.getPackagingUnitUuid() != null && !dto.getPackagingUnitUuid().isEmpty()) {
+				stockItemReference
+				        .setPackagingUnit(stockManagementService.getStockItemPackagingUOMByUuid(dto.getPackagingUnitUuid()));
+			} else {
+				stockItemReference.setPackagingUnit(null);
+			}
 			return stockItemReference;
 		} else {
 			return null;
