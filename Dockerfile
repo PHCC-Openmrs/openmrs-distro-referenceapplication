@@ -14,11 +14,13 @@ ARG MVN_COMMAND="install"
 # OWA/uiframework UI anyway (see the module's own config.xml for why).
 ARG LOCATIONBASEDACCESS_REPO=https://github.com/PHCC-Openmrs/openmrs-module-locationbasedaccess.git
 ARG LOCATIONBASEDACCESS_REF=master
-# Bump this (e.g. --build-arg LOCATIONBASEDACCESS_CACHE_BUST=$(date +%s)) to force a fresh clone;
-# otherwise Docker has no way to know the remote branch moved and will reuse a stale cached clone.
-ARG LOCATIONBASEDACCESS_CACHE_BUST=0
+# BuildKit compares the bytes an ADD <url> downloads against what it fetched last time it built
+# this stage, and invalidates this layer (plus everything after it) when they differ - so fetching
+# the branch's commit feed here auto-busts the git clone below whenever LOCATIONBASEDACCESS_REF
+# moves, with no manual --build-arg needed. Using the .atom feed (rather than the api.github.com
+# REST API) avoids GitHub's stricter, easily-exhausted unauthenticated API rate limit.
+ADD https://github.com/PHCC-Openmrs/openmrs-module-locationbasedaccess/commits/${LOCATIONBASEDACCESS_REF}.atom /tmp/locationbasedaccess-head.atom
 RUN --mount=type=secret,id=m2settings,target=/usr/share/maven/ref/settings-docker.xml \
-    echo "cache-bust=${LOCATIONBASEDACCESS_CACHE_BUST}" && \
     git clone --branch ${LOCATIONBASEDACCESS_REF} --depth 1 ${LOCATIONBASEDACCESS_REPO} /tmp/locationbasedaccess && \
     cd /tmp/locationbasedaccess && \
     mvn -s /usr/share/maven/ref/settings-docker.xml -DskipTests -pl api,omod -am install && \
