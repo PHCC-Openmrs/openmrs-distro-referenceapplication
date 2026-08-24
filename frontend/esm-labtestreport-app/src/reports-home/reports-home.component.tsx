@@ -112,6 +112,24 @@ export default function ReportsHome() {
           alertCount: cmamAlertCount,
           alertLoading: cmamAlertLoading,
         },
+        {
+          key: 'child-under-5',
+          title: t('childUnder5ReportTitle', 'Nutrition Report - Child Under 5'),
+          description: t(
+            'childUnder5ReportTileDesc',
+            'Beneficiaries currently under 5, with Current MUAC and Last MUAC and drill-down to each beneficiary.',
+          ),
+          route: 'child-under-5-report',
+        },
+        {
+          key: 'child-above-5',
+          title: t('childAbove5ReportTitle', 'Nutrition Report - Child Above 5'),
+          description: t(
+            'childAbove5ReportTileDesc',
+            'Beneficiaries currently 5 or older, with Current MUAC and Last MUAC and drill-down to each beneficiary.',
+          ),
+          route: 'child-above-5-report',
+        },
       ],
     },
     {

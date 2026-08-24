@@ -100,6 +100,14 @@
     {
       "component": "cmamSummaryReport",
       "route": "cmam-follow-up-report"
+    },
+    {
+      "component": "childUnder5Report",
+      "route": "child-under-5-report"
+    },
+    {
+      "component": "childAbove5Report",
+      "route": "child-above-5-report"
     }
   ]
 }

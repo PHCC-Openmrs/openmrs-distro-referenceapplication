@@ -1,6 +1,8 @@
 package org.openmrs.module.labtestreport;
 
 import org.openmrs.module.BaseModuleActivator;
+import org.openmrs.module.labtestreport.report.ChildAbove5ReportManager;
+import org.openmrs.module.labtestreport.report.ChildUnder5ReportManager;
 import org.openmrs.module.labtestreport.report.CmamFollowUpReportManager;
 import org.openmrs.module.labtestreport.report.DiseaseSummaryReportManager;
 import org.openmrs.module.labtestreport.report.LabTestSummaryReportManager;
@@ -23,5 +25,7 @@ public class LabTestReportActivator extends BaseModuleActivator {
 		ReportManagerUtil.setupReport(new DiseaseSummaryReportManager());
 		ReportManagerUtil.setupReport(new SessionAttendanceReportManager());
 		ReportManagerUtil.setupReport(new StockLedgerReportManager());
+		ReportManagerUtil.setupReport(new ChildUnder5ReportManager());
+		ReportManagerUtil.setupReport(new ChildAbove5ReportManager());
 	}
 }
