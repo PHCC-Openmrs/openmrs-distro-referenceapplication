@@ -3,6 +3,8 @@ import useSWR from 'swr';
 
 export type CmamDimension = 'currentDiagnosis' | 'childLastStatus' | 'alertStatus';
 
+export type CmamAgeGroup = 'under5' | 'above5';
+
 export interface CmamSummaryRow {
   dimension: CmamDimension;
   categoryConceptId: number;
@@ -26,6 +28,7 @@ export interface CmamPatientRow {
 }
 
 export interface CmamDrilldownParams {
+  ageGroup: CmamAgeGroup;
   dimension: CmamDimension;
   categoryConceptId: number;
   startDate?: string;
@@ -43,8 +46,8 @@ function buildQuery(params: Record<string, string | number | undefined>): string
   return query ? `?${query}` : '';
 }
 
-export function useCmamSummaryReport(startDate?: string, endDate?: string, enabled: boolean = true) {
-  const url = enabled ? `/module/labtestreport/api/cmam-summary.json${buildQuery({ startDate, endDate })}` : null;
+export function useCmamSummaryReport(ageGroup: CmamAgeGroup, startDate?: string, endDate?: string) {
+  const url = `/module/labtestreport/api/cmam-summary.json${buildQuery({ ageGroup, startDate, endDate })}`;
   const { data, error, isLoading } = useSWR<{ data: CmamSummaryRow[] }, Error>(url, openmrsFetch);
   return { rows: data?.data ?? [], error, isLoading };
 }

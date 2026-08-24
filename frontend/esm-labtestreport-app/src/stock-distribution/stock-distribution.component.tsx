@@ -16,7 +16,12 @@ import { formatQuantity } from '../reports-shell/format-quantity';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
-import { useStockDistributionReport, type StockLocationQtyRow } from './stock-distribution.resource';
+import StockMovementDrilldownModal from '../reports-shell/stock-movement-drilldown-modal.component';
+import {
+  useStockDistributionReport,
+  useStockDistributionDrilldown,
+  type StockLocationQtyRow,
+} from './stock-distribution.resource';
 
 const STOCK_LOCATION_TAG = 'Login Location';
 
@@ -35,6 +40,7 @@ export default function StockDistributionReport() {
   const [viewMode, setViewMode] = useState<'table' | 'graph'>('table');
   const [itemFilter, setItemFilter] = useState('');
   const [searchText, setSearchText] = useState('');
+  const [selectedRow, setSelectedRow] = useState<StockLocationQtyRow | null>(null);
   const compare = useMonthComparison();
 
   // Distribution is almost always "from the central Main Store", so default the filter to
@@ -66,6 +72,14 @@ export default function StockDistributionReport() {
     compare.enabled,
   );
   const dataLoading = isLoading || (compare.enabled && compareLoading);
+
+  const { rows: drilldownRows, isLoading: drilldownLoading } = useStockDistributionDrilldown(
+    selectedRow?.stockItemId,
+    selectedRow?.locationId,
+    sourceLocationUuid || undefined,
+    primaryStartDate,
+    primaryEndDate,
+  );
 
   const itemOptions = useMemo(() => distinctItemNames(rawRows), [rawRows]);
   const rows = useMemo(() => filterByItemAndSearch(rawRows, itemFilter, searchText), [rawRows, itemFilter, searchText]);
@@ -341,7 +355,11 @@ export default function StockDistributionReport() {
               </thead>
               <tbody>
                 {sortedRows.map((row) => (
-                  <tr key={`${row.stockItemId}-${row.locationId}-${row.sourceLocationName ?? ''}`}>
+                  <tr
+                    key={`${row.stockItemId}-${row.locationId}-${row.sourceLocationName ?? ''}`}
+                    className={pageStyles.clickableRow}
+                    onClick={() => setSelectedRow(row)}
+                  >
                     <td className="left">{row.itemName}</td>
                     <td className="left">{row.sourceLocationName ?? '—'}</td>
                     <td className="left">{row.locationName ?? '—'}</td>
@@ -363,6 +381,15 @@ export default function StockDistributionReport() {
 
         {!dataLoading && viewMode === 'graph' && (
           <SimpleBarChart data={chartData} emptyMessage={t('noDataForSelection', 'No data found for this selection.')} />
+        )}
+
+        {selectedRow && (
+          <StockMovementDrilldownModal
+            modalHeading={`${selectedRow.itemName} — ${selectedRow.sourceLocationName ?? '?'} → ${selectedRow.locationName ?? '?'}`}
+            rows={drilldownRows}
+            isLoading={drilldownLoading}
+            onClose={() => setSelectedRow(null)}
+          />
         )}
       </div>
     </div>

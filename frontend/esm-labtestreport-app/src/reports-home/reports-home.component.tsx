@@ -24,7 +24,7 @@ interface ReportCategory {
 
 /**
  * Groups every report into the same handful of categories a clinic manager would think in
- * (clinical/diagnostic activity, patient/session attendance, nutrition, stock), mirroring how the
+ * (clinical/diagnostic activity, patient activity, nutrition, stock), mirroring how the
  * Stock Reports tab itself groups its own sub-reports - so growing the report count doesn't mean
  * growing an undifferentiated wall of tiles.
  */
@@ -39,13 +39,22 @@ export default function ReportsHome() {
   );
   const isStockManager = session?.user?.privileges?.some((p) => p.display === 'App: stockmanagement.dashboard');
 
-  const { rows: cmamAlertRows, isLoading: cmamAlertLoading } = useCmamSummaryReport();
+  const { rows: cmamAlertRows, isLoading: cmamAlertLoading } = useCmamSummaryReport('under5');
   const cmamAlertCount = useMemo(
     () =>
       cmamAlertRows
         .filter((row) => row.dimension === 'alertStatus' && row.category !== 'OK')
         .reduce((sum, row) => sum + row.total, 0),
     [cmamAlertRows],
+  );
+
+  const { rows: cmamAbove5AlertRows, isLoading: cmamAbove5AlertLoading } = useCmamSummaryReport('above5');
+  const cmamAbove5AlertCount = useMemo(
+    () =>
+      cmamAbove5AlertRows
+        .filter((row) => row.dimension === 'alertStatus' && row.category !== 'OK')
+        .reduce((sum, row) => sum + row.total, 0),
+    [cmamAbove5AlertRows],
   );
 
   const categories: Array<ReportCategory> = [
@@ -86,15 +95,6 @@ export default function ReportsHome() {
           ),
           route: 'patient-encounter-summary-report',
         },
-        {
-          key: 'session-attendance',
-          title: t('sessionAttendanceReportTitle', 'Session Attendance Report'),
-          description: t(
-            'sessionAttendanceReportTileDesc',
-            'Individual and Group session attendance by day, age group and gender, with drill-down to the patients behind each count.',
-          ),
-          route: 'session-attendance-report',
-        },
       ],
     },
     {
@@ -103,14 +103,25 @@ export default function ReportsHome() {
       tiles: [
         {
           key: 'cmam-follow-up',
-          title: t('cmamFollowUpReportTitle', 'CMAM Follow-up Summary Report'),
+          title: t('cmamFollowUpReportTitle', 'CMAM Follow-up Summary Report (Under 5)'),
           description: t(
             'cmamFollowUpReportTileDesc',
-            'Children by Current Diagnosis, Child Last Status and Alert Status, with drill-down to the children behind each count.',
+            'Children under 5 by Current Diagnosis, Child Last Status and Alert Status, with drill-down to the children behind each count.',
           ),
           route: 'cmam-follow-up-report',
           alertCount: cmamAlertCount,
           alertLoading: cmamAlertLoading,
+        },
+        {
+          key: 'cmam-above5-follow-up',
+          title: t('cmamAbove5FollowUpReportTitle', 'CMAM Follow-up Summary Report (Above 5)'),
+          description: t(
+            'cmamAbove5FollowUpReportTileDesc',
+            'Patients 5 and older by Current Diagnosis, Child Last Status and Alert Status, with drill-down to the patients behind each count.',
+          ),
+          route: 'cmam-above5-follow-up-report',
+          alertCount: cmamAbove5AlertCount,
+          alertLoading: cmamAbove5AlertLoading,
         },
       ],
     },

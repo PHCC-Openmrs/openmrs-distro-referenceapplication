@@ -162,7 +162,6 @@ interface LedgerGroup {
   batchNo: string | null;
   expirationDate: string | null;
   rows: Array<StockLedgerRow>;
-  totalIncoming: number;
   totalOutgoing: number;
   latestRemaining: number;
   unitName: string | null;
@@ -178,7 +177,6 @@ function buildGroupedRows(items: Array<LedgerItem>, flatRows: Array<StockLedgerR
       batchNo: item.batchNo,
       expirationDate: item.expirationDate,
       rows,
-      totalIncoming: rows.reduce((sum, row) => sum + row.incomingQty, 0),
       totalOutgoing: rows.reduce((sum, row) => sum + row.outgoingQty, 0),
       latestRemaining: rows.length > 0 ? rows[rows.length - 1].remainingQty : 0,
       unitName: rows.length > 0 ? rows[0].unitName : null,
@@ -335,7 +333,6 @@ export default function StockLedgerReport() {
         t('expirationDate', 'Expiration Date'),
         t('date', 'Date'),
         t('openingBalance', 'Opening Balance'),
-        t('incoming', 'Incoming'),
         t('outgoing', 'Outgoing'),
         t('balanceOnStock', 'Balance on Stock'),
         t('unit', 'Unit'),
@@ -347,7 +344,6 @@ export default function StockLedgerReport() {
         row.expirationDate ? formatExpirationDate(row.expirationDate) : '',
         row.ledgerDate,
         row.actualQty,
-        row.incomingQty,
         row.outgoingQty,
         row.remainingQty,
         row.unitName ?? '',
@@ -520,7 +516,6 @@ export default function StockLedgerReport() {
                   <th className="left">{t('expirationDate', 'Expiration Date')}</th>
                   <th className="left">{t('date', 'Date')}</th>
                   <th>{t('openingBalance', 'Opening Balance')}</th>
-                  <th>{t('incoming', 'Incoming')}</th>
                   <th>{t('outgoing', 'Outgoing')}</th>
                   <th>{t('balanceOnStock', 'Balance on Stock')}</th>
                 </tr>
@@ -542,7 +537,6 @@ export default function StockLedgerReport() {
                         <td className="left">{group.batchNo ?? '—'}</td>
                         <td className="left">{formatExpirationDate(group.expirationDate)}</td>
                         <td>{'—'}</td>
-                        <td>{formatQuantity(group.totalIncoming, unitName)}</td>
                         <td>{formatQuantity(group.totalOutgoing, unitName)}</td>
                         <td>
                           <strong>{formatQuantity(group.latestRemaining, unitName)}</strong>
@@ -557,7 +551,6 @@ export default function StockLedgerReport() {
                             <td className="left" />
                             <td className="left">{row.ledgerDate}</td>
                             <td>{formatQuantity(row.actualQty, row.unitName)}</td>
-                            <td>{formatQuantity(row.incomingQty, row.unitName)}</td>
                             <td>{formatQuantity(row.outgoingQty, row.unitName)}</td>
                             <td>{formatQuantity(row.remainingQty, row.unitName)}</td>
                           </tr>
@@ -567,7 +560,7 @@ export default function StockLedgerReport() {
                 })}
                 {groupedRows.length === 0 && (
                   <tr>
-                    <td colSpan={showLocationColumn ? 9 : 8} className={pageStyles.emptyState}>
+                    <td colSpan={showLocationColumn ? 8 : 7} className={pageStyles.emptyState}>
                       {t('noDataForSelection', 'No data found for this selection.')}
                     </td>
                   </tr>

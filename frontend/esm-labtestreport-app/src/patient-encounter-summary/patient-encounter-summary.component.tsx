@@ -182,6 +182,9 @@ export default function PatientEncounterSummaryReport() {
       headers: [
         t('givenName', 'Given Name'),
         t('familyName', 'Family Name'),
+        t('sex', 'Sex'),
+        t('nationalId', 'National ID'),
+        t('phoneNumber', 'Phone Number'),
         t('age', 'Age'),
         t('numberOfVisits', 'Number of Visits'),
         t('mostRecentVisitDate', 'Most Recent Visit Date'),
@@ -191,6 +194,9 @@ export default function PatientEncounterSummaryReport() {
       rows: filteredRows.map((row) => [
         row.givenName,
         row.familyName,
+        row.sex ?? '',
+        row.nationalId ?? '',
+        row.phoneNumber ?? '',
         row.age,
         row.visitCount,
         row.mostRecentVisitDate,

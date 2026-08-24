@@ -20,11 +20,6 @@
       "component": "diseaseSummaryLink"
     },
     {
-      "name": "session-attendance-admin-link",
-      "slot": "system-admin-page-card-link-slot",
-      "component": "sessionAttendanceLink"
-    },
-    {
       "name": "stock-ledger-admin-link",
       "slot": "system-admin-page-card-link-slot",
       "component": "stockLedgerLink"
@@ -33,6 +28,11 @@
       "name": "cmam-summary-admin-link",
       "slot": "system-admin-page-card-link-slot",
       "component": "cmamSummaryLink"
+    },
+    {
+      "name": "cmam-above5-summary-admin-link",
+      "slot": "system-admin-page-card-link-slot",
+      "component": "cmamAbove5SummaryLink"
     },
     {
       "name": "reports-overview-admin-link",
@@ -56,10 +56,6 @@
     {
       "component": "diseaseSummaryReport",
       "route": "disease-summary-report"
-    },
-    {
-      "component": "sessionAttendanceReport",
-      "route": "session-attendance-report"
     },
     {
       "component": "stockReportsHome",
@@ -100,6 +96,10 @@
     {
       "component": "cmamSummaryReport",
       "route": "cmam-follow-up-report"
+    },
+    {
+      "component": "cmamAbove5SummaryReport",
+      "route": "cmam-above5-follow-up-report"
     }
   ]
 }

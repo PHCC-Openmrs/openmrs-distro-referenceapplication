@@ -34,11 +34,6 @@ export const diseaseSummaryReport = getAsyncLifecycle(
   options,
 );
 
-export const sessionAttendanceReport = getAsyncLifecycle(
-  () => import('./session-attendance/session-attendance.component'),
-  options,
-);
-
 export const stockReportsHome = getAsyncLifecycle(
   () => import('./stock-reports-home/stock-reports-home.component'),
   options,
@@ -77,6 +72,11 @@ export const stockStockoutFrequencyReport = getAsyncLifecycle(
 
 export const cmamSummaryReport = getAsyncLifecycle(() => import('./cmam-summary/cmam-summary.component'), options);
 
+export const cmamAbove5SummaryReport = getAsyncLifecycle(
+  () => import('./cmam-summary/cmam-above5-summary.component'),
+  options,
+);
+
 export const labTestSummaryLink = getAsyncLifecycle(() => import('./lab-test-summary-link.component'), options);
 
 export const patientEncounterSummaryLink = getAsyncLifecycle(
@@ -86,10 +86,10 @@ export const patientEncounterSummaryLink = getAsyncLifecycle(
 
 export const diseaseSummaryLink = getAsyncLifecycle(() => import('./disease-summary-link.component'), options);
 
-export const sessionAttendanceLink = getAsyncLifecycle(() => import('./session-attendance-link.component'), options);
-
 export const stockLedgerLink = getAsyncLifecycle(() => import('./stock-ledger-link.component'), options);
 
 export const cmamSummaryLink = getAsyncLifecycle(() => import('./cmam-summary-link.component'), options);
+
+export const cmamAbove5SummaryLink = getAsyncLifecycle(() => import('./cmam-above5-summary-link.component'), options);
 
 export const reportsOverviewLink = getAsyncLifecycle(() => import('./reports-overview-link.component'), options);

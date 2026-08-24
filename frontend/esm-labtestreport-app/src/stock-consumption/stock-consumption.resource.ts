@@ -14,6 +14,18 @@ export interface StockLocationQtyRow {
   remainingQty: number;
 }
 
+/**
+ * How much of a summary row's total quantity came from one batch/vendor - e.g. "100 boxes from
+ * batch A / Vendor X, 50 from batch B / Vendor Y" for a single item+location summary row.
+ */
+export interface StockMovementDetailRow {
+  batchNo: string | null;
+  expirationDate: string | null;
+  vendorName: string | null;
+  quantity: number;
+  unitName: string | null;
+}
+
 function buildQuery(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -35,5 +47,19 @@ export function useStockConsumptionReport(
     ? `/module/labtestreport/api/stock-consumption.json${buildQuery({ startDate, endDate, locationUuid })}`
     : null;
   const { data, error, isLoading } = useSWR<{ data: Array<StockLocationQtyRow> }, Error>(url, openmrsFetch);
+  return { rows: data?.data ?? [], error, isLoading };
+}
+
+export function useStockConsumptionDrilldown(
+  stockItemId?: number,
+  locationId?: number,
+  startDate?: string,
+  endDate?: string,
+) {
+  const url =
+    stockItemId != null && locationId != null
+      ? `/module/labtestreport/api/stock-consumption-drilldown.json${buildQuery({ stockItemId, locationId, startDate, endDate })}`
+      : null;
+  const { data, error, isLoading } = useSWR<{ data: Array<StockMovementDetailRow> }, Error>(url, openmrsFetch);
   return { rows: data?.data ?? [], error, isLoading };
 }

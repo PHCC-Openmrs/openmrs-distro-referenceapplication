@@ -16,7 +16,8 @@ import { formatQuantity } from '../reports-shell/format-quantity';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
-import { useStockWastageReport, type StockLocationQtyRow } from './stock-wastage.resource';
+import StockMovementDrilldownModal from '../reports-shell/stock-movement-drilldown-modal.component';
+import { useStockWastageReport, useStockWastageDrilldown, type StockLocationQtyRow } from './stock-wastage.resource';
 
 const STOCK_LOCATION_TAG = 'Login Location';
 
@@ -40,6 +41,7 @@ export default function StockWastageReport() {
   const [viewMode, setViewMode] = useState<'table' | 'graph'>('table');
   const [itemFilter, setItemFilter] = useState('');
   const [searchText, setSearchText] = useState('');
+  const [selectedRow, setSelectedRow] = useState<StockLocationQtyRow | null>(null);
   const compare = useMonthComparison();
 
   const primaryStartDate = compare.enabled ? compare.primary.startDate : appliedDates.startDate;
@@ -54,6 +56,13 @@ export default function StockWastageReport() {
   );
   const dataLoading = isLoading || (compare.enabled && compareLoading);
   const showLocationInLabel = !locationUuid;
+
+  const { rows: drilldownRows, isLoading: drilldownLoading } = useStockWastageDrilldown(
+    selectedRow?.stockItemId,
+    selectedRow?.locationId,
+    primaryStartDate,
+    primaryEndDate,
+  );
 
   const itemOptions = useMemo(() => distinctItemNames(rawRows), [rawRows]);
   const rows = useMemo(() => filterByItemAndSearch(rawRows, itemFilter, searchText), [rawRows, itemFilter, searchText]);
@@ -314,7 +323,11 @@ export default function StockWastageReport() {
               </thead>
               <tbody>
                 {sortedRows.map((row) => (
-                  <tr key={`${row.stockItemId}-${row.locationId}`}>
+                  <tr
+                    key={`${row.stockItemId}-${row.locationId}`}
+                    className={pageStyles.clickableRow}
+                    onClick={() => setSelectedRow(row)}
+                  >
                     <td className="left">{row.itemName}</td>
                     {showLocationInLabel && <td className="left">{row.locationName ?? '—'}</td>}
                     <td>{formatQuantity(row.quantity, row.unitName)}</td>
@@ -335,6 +348,15 @@ export default function StockWastageReport() {
 
         {!dataLoading && viewMode === 'graph' && (
           <SimpleBarChart data={chartData} emptyMessage={t('noDataForSelection', 'No data found for this selection.')} />
+        )}
+
+        {selectedRow && (
+          <StockMovementDrilldownModal
+            modalHeading={`${selectedRow.itemName} — ${selectedRow.locationName ?? '?'}`}
+            rows={drilldownRows}
+            isLoading={drilldownLoading}
+            onClose={() => setSelectedRow(null)}
+          />
         )}
       </div>
     </div>

@@ -16,7 +16,12 @@ import { formatQuantity } from '../reports-shell/format-quantity';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
-import { useStockConsumptionReport, type StockLocationQtyRow } from './stock-consumption.resource';
+import StockMovementDrilldownModal from '../reports-shell/stock-movement-drilldown-modal.component';
+import {
+  useStockConsumptionReport,
+  useStockConsumptionDrilldown,
+  type StockLocationQtyRow,
+} from './stock-consumption.resource';
 
 // Stock locations are tagged this way throughout the stock management module (matches the
 // tag used for the session location switcher), so this is the same set a user would pick
@@ -43,6 +48,7 @@ export default function StockConsumptionReport() {
   const [viewMode, setViewMode] = useState<'table' | 'graph'>('table');
   const [itemFilter, setItemFilter] = useState('');
   const [searchText, setSearchText] = useState('');
+  const [selectedRow, setSelectedRow] = useState<StockLocationQtyRow | null>(null);
   const compare = useMonthComparison();
 
   const primaryStartDate = compare.enabled ? compare.primary.startDate : appliedDates.startDate;
@@ -61,6 +67,13 @@ export default function StockConsumptionReport() {
   );
   const dataLoading = isLoading || (compare.enabled && compareLoading);
   const showLocationInLabel = !locationUuid;
+
+  const { rows: drilldownRows, isLoading: drilldownLoading } = useStockConsumptionDrilldown(
+    selectedRow?.stockItemId,
+    selectedRow?.locationId,
+    primaryStartDate,
+    primaryEndDate,
+  );
 
   const itemOptions = useMemo(() => distinctItemNames(rawRows), [rawRows]);
   const rows = useMemo(() => filterByItemAndSearch(rawRows, itemFilter, searchText), [rawRows, itemFilter, searchText]);
@@ -325,7 +338,11 @@ export default function StockConsumptionReport() {
               </thead>
               <tbody>
                 {sortedRows.map((row) => (
-                  <tr key={`${row.stockItemId}-${row.locationId}`}>
+                  <tr
+                    key={`${row.stockItemId}-${row.locationId}`}
+                    className={pageStyles.clickableRow}
+                    onClick={() => setSelectedRow(row)}
+                  >
                     <td className="left">{row.itemName}</td>
                     {showLocationInLabel && <td className="left">{row.locationName ?? '—'}</td>}
                     <td>{formatQuantity(row.quantity, row.unitName)}</td>
@@ -346,6 +363,15 @@ export default function StockConsumptionReport() {
 
         {!dataLoading && viewMode === 'graph' && (
           <SimpleBarChart data={chartData} emptyMessage={t('noDataForSelection', 'No data found for this selection.')} />
+        )}
+
+        {selectedRow && (
+          <StockMovementDrilldownModal
+            modalHeading={`${selectedRow.itemName} — ${selectedRow.locationName ?? '?'}`}
+            rows={drilldownRows}
+            isLoading={drilldownLoading}
+            onClose={() => setSelectedRow(null)}
+          />
         )}
       </div>
     </div>
