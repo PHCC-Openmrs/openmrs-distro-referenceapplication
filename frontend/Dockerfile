@@ -155,8 +155,9 @@ RUN npm install --no-save --legacy-peer-deps openmrs@${APP_SHELL_VERSION:-next} 
     APP_SHELL_DIR=$(find node_modules -type d -path '*@openmrs/esm-app-shell' | head -n1) && \
     echo "Found esm-app-shell at: ${APP_SHELL_DIR}" && \
     test -n "${APP_SHELL_DIR}" && \
-    rm -rf "${APP_SHELL_DIR}/dist" && \
-    cp -r openmrs-esm-core/packages/shell/esm-app-shell/dist "${APP_SHELL_DIR}/dist" && \
+    rm -rf "${APP_SHELL_DIR}" && \
+    mkdir -p "${APP_SHELL_DIR}" && \
+    cp -r openmrs-esm-core/packages/shell/esm-app-shell/. "${APP_SHELL_DIR}/" && \
     FRAMEWORK_DIR=$(find node_modules -type d -path '*@openmrs/esm-framework' | head -n1) && \
     echo "Found esm-framework at: ${FRAMEWORK_DIR}" && \
     test -n "${FRAMEWORK_DIR}" && \
