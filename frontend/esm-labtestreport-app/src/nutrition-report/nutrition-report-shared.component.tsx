@@ -41,6 +41,7 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
   const [categoryFilter, setCategoryFilter] = useState('');
   const [diagnosisFilter, setDiagnosisFilter] = useState('');
   const [supplementFilter, setSupplementFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [minMuac, setMinMuac] = useState<number | ''>('');
   const [maxMuac, setMaxMuac] = useState<number | ''>('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,6 +53,7 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
     categories: categoryOptions,
     diagnoses: diagnosisOptions,
     supplementTypes: supplementOptions,
+    statuses: statusOptions,
   } = filterOptions;
 
   const filteredRows = useMemo(() => {
@@ -74,6 +76,9 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
       if (supplementFilter && row.typeOfSupplement !== supplementFilter) {
         return false;
       }
+      if (statusFilter && row.status !== statusFilter) {
+        return false;
+      }
       if (minMuac !== '' && (row.currentMuac == null || row.currentMuac < minMuac)) {
         return false;
       }
@@ -82,7 +87,18 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
       }
       return true;
     });
-  }, [rows, minAge, maxAge, locationFilter, categoryFilter, diagnosisFilter, supplementFilter, minMuac, maxMuac]);
+  }, [
+    rows,
+    minAge,
+    maxAge,
+    locationFilter,
+    categoryFilter,
+    diagnosisFilter,
+    supplementFilter,
+    statusFilter,
+    minMuac,
+    maxMuac,
+  ]);
 
   const searchedRows = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -107,6 +123,7 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
       currentMuac: (row: NutritionSummaryRow) => row.currentMuac,
       lastMuac: (row: NutritionSummaryRow) => row.lastMuac,
       diagnosis: (row: NutritionSummaryRow) => row.diagnosis ?? '',
+      status: (row: NutritionSummaryRow) => row.status ?? '',
     }),
     [],
   );
@@ -141,6 +158,7 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
         t('nationalId', 'National ID'),
         t('phoneNumber', 'Phone Number'),
         t('project', 'Project'),
+        t('status', 'Status'),
       ],
       rows: filteredRows.map((row) => [
         row.givenName,
@@ -158,6 +176,7 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
         row.nationalId ?? '',
         row.phoneNumber ?? '',
         row.project ?? '',
+        row.status ?? '',
       ]),
     }),
     [t, title, filteredRows],
@@ -174,6 +193,7 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
     setCategoryFilter('');
     setDiagnosisFilter('');
     setSupplementFilter('');
+    setStatusFilter('');
     setMinMuac('');
     setMaxMuac('');
     setSearchTerm('');
@@ -282,6 +302,17 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
               {supplementOptions.map((supplement) => (
                 <option key={supplement} value={supplement}>
                   {supplement}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={pageStyles.filterField}>
+            <label htmlFor="statusFilter">{t('status', 'Status')}</label>
+            <select id="statusFilter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="">{t('all', 'All')}</option>
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {status}
                 </option>
               ))}
             </select>
@@ -405,6 +436,14 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
                   <th className="left">{t('nationalId', 'National ID')}</th>
                   <th className="left">{t('phoneNumber', 'Phone Number')}</th>
                   <th className="left">{t('project', 'Project')}</th>
+                  <SortableHeader
+                    label={t('status', 'Status')}
+                    sortKey="status"
+                    activeSortKey={sortKey}
+                    direction={direction}
+                    onSort={toggleSort}
+                    className="left"
+                  />
                 </tr>
               </thead>
               <tbody>
@@ -426,11 +465,12 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
                     <td className="left">{row.nationalId || '--'}</td>
                     <td className="left">{row.phoneNumber || '--'}</td>
                     <td className="left">{row.project || '--'}</td>
+                    <td className="left">{row.status || '--'}</td>
                   </tr>
                 ))}
                 {sortedRows.length === 0 && (
                   <tr>
-                    <td colSpan={14} className={pageStyles.emptyState}>
+                    <td colSpan={15} className={pageStyles.emptyState}>
                       {t('noPatientsForSelection', 'No patients found for this selection.')}
                     </td>
                   </tr>

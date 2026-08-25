@@ -30,11 +30,6 @@
       "component": "cmamSummaryLink"
     },
     {
-      "name": "cmam-above5-summary-admin-link",
-      "slot": "system-admin-page-card-link-slot",
-      "component": "cmamAbove5SummaryLink"
-    },
-    {
       "name": "reports-overview-admin-link",
       "slot": "system-admin-page-card-link-slot",
       "component": "reportsOverviewLink"
@@ -108,6 +103,14 @@
     {
       "component": "childAbove5Report",
       "route": "child-above-5-report"
+    },
+    {
+      "component": "referralFormReport",
+      "route": "referral-form-report"
+    },
+    {
+      "component": "ncdPatientCardReport",
+      "route": "ncd-patient-card-report"
     }
   ]
 }

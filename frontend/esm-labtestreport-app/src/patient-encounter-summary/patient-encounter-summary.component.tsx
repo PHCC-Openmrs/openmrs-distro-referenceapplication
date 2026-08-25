@@ -32,6 +32,10 @@ function uniqueSorted(values: Array<string>): Array<string> {
   return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
 }
 
+function formatFullName(row: Pick<PatientEncounterSummaryRow, 'givenName' | 'middleName' | 'familyName'>): string {
+  return [row.givenName, row.middleName, row.familyName].filter(Boolean).join(' ');
+}
+
 function summarize(
   rows: Array<PatientEncounterSummaryRow>,
   minAge: number | '',
@@ -117,7 +121,7 @@ export default function PatientEncounterSummaryReport() {
       return filteredRows;
     }
     return filteredRows.filter((row) =>
-      [row.givenName, row.familyName, row.nationalId, row.phoneNumber, row.location, row.serviceType]
+      [row.givenName, row.middleName, row.familyName, row.nationalId, row.phoneNumber, row.location, row.serviceType]
         .filter(Boolean)
         .some((field) => field.toLowerCase().includes(term)),
     );
@@ -125,7 +129,7 @@ export default function PatientEncounterSummaryReport() {
 
   const sortAccessors = useMemo(
     () => ({
-      name: (row: PatientEncounterSummaryRow) => `${row.familyName} ${row.givenName}`,
+      name: (row: PatientEncounterSummaryRow) => `${row.familyName} ${row.givenName} ${row.middleName ?? ''}`,
       sex: (row: PatientEncounterSummaryRow) => row.sex ?? '',
       nationalId: (row: PatientEncounterSummaryRow) => row.nationalId ?? '',
       phoneNumber: (row: PatientEncounterSummaryRow) => row.phoneNumber ?? '',
@@ -142,7 +146,7 @@ export default function PatientEncounterSummaryReport() {
   const chartData = useMemo(
     () =>
       filteredRows.map((row) => ({
-        label: `${row.givenName} ${row.familyName}`,
+        label: formatFullName(row),
         value: row.visitCount,
       })),
     [filteredRows],
@@ -181,6 +185,7 @@ export default function PatientEncounterSummaryReport() {
       name: t('patientVisitSummary', 'Patient Visit Summary'),
       headers: [
         t('givenName', 'Given Name'),
+        t('middleName', 'Middle Name'),
         t('familyName', 'Family Name'),
         t('sex', 'Sex'),
         t('nationalId', 'National ID'),
@@ -193,6 +198,7 @@ export default function PatientEncounterSummaryReport() {
       ],
       rows: filteredRows.map((row) => [
         row.givenName,
+        row.middleName ?? '',
         row.familyName,
         row.sex ?? '',
         row.nationalId ?? '',
@@ -432,9 +438,7 @@ export default function PatientEncounterSummaryReport() {
                     className={pageStyles.clickableRow}
                     onClick={() => goToPatientChart(row.patientUuid)}
                   >
-                    <td className="left">
-                      {row.givenName} {row.familyName}
-                    </td>
+                    <td className="left">{formatFullName(row)}</td>
                     <td className="left">{row.sex}</td>
                     <td className="left">{row.nationalId}</td>
                     <td className="left">{row.phoneNumber}</td>

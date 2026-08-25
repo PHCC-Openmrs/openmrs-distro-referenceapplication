@@ -5,6 +5,7 @@ export interface PatientEncounterSummaryRow {
   patientId: number;
   patientUuid: string;
   givenName: string;
+  middleName: string;
   familyName: string;
   age: number;
   visitCount: number;

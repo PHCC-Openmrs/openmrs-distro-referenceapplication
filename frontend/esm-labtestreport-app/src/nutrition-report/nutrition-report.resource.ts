@@ -19,6 +19,7 @@ export interface NutritionSummaryRow {
   nationalId: string | null;
   phoneNumber: string | null;
   project: string | null;
+  status: string | null;
 }
 
 export type NutritionAgeBand = 'under5' | 'above5';
@@ -47,6 +48,7 @@ export interface NutritionFilterOptions {
   categories: Array<string>;
   diagnoses: Array<string>;
   supplementTypes: Array<string>;
+  statuses: Array<string>;
 }
 
 const EMPTY_FILTER_OPTIONS: NutritionFilterOptions = {
@@ -54,6 +56,7 @@ const EMPTY_FILTER_OPTIONS: NutritionFilterOptions = {
   categories: [],
   diagnoses: [],
   supplementTypes: [],
+  statuses: [],
 };
 
 /**

@@ -41,6 +41,7 @@ public class NutritionReportServiceImpl extends BaseOpenmrsService implements Nu
 			row.setNationalId((String) r[14]);
 			row.setPhoneNumber((String) r[15]);
 			row.setProject((String) r[16]);
+			row.setStatus((String) r[17]);
 			rows.add(row);
 		}
 		return rows;
@@ -52,6 +53,7 @@ public class NutritionReportServiceImpl extends BaseOpenmrsService implements Nu
 		LinkedHashSet<String> categories = new LinkedHashSet<>();
 		LinkedHashSet<String> diagnoses = new LinkedHashSet<>();
 		LinkedHashSet<String> supplementTypes = new LinkedHashSet<>();
+		LinkedHashSet<String> statuses = new LinkedHashSet<>();
 		for (Object[] r : dao.getFilterOptionRows()) {
 			String filterType = (String) r[0];
 			String optionValue = (String) r[1];
@@ -71,6 +73,9 @@ public class NutritionReportServiceImpl extends BaseOpenmrsService implements Nu
 				case "supplementType":
 					supplementTypes.add(optionValue);
 					break;
+				case "status":
+					statuses.add(optionValue);
+					break;
 				default:
 					break;
 			}
@@ -80,6 +85,7 @@ public class NutritionReportServiceImpl extends BaseOpenmrsService implements Nu
 		options.setCategories(new ArrayList<>(categories));
 		options.setDiagnoses(new ArrayList<>(diagnoses));
 		options.setSupplementTypes(new ArrayList<>(supplementTypes));
+		options.setStatuses(new ArrayList<>(statuses));
 		return options;
 	}
 

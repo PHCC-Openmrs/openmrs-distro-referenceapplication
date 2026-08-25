@@ -87,6 +87,16 @@ export const childAbove5Report = getAsyncLifecycle(
   options,
 );
 
+export const referralFormReport = getAsyncLifecycle(
+  () => import('./referral-form-report/referral-form-report.component'),
+  options,
+);
+
+export const ncdPatientCardReport = getAsyncLifecycle(
+  () => import('./ncd-patient-card-report/ncd-patient-card-report.component'),
+  options,
+);
+
 export const labTestSummaryLink = getAsyncLifecycle(() => import('./lab-test-summary-link.component'), options);
 
 export const patientEncounterSummaryLink = getAsyncLifecycle(
@@ -99,7 +109,5 @@ export const diseaseSummaryLink = getAsyncLifecycle(() => import('./disease-summ
 export const stockLedgerLink = getAsyncLifecycle(() => import('./stock-ledger-link.component'), options);
 
 export const cmamSummaryLink = getAsyncLifecycle(() => import('./cmam-summary-link.component'), options);
-
-export const cmamAbove5SummaryLink = getAsyncLifecycle(() => import('./cmam-above5-summary-link.component'), options);
 
 export const reportsOverviewLink = getAsyncLifecycle(() => import('./reports-overview-link.component'), options);

@@ -95,6 +95,24 @@ export default function ReportsHome() {
           ),
           route: 'patient-encounter-summary-report',
         },
+        {
+          key: 'referral-form-report',
+          title: t('referralFormReportTitle', 'Referral Form Report'),
+          description: t(
+            'referralFormReportTileDesc',
+            'Every Referral Form submission with the referral, clinical and signature details recorded on the form. Click a row to open that patient\'s chart.',
+          ),
+          route: 'referral-form-report',
+        },
+        {
+          key: 'ncd-patient-card-report',
+          title: t('ncdPatientCardReportTitle', 'NCD Patient Card Report'),
+          description: t(
+            'ncdPatientCardReportTileDesc',
+            'Every NCD Patient Card submission with condition, status and follow-up details recorded on the form. Click a row to open that patient\'s chart.',
+          ),
+          route: 'ncd-patient-card-report',
+        },
       ],
     },
     {

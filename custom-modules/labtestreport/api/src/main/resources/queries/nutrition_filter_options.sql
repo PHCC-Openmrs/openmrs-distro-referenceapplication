@@ -67,4 +67,14 @@ WHERE o.concept_id = (SELECT concept_id FROM concept WHERE uuid = 'c963d0ea-7d87
   AND e.encounter_type = (SELECT encounter_type_id FROM encounter_type WHERE uuid = '3069ba59-8aea-4a9b-a79a-0d810ea0382b')
   AND cn.name NOT IN ('Y', 'N', 'Yes', 'No')
 
+UNION
+
+-- Status (Cured / Under F/U / Defaulter / Death / Transferred): defined answers, same as the
+-- CMAM Follow-up report's Child Last Status concept.
+SELECT 'status', cn.name
+FROM concept_answer ca
+JOIN concept c ON c.concept_id = ca.answer_concept
+JOIN concept_name cn ON cn.concept_id = c.concept_id AND cn.locale = 'en' AND cn.locale_preferred = 1
+WHERE ca.concept_id = (SELECT concept_id FROM concept WHERE uuid = '524fea02-d6e8-47c0-84ee-e7b889f08d4c')
+
 ORDER BY filterType, optionValue

@@ -17,6 +17,8 @@ public class NutritionFilterOptions {
 
 	private List<String> supplementTypes;
 
+	private List<String> statuses;
+
 	public List<String> getLocations() {
 		return locations;
 	}
@@ -47,5 +49,13 @@ public class NutritionFilterOptions {
 
 	public void setSupplementTypes(List<String> supplementTypes) {
 		this.supplementTypes = supplementTypes;
+	}
+
+	public List<String> getStatuses() {
+		return statuses;
+	}
+
+	public void setStatuses(List<String> statuses) {
+		this.statuses = statuses;
 	}
 }

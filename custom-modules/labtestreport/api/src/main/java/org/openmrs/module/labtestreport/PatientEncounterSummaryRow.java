@@ -15,6 +15,8 @@ public class PatientEncounterSummaryRow {
 
 	private String givenName;
 
+	private String middleName;
+
 	private String familyName;
 
 	private Integer age;
@@ -55,6 +57,14 @@ public class PatientEncounterSummaryRow {
 
 	public void setGivenName(String givenName) {
 		this.givenName = givenName;
+	}
+
+	public String getMiddleName() {
+		return middleName;
+	}
+
+	public void setMiddleName(String middleName) {
+		this.middleName = middleName;
 	}
 
 	public String getFamilyName() {

@@ -43,6 +43,8 @@ public class NutritionSummaryRow {
 
 	private String project;
 
+	private String status;
+
 	public Integer getPatientId() {
 		return patientId;
 	}
@@ -177,5 +179,13 @@ public class NutritionSummaryRow {
 
 	public void setProject(String project) {
 		this.project = project;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
 	}
 }

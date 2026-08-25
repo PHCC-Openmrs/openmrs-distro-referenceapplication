@@ -69,6 +69,64 @@
 		</property>
 	</bean>
 
+	<!-- Configure the Referral Form Report Service -->
+	<bean parent="serviceContext">
+		<property name="moduleService">
+			<list>
+				<value>org.openmrs.module.labtestreport.ReferralFormReportService</value>
+				<ref bean="referralFormReportService"/>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="referralFormReportService" class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+		<property name="transactionManager"><ref bean="transactionManager"/></property>
+		<property name="target">
+			<bean class="org.openmrs.module.labtestreport.impl.ReferralFormReportServiceImpl">
+				<property name="dao">
+					<bean class="org.openmrs.module.labtestreport.db.hibernate.HibernateReferralFormReportDAO">
+						<property name="sessionFactory"><ref bean="dbSessionFactory"/></property>
+					</bean>
+				</property>
+			</bean>
+		</property>
+		<property name="preInterceptors">
+			<ref bean="serviceInterceptors"/>
+		</property>
+		<property name="transactionAttributeSource">
+			<bean class="org.springframework.transaction.annotation.AnnotationTransactionAttributeSource"/>
+		</property>
+	</bean>
+
+	<!-- Configure the NCD Patient Card Report Service -->
+	<bean parent="serviceContext">
+		<property name="moduleService">
+			<list>
+				<value>org.openmrs.module.labtestreport.NcdPatientCardReportService</value>
+				<ref bean="ncdPatientCardReportService"/>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="ncdPatientCardReportService" class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+		<property name="transactionManager"><ref bean="transactionManager"/></property>
+		<property name="target">
+			<bean class="org.openmrs.module.labtestreport.impl.NcdPatientCardReportServiceImpl">
+				<property name="dao">
+					<bean class="org.openmrs.module.labtestreport.db.hibernate.HibernateNcdPatientCardReportDAO">
+						<property name="sessionFactory"><ref bean="dbSessionFactory"/></property>
+					</bean>
+				</property>
+			</bean>
+		</property>
+		<property name="preInterceptors">
+			<ref bean="serviceInterceptors"/>
+		</property>
+		<property name="transactionAttributeSource">
+			<bean class="org.springframework.transaction.annotation.AnnotationTransactionAttributeSource"/>
+		</property>
+	</bean>
+
 	<!-- Configure the Disease Summary Service -->
 	<bean parent="serviceContext">
 		<property name="moduleService">

@@ -2,6 +2,7 @@ SELECT
   p.person_id                  AS patientId,
   p.uuid                       AS patientUuid,
   COALESCE(pn.given_name, '')  AS givenName,
+  COALESCE(pn.middle_name, '') AS middleName,
   COALESCE(pn.family_name, '') AS familyName,
   TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) AS age,
   COUNT(DISTINCT v.visit_id)   AS visitCount,
@@ -42,5 +43,5 @@ WHERE v.voided = 0
 -- Deliberately NOT grouping by pi_nid.identifier/pa_phone.value (aggregated with MAX() above instead):
 -- a patient with more than one non-voided National ID/Phone Number would otherwise fan out into
 -- one row per combination, making the same patient appear to be duplicated in the report.
-GROUP BY p.person_id, p.uuid, pn.given_name, pn.family_name, p.birthdate, p.gender
+GROUP BY p.person_id, p.uuid, pn.given_name, pn.middle_name, pn.family_name, p.birthdate, p.gender
 ORDER BY familyName, givenName

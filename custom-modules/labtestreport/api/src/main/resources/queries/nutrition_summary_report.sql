@@ -57,7 +57,8 @@ SELECT
   suppQtyObs.value_numeric AS supplementQuantity,
   pi_nid.identifier AS nationalId,
   pa_phone.value AS phoneNumber,
-  projectObs.value_text AS project
+  projectObs.value_text AS project,
+  statusName.name AS status
 FROM latest_encounters le
 JOIN person p   ON p.person_id = le.patient_id
 JOIN patient pt ON pt.patient_id = p.person_id
@@ -86,6 +87,13 @@ LEFT JOIN obs suppQtyObs ON suppQtyObs.encounter_id = le.encounter_id
   AND suppQtyObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '127b8e09-54dc-4ccd-b078-f0a97206ceca') AND suppQtyObs.voided = 0
 LEFT JOIN obs projectObs ON projectObs.encounter_id = le.encounter_id
   AND projectObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '5aadb886-873d-43f8-bd99-53528eb7f04c') AND projectObs.voided = 0
+-- Status (Cured / Under F/U / Defaulter / Death / Transferred) - same "Child Last Status"
+-- concept the CMAM Follow-up report uses, so a beneficiary's outcome reads consistently across
+-- both reports.
+LEFT JOIN obs lastStatusObs ON lastStatusObs.encounter_id = le.encounter_id
+  AND lastStatusObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '524fea02-d6e8-47c0-84ee-e7b889f08d4c') AND lastStatusObs.voided = 0
+LEFT JOIN concept_name statusName ON statusName.concept_id = lastStatusObs.value_coded
+  AND statusName.locale = 'en' AND statusName.locale_preferred = 1
 -- :underFive selects which of the two reports (Child Under 5 / Child Above 5) this row belongs
 -- to, bucketed by the beneficiary's current age.
 HAVING (:underFive = TRUE AND age < 5) OR (:underFive = FALSE AND age >= 5)
