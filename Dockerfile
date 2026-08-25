@@ -26,6 +26,19 @@ RUN --mount=type=secret,id=m2settings,target=/usr/share/maven/ref/settings-docke
     mvn -s /usr/share/maven/ref/settings-docker.xml -DskipTests -pl api,omod -am install && \
     rm -rf /tmp/locationbasedaccess
 
+# Build patientdocuments from our fork and install it into the local Maven repo, so
+# distro/pom.xml can depend on it as a plain artifact (org.openmrs.module:patientdocuments-omod)
+# without vendoring a copy of its source into custom-modules/ - same approach as
+# locationbasedaccess above.
+ARG PATIENTDOCUMENTS_REPO=https://github.com/PHCC-Openmrs/openmrs-module-patientdocuments.git
+ARG PATIENTDOCUMENTS_REF=main
+ADD https://github.com/PHCC-Openmrs/openmrs-module-patientdocuments/commits/${PATIENTDOCUMENTS_REF}.atom /tmp/patientdocuments-head.atom
+RUN --mount=type=secret,id=m2settings,target=/usr/share/maven/ref/settings-docker.xml \
+    git clone --branch ${PATIENTDOCUMENTS_REF} --depth 1 ${PATIENTDOCUMENTS_REPO} /tmp/patientdocuments && \
+    cd /tmp/patientdocuments && \
+    mvn -s /usr/share/maven/ref/settings-docker.xml -DskipTests -pl api,omod -am install && \
+    rm -rf /tmp/patientdocuments
+
 # Copy build files
 COPY pom.xml ./
 COPY custom-modules ./custom-modules/
