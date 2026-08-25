@@ -21,7 +21,7 @@ import {
   Tile,
 } from '@carbon/react';
 import { Edit } from '@carbon/react/icons';
-import { ErrorState, isDesktop, restBaseUrl, useSession } from '@openmrs/esm-framework';
+import { ErrorState, isDesktop, restBaseUrl, useSession, userHasAccess } from '@openmrs/esm-framework';
 import { handleMutate } from '../utils';
 import { launchAddOrEditStockItemWorkspace } from './stock-item.utils';
 import { ResourceRepresentation } from '../core/api/api';
@@ -47,7 +47,9 @@ interface StockItemsTableProps {
 
 const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
   const { t } = useTranslation();
-  const { sessionLocation } = useSession();
+  const session = useSession();
+  const { sessionLocation } = session;
+  const canManageStockItems = userHasAccess('Task: stockmanagement.stockItems.mutate', session?.user);
   const [searchInput, setSearchInput] = useState('');
 
   const handleRefresh = () => {
@@ -209,16 +211,18 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
           : '',
       actions: (
         <>
-          <IconButton
-            kind="ghost"
-            label={t('editStockItem', 'Edit stock item')}
-            onClick={() => {
-              stockItem.isDrug = !!stockItem.drugUuid;
-              launchAddOrEditStockItemWorkspace(t, stockItem);
-            }}
-          >
-            <Edit size={16} />
-          </IconButton>
+          {canManageStockItems && (
+            <IconButton
+              kind="ghost"
+              label={t('editStockItem', 'Edit stock item')}
+              onClick={() => {
+                stockItem.isDrug = !!stockItem.drugUuid;
+                launchAddOrEditStockItemWorkspace(t, stockItem);
+              }}
+            >
+              <Edit size={16} />
+            </IconButton>
+          )}
           <DeleteStockItemActionButton
             uuid={stockItem?.uuid}
             displayName={stockItem?.drugName ?? stockItem?.conceptName ?? stockItem?.commonName}
@@ -227,7 +231,7 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
         </>
       ),
     }));
-  }, [pageItems, t, quantityByItem, quantityMetaByItem]);
+  }, [pageItems, t, quantityByItem, quantityMetaByItem, canManageStockItems]);
 
   if (isLoading) {
     return <DataTableSkeleton role="progressbar" />;
