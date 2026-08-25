@@ -40,6 +40,8 @@ export function useReferralFormReport(startDate?: string, endDate?: string) {
   }
   const query = search.toString();
   const url = `/module/labtestreport/api/referral-form-report.json${query ? `?${query}` : ''}`;
-  const { data, error, isLoading } = useSWR<{ data: ReferralFormRow[] }, Error>(url, openmrsFetch);
+  const { data, error, isLoading } = useSWR<{ data: ReferralFormRow[] }, Error>(url, openmrsFetch, {
+    revalidateOnFocus: true,
+  });
   return { rows: data?.data ?? [], error, isLoading };
 }

@@ -23,6 +23,19 @@ previous_muac AS (
     AND o.concept_id = (SELECT concept_id FROM concept WHERE uuid = '1343AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
     AND o.voided = 0
   WHERE ne.rn = 2
+),
+-- "Child Last Status" (Cured / Under F/U / Defaulter / Death / Transferred) is never recorded on
+-- the Nutrition Assessment encounter itself - it only comes from the separate CMAM New
+-- Admission/Follow-up form (a different encounter for the same patient). So it has to be looked
+-- up per-patient, taking their most recently recorded status across any encounter, rather than
+-- joined by encounter_id like the other observations below.
+latest_status AS (
+  SELECT o.person_id AS patient_id, o.value_coded,
+    ROW_NUMBER() OVER (PARTITION BY o.person_id ORDER BY e.encounter_datetime DESC, o.obs_id DESC) AS rn
+  FROM obs o
+  JOIN encounter e ON e.encounter_id = o.encounter_id AND e.voided = 0
+  WHERE o.concept_id = (SELECT concept_id FROM concept WHERE uuid = '524fea02-d6e8-47c0-84ee-e7b889f08d4c')
+    AND o.voided = 0
 )
 SELECT
   p.person_id AS patientId,
@@ -90,9 +103,8 @@ LEFT JOIN obs projectObs ON projectObs.encounter_id = le.encounter_id
 -- Status (Cured / Under F/U / Defaulter / Death / Transferred) - same "Child Last Status"
 -- concept the CMAM Follow-up report uses, so a beneficiary's outcome reads consistently across
 -- both reports.
-LEFT JOIN obs lastStatusObs ON lastStatusObs.encounter_id = le.encounter_id
-  AND lastStatusObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '524fea02-d6e8-47c0-84ee-e7b889f08d4c') AND lastStatusObs.voided = 0
-LEFT JOIN concept_name statusName ON statusName.concept_id = lastStatusObs.value_coded
+LEFT JOIN latest_status ls ON ls.patient_id = le.patient_id AND ls.rn = 1
+LEFT JOIN concept_name statusName ON statusName.concept_id = ls.value_coded
   AND statusName.locale = 'en' AND statusName.locale_preferred = 1
 -- :underFive selects which of the two reports (Child Under 5 / Child Above 5) this row belongs
 -- to, bucketed by the beneficiary's current age.
