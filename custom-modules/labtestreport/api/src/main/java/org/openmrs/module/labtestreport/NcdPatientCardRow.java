@@ -24,7 +24,7 @@ public class NcdPatientCardRow {
 
 	private String fullName;
 
-	private String fileNumber;
+	private String nationalId;
 
 	private Date dob;
 
@@ -114,12 +114,12 @@ public class NcdPatientCardRow {
 		this.fullName = fullName;
 	}
 
-	public String getFileNumber() {
-		return fileNumber;
+	public String getNationalId() {
+		return nationalId;
 	}
 
-	public void setFileNumber(String fileNumber) {
-		this.fileNumber = fileNumber;
+	public void setNationalId(String nationalId) {
+		this.nationalId = nationalId;
 	}
 
 	public Date getDob() {

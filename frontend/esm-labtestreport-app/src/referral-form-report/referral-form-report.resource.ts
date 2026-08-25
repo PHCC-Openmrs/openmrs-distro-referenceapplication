@@ -14,7 +14,7 @@ export interface ReferralFormRow {
   gender: string | null;
   referralDate: string | null;
   referralTime: string | null;
-  formPatientId: string | null;
+  nationalId: string | null;
   phoneNumber: string | null;
   referringFacility: string | null;
   referredTo: string | null;

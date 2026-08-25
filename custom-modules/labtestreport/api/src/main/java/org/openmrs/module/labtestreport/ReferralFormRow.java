@@ -32,7 +32,7 @@ public class ReferralFormRow {
 
 	private String referralTime;
 
-	private String formPatientId;
+	private String nationalId;
 
 	private String phoneNumber;
 
@@ -156,12 +156,12 @@ public class ReferralFormRow {
 		this.referralTime = referralTime;
 	}
 
-	public String getFormPatientId() {
-		return formPatientId;
+	public String getNationalId() {
+		return nationalId;
 	}
 
-	public void setFormPatientId(String formPatientId) {
-		this.formPatientId = formPatientId;
+	public void setNationalId(String nationalId) {
+		this.nationalId = nationalId;
 	}
 
 	public String getPhoneNumber() {

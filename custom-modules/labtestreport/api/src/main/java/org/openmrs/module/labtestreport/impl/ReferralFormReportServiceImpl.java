@@ -34,7 +34,7 @@ public class ReferralFormReportServiceImpl extends BaseOpenmrsService implements
 			row.setGender((String) r[9]);
 			row.setReferralDate((Date) r[10]);
 			row.setReferralTime((String) r[11]);
-			row.setFormPatientId((String) r[12]);
+			row.setNationalId((String) r[12]);
 			row.setPhoneNumber((String) r[13]);
 			row.setReferringFacility((String) r[14]);
 			row.setReferredTo((String) r[15]);

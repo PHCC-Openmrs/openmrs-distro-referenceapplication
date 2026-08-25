@@ -16,7 +16,7 @@ const SEARCHABLE_FIELDS: Array<keyof NcdPatientCardRow> = [
   'givenName',
   'familyName',
   'fullName',
-  'fileNumber',
+  'nationalId',
   'phoneNumber',
   'condition',
 ];
@@ -47,7 +47,7 @@ export default function NcdPatientCardReport() {
       name: (row: NcdPatientCardRow) => `${row.familyName} ${row.givenName}`,
       encounterDatetime: (row: NcdPatientCardRow) => row.encounterDatetime,
       location: (row: NcdPatientCardRow) => row.location ?? '',
-      fileNumber: (row: NcdPatientCardRow) => row.fileNumber ?? '',
+      nationalId: (row: NcdPatientCardRow) => row.nationalId ?? '',
       gender: (row: NcdPatientCardRow) => row.gender ?? '',
       condition: (row: NcdPatientCardRow) => row.condition ?? '',
       status: (row: NcdPatientCardRow) => row.status ?? '',
@@ -93,7 +93,7 @@ export default function NcdPatientCardReport() {
         t('encounterDate', 'Encounter Date'),
         t('location', 'Location'),
         t('fullName', 'Full Name'),
-        t('fileNumber', 'File Number'),
+        t('nationalId', 'National ID'),
         t('dob', 'Date of Birth'),
         t('gender', 'Gender'),
         t('phoneNumber', 'Phone Number'),
@@ -113,7 +113,7 @@ export default function NcdPatientCardReport() {
         row.encounterDatetime,
         row.location ?? '',
         row.fullName ?? '',
-        row.fileNumber ?? '',
+        row.nationalId ?? '',
         row.dob ?? '',
         row.gender ?? '',
         row.phoneNumber ?? '',
@@ -182,7 +182,7 @@ export default function NcdPatientCardReport() {
             <Search
               size="md"
               labelText={t('search', 'Search')}
-              placeholder={t('searchNcdPlaceholder', 'Search name, file number, phone, condition...')}
+              placeholder={t('searchNcdPlaceholder', 'Search name, national ID, phone, condition...')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onClear={() => setSearchTerm('')}
@@ -227,8 +227,8 @@ export default function NcdPatientCardReport() {
                   />
                   <th className="left">{t('fullName', 'Full Name (form)')}</th>
                   <SortableHeader
-                    label={t('fileNumber', 'File Number')}
-                    sortKey="fileNumber"
+                    label={t('nationalId', 'National ID')}
+                    sortKey="nationalId"
                     activeSortKey={sortKey}
                     direction={direction}
                     onSort={toggleSort}
@@ -290,7 +290,7 @@ export default function NcdPatientCardReport() {
                     <td>{row.encounterDatetime}</td>
                     <td className="left">{row.location || '--'}</td>
                     <td className="left">{row.fullName || '--'}</td>
-                    <td>{row.fileNumber || '--'}</td>
+                    <td>{row.nationalId || '--'}</td>
                     <td>{row.dob || '--'}</td>
                     <td>{row.gender || '--'}</td>
                     <td>{row.phoneNumber || '--'}</td>

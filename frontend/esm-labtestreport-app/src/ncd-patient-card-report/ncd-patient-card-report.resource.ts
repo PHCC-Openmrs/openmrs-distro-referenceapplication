@@ -10,7 +10,7 @@ export interface NcdPatientCardRow {
   encounterDatetime: string;
   location: string | null;
   fullName: string | null;
-  fileNumber: string | null;
+  nationalId: string | null;
   dob: string | null;
   gender: string | null;
   phoneNumber: string | null;

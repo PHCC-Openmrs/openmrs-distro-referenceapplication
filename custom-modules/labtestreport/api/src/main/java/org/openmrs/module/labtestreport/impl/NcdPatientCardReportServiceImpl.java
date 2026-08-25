@@ -30,7 +30,7 @@ public class NcdPatientCardReportServiceImpl extends BaseOpenmrsService implemen
 			row.setEncounterDatetime((Date) r[5]);
 			row.setLocation((String) r[6]);
 			row.setFullName((String) r[7]);
-			row.setFileNumber((String) r[8]);
+			row.setNationalId((String) r[8]);
 			row.setDob((Date) r[9]);
 			row.setGender((String) r[10]);
 			row.setPhoneNumber((String) r[11]);

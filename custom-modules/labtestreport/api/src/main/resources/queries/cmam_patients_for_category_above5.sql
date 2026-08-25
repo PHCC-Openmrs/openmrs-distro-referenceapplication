@@ -10,12 +10,20 @@ WITH cmam_encounters AS (
 ),
 -- Counterpart to cmam_patients_for_category.sql (which covers those under 5): this report lists
 -- only patients who were 5 or older at their most recent CMAM encounter.
+-- A CMAM encounter alone isn't enough to count someone as a nutrition-program patient - it also
+-- requires an actual (non-voided) enrollment in the Nutrition Registration program, so a one-off
+-- or mistaken CMAM entry for a patient never formally admitted doesn't skew this list.
 latest_encounters AS (
   SELECT ce.encounter_id, ce.patient_id
   FROM cmam_encounters ce
   JOIN person p ON p.person_id = ce.patient_id
   WHERE ce.rn = 1
     AND TIMESTAMPDIFF(YEAR, p.birthdate, ce.encounter_datetime) >= 5
+    AND EXISTS (
+      SELECT 1 FROM patient_program pp
+      WHERE pp.patient_id = ce.patient_id AND pp.voided = 0
+        AND pp.program_id = (SELECT program_id FROM program WHERE uuid = '2433ebba-8ffb-11f1-a103-1afee95a890c')
+    )
 )
 SELECT DISTINCT
   p.person_id                  AS patientId,

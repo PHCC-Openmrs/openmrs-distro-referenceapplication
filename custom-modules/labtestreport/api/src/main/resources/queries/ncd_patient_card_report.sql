@@ -7,7 +7,10 @@ SELECT
   e.encounter_datetime          AS encounterDatetime,
   l.name                        AS location,
   fullNameObs.value_text        AS fullName,
-  fileNumberObs.value_text      AS fileNumber,
+  -- The "File Number" question was renamed to "National ID" (and moved to the same concept the
+  -- Referral Form uses) in a later form version. Older submissions only ever filled in the old
+  -- File Number concept, so fall back to it when the current concept is empty.
+  COALESCE(nationalIdObs.value_text, fileNumberObs.value_text) AS nationalId,
   dobObs.value_datetime         AS dob,
   CASE genderAnswer.uuid
     WHEN '65af055d-1f15-46bb-a24e-fdaaed0c407b' THEN 'Male'
@@ -44,6 +47,8 @@ LEFT JOIN obs fullNameObs ON fullNameObs.encounter_id = e.encounter_id AND fullN
   AND fullNameObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '0e4e0186-f554-4756-bd95-563c92ab3584')
 LEFT JOIN obs fileNumberObs ON fileNumberObs.encounter_id = e.encounter_id AND fileNumberObs.voided = 0
   AND fileNumberObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '5df735ce-f0fd-45c3-b192-b6e8ad842ac3')
+LEFT JOIN obs nationalIdObs ON nationalIdObs.encounter_id = e.encounter_id AND nationalIdObs.voided = 0
+  AND nationalIdObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '2fb9ed2f-2e35-4f2d-b5c3-888fe43f477e')
 LEFT JOIN obs dobObs ON dobObs.encounter_id = e.encounter_id AND dobObs.voided = 0
   AND dobObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '04ed6b8e-a2af-43ee-9866-f361afa74501')
 LEFT JOIN obs genderObs ON genderObs.encounter_id = e.encounter_id AND genderObs.voided = 0

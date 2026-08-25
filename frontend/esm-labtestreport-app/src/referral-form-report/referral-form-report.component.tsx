@@ -16,7 +16,7 @@ const SEARCHABLE_FIELDS: Array<keyof ReferralFormRow> = [
   'givenName',
   'familyName',
   'fullName',
-  'formPatientId',
+  'nationalId',
   'phoneNumber',
   'referringFacility',
   'referredTo',
@@ -95,7 +95,7 @@ export default function ReferralFormReport() {
         t('gender', 'Gender'),
         t('referralDate', 'Referral Date'),
         t('referralTime', 'Referral Time'),
-        t('patientId', 'Patient ID'),
+        t('nationalId', 'National ID'),
         t('phoneNumber', 'Phone Number'),
         t('referringFacility', 'Referring Facility'),
         t('referredTo', 'Referred To'),
@@ -120,7 +120,7 @@ export default function ReferralFormReport() {
         row.gender ?? '',
         row.referralDate ?? '',
         row.referralTime ?? '',
-        row.formPatientId ?? '',
+        row.nationalId ?? '',
         row.phoneNumber ?? '',
         row.referringFacility ?? '',
         row.referredTo ?? '',
@@ -263,7 +263,7 @@ export default function ReferralFormReport() {
                     onSort={toggleSort}
                   />
                   <th>{t('referralTime', 'Referral Time')}</th>
-                  <th>{t('patientId', 'Patient ID')}</th>
+                  <th>{t('nationalId', 'National ID')}</th>
                   <th>{t('phoneNumber', 'Phone Number')}</th>
                   <SortableHeader
                     label={t('referringFacility', 'Referring Facility')}
@@ -316,7 +316,7 @@ export default function ReferralFormReport() {
                     <td>{row.gender || '--'}</td>
                     <td>{row.referralDate || '--'}</td>
                     <td>{row.referralTime || '--'}</td>
-                    <td>{row.formPatientId || '--'}</td>
+                    <td>{row.nationalId || '--'}</td>
                     <td>{row.phoneNumber || '--'}</td>
                     <td className="left">{row.referringFacility || '--'}</td>
                     <td className="left">{row.referredTo || '--'}</td>
