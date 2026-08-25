@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconButton, InlineLoading } from '@carbon/react';
 import { TrashCan } from '@carbon/react/icons';
-import { restBaseUrl, showModal, showSnackbar } from '@openmrs/esm-framework';
+import { restBaseUrl, showModal, showSnackbar, useSession, userHasAccess } from '@openmrs/esm-framework';
 import { deleteStockItems } from './stock-items.resource';
 import { handleMutate } from '../utils';
 
@@ -19,6 +19,7 @@ const DeleteStockItemActionButton: React.FC<DeleteStockItemActionButtonProps> = 
   quantityOnHand,
 }) => {
   const { t } = useTranslation();
+  const session = useSession();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDeleteStockItem = React.useCallback(() => {
@@ -57,6 +58,10 @@ const DeleteStockItemActionButton: React.FC<DeleteStockItemActionButtonProps> = 
       },
     });
   }, [t, uuid, displayName, quantityOnHand]);
+
+  if (!userHasAccess('Task: stockmanagement.stockItems.mutate', session?.user)) {
+    return null;
+  }
 
   if (isDeleting) {
     return <InlineLoading />;
