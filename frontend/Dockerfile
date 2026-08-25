@@ -97,6 +97,19 @@ RUN echo "cache-bust=${DISPENSING_CACHE_BUST}" && \
     yarn build && \
     yarn pack --out /app/esm-dispensing-app.tgz
 
+# Build @openmrs/esm-laboratory-app from our fork instead of the published "next"
+# package, so the Add test order button's privilege gate ships.
+ARG LABORATORY_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-laboratory-app.git
+ARG LABORATORY_REF=main
+ARG LABORATORY_CACHE_BUST=0
+RUN echo "cache-bust=${LABORATORY_CACHE_BUST}" && \
+    git clone --branch ${LABORATORY_REF} --depth 1 ${LABORATORY_REPO} openmrs-esm-laboratory-app && \
+    corepack enable && \
+    cd openmrs-esm-laboratory-app && \
+    yarn install && \
+    yarn build && \
+    yarn pack --out /app/esm-laboratory-app.tgz
+
 # Build @openmrs/esm-login-app, @openmrs/esm-app-shell, AND @openmrs/esm-framework
 # (which re-exports esm-offline) from our fork instead of the published "next"
 # packages. Our fork's main removes the "Built with OpenMRS" footer, clears the
