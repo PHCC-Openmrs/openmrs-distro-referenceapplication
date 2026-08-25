@@ -34,6 +34,8 @@ export default function ReportsHome() {
   const isSuperUser = session?.user?.roles?.some(
     (role) => role.display === 'System Developer' || role.display === 'Application: Has Super User Privileges',
   );
+  const hasFullReportsAccess =
+    isSuperUser || session?.user?.roles?.some((role) => role.display === 'PHCC Program Manager');
   const isDoctor = session?.user?.roles?.some(
     (role) =>
       role.display === 'Organizational: Doctor' || role.display === 'PHCC doctor' || role.display === 'PHCC Reporting',
@@ -179,7 +181,7 @@ export default function ReportsHome() {
     },
   ];
 
-  const visibleCategories = isSuperUser
+  const visibleCategories = hasFullReportsAccess
     ? categories
     : isStockManager
       ? categories.filter((category) => category.key === 'stock')
