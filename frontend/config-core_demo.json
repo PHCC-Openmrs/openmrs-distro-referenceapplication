@@ -48,7 +48,7 @@
           },
           "system-admin-page-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || (!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Program Manager') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
+              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || (!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Program Manager' || r.display === 'PHCC Dispensing') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
             }
           },
           "reports-overview-admin-link": {
@@ -58,12 +58,12 @@
           },
           "admin-service-queues-card-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || (!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Program Manager') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
+              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || (!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Program Manager' || r.display === 'PHCC Dispensing') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
             }
           },
           "system-administration-form-builder-card-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || (!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Program Manager') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
+              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || (!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Program Manager' || r.display === 'PHCC Dispensing') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
             }
           }
         }
@@ -112,7 +112,7 @@
         "configure": {
           "app-menu-button": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Program Manager') : false) || (session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false)"
+              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Program Manager' || r.display === 'PHCC Dispensing') : false) || (session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false)"
             }
           }
         }
@@ -126,12 +126,12 @@
           },
           "queue-screen-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || (!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
+              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || (!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Dispensing') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
             }
           },
           "forms-app-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || (!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
+              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || (!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Dispensing') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
             }
           },
           "system-administration-app-menu-link": {
