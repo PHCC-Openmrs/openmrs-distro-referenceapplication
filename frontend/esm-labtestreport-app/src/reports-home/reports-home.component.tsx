@@ -35,7 +35,8 @@ export default function ReportsHome() {
     (role) => role.display === 'System Developer' || role.display === 'Application: Has Super User Privileges',
   );
   const isDoctor = session?.user?.roles?.some(
-    (role) => role.display === 'Organizational: Doctor' || role.display === 'PHCC doctor',
+    (role) =>
+      role.display === 'Organizational: Doctor' || role.display === 'PHCC doctor' || role.display === 'PHCC Reporting',
   );
   const isStockManager = session?.user?.privileges?.some((p) => p.display === 'App: stockmanagement.dashboard');
 
