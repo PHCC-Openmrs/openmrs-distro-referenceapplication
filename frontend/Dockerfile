@@ -30,12 +30,11 @@ RUN corepack enable && \
 # they land on main.
 ARG PATIENT_MANAGEMENT_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-patient-management.git
 ARG PATIENT_MANAGEMENT_REF=main
-# Bump this (e.g. --build-arg PATIENT_MANAGEMENT_CACHE_BUST=$(date +%s)) to force
-# a fresh clone; otherwise Docker has no way to know the remote branch moved and
-# will happily reuse a stale cached clone.
-ARG PATIENT_MANAGEMENT_CACHE_BUST=0
-RUN echo "cache-bust=${PATIENT_MANAGEMENT_CACHE_BUST}" && \
-    git clone --branch ${PATIENT_MANAGEMENT_REF} --depth 1 ${PATIENT_MANAGEMENT_REPO} openmrs-esm-patient-management && \
+# ADD from a URL is revalidated against its ETag/Last-Modified on every build,
+# so this layer (and every RUN after it) is invalidated automatically whenever
+# the branch moves -- no need to remember a manual cache-bust build-arg.
+ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-patient-management/commits/${PATIENT_MANAGEMENT_REF} /tmp/patient-management-commit.json
+RUN git clone --branch ${PATIENT_MANAGEMENT_REF} --depth 1 ${PATIENT_MANAGEMENT_REPO} openmrs-esm-patient-management && \
     corepack enable && \
     cd openmrs-esm-patient-management && \
     yarn install && \
@@ -59,9 +58,8 @@ RUN echo "cache-bust=${PATIENT_MANAGEMENT_CACHE_BUST}" && \
 # none of this has any effect on what's actually served.
 ARG PATIENT_CHART_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-patient-chart.git
 ARG PATIENT_CHART_REF=main
-ARG PATIENT_CHART_CACHE_BUST=0
-RUN echo "cache-bust=${PATIENT_CHART_CACHE_BUST}" && \
-    git clone --branch ${PATIENT_CHART_REF} --depth 1 ${PATIENT_CHART_REPO} openmrs-esm-patient-chart && \
+ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-patient-chart/commits/${PATIENT_CHART_REF} /tmp/patient-chart-commit.json
+RUN git clone --branch ${PATIENT_CHART_REF} --depth 1 ${PATIENT_CHART_REPO} openmrs-esm-patient-chart && \
     corepack enable && \
     cd openmrs-esm-patient-chart && \
     yarn install && \
@@ -88,9 +86,8 @@ RUN echo "cache-bust=${PATIENT_CHART_CACHE_BUST}" && \
 # package, so the auto-complete-on-dispense and dispensed-quantity fixes ship.
 ARG DISPENSING_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-dispensing-app.git
 ARG DISPENSING_REF=main
-ARG DISPENSING_CACHE_BUST=0
-RUN echo "cache-bust=${DISPENSING_CACHE_BUST}" && \
-    git clone --branch ${DISPENSING_REF} --depth 1 ${DISPENSING_REPO} openmrs-esm-dispensing-app && \
+ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-dispensing-app/commits/${DISPENSING_REF} /tmp/dispensing-commit.json
+RUN git clone --branch ${DISPENSING_REF} --depth 1 ${DISPENSING_REPO} openmrs-esm-dispensing-app && \
     corepack enable && \
     cd openmrs-esm-dispensing-app && \
     yarn install && \
@@ -101,9 +98,8 @@ RUN echo "cache-bust=${DISPENSING_CACHE_BUST}" && \
 # package, so the Add test order button's privilege gate ships.
 ARG LABORATORY_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-laboratory-app.git
 ARG LABORATORY_REF=main
-ARG LABORATORY_CACHE_BUST=0
-RUN echo "cache-bust=${LABORATORY_CACHE_BUST}" && \
-    git clone --branch ${LABORATORY_REF} --depth 1 ${LABORATORY_REPO} openmrs-esm-laboratory-app && \
+ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-laboratory-app/commits/${LABORATORY_REF} /tmp/laboratory-commit.json
+RUN git clone --branch ${LABORATORY_REF} --depth 1 ${LABORATORY_REPO} openmrs-esm-laboratory-app && \
     corepack enable && \
     cd openmrs-esm-laboratory-app && \
     yarn install && \
@@ -119,9 +115,8 @@ RUN echo "cache-bust=${LABORATORY_CACHE_BUST}" && \
 # only packed here -- they get spliced into node_modules below.
 ARG ESM_CORE_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-core.git
 ARG ESM_CORE_REF=main
-ARG ESM_CORE_CACHE_BUST=0
-RUN echo "cache-bust=${ESM_CORE_CACHE_BUST}" && \
-    git clone --branch ${ESM_CORE_REF} --depth 1 ${ESM_CORE_REPO} openmrs-esm-core && \
+ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-core/commits/${ESM_CORE_REF} /tmp/esm-core-commit.json
+RUN git clone --branch ${ESM_CORE_REF} --depth 1 ${ESM_CORE_REPO} openmrs-esm-core && \
     corepack enable && \
     cd openmrs-esm-core && \
     yarn install && \
@@ -135,9 +130,8 @@ RUN echo "cache-bust=${ESM_CORE_CACHE_BUST}" && \
 # content 1px taller than its container).
 ARG ESM_CORE_STYLEGUIDE_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-core.git
 ARG ESM_CORE_STYLEGUIDE_REF=main
-ARG ESM_CORE_STYLEGUIDE_CACHE_BUST=0
-RUN echo "cache-bust=${ESM_CORE_STYLEGUIDE_CACHE_BUST}" && \
-    git clone --branch ${ESM_CORE_STYLEGUIDE_REF} --depth 1 ${ESM_CORE_STYLEGUIDE_REPO} openmrs-esm-core-styleguide && \
+ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-core/commits/${ESM_CORE_STYLEGUIDE_REF} /tmp/esm-core-styleguide-commit.json
+RUN git clone --branch ${ESM_CORE_STYLEGUIDE_REF} --depth 1 ${ESM_CORE_STYLEGUIDE_REPO} openmrs-esm-core-styleguide && \
     corepack enable && \
     cd openmrs-esm-core-styleguide && \
     yarn install && \

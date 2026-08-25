@@ -103,7 +103,7 @@
           },
           "patient-search-icon": {
             "Display conditions": {
-              "expression": "!(session.user ? session.user.roles.some(r => r.display === 'Inventory Dispensing') : false) && ['PHCC Clerk', 'Organizational: Registration Clerk', 'Organizational: Nurse', 'Organizational: Doctor', 'Organizational: System Administrator', 'PHCC doctor', 'PHCC Coordinator', 'PHCC Program Manager', 'System Developer'].some(role => (session.user ? session.user.roles.some(r => r.display === role) : false))"
+              "expression": "!(session.user ? session.user.roles.some(r => r.display === 'Inventory Dispensing') : false) && ['PHCC Clerk', 'Organizational: Registration Clerk', 'Organizational: Nurse', 'Organizational: Doctor', 'Organizational: System Administrator', 'PHCC doctor', 'PHCC Coordinator', 'PHCC Program Manager', 'PHCC Reporting', 'System Developer'].some(role => (session.user ? session.user.roles.some(r => r.display === role) : false))"
             }
           }
         }
