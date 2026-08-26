@@ -285,7 +285,7 @@
         "configure": {
           "pick-lab-request-action": {
             "Display conditions": {
-              "expression": "!(session.user ? session.user.roles.some(r => r.display === 'PHCC Program Manager') : false)"
+              "expression": "!(session.user ? session.user.roles.some(r => r.display === 'PHCC Program Manager' || r.display === 'PHCC doctor') : false)"
             }
           }
         }
@@ -312,7 +312,7 @@
         "configure": {
           "reject-lab-request-tests-ordered-action": {
             "Display conditions": {
-              "expression": "!(session.user ? session.user.roles.some(r => r.display === 'PHCC Program Manager') : false)"
+              "expression": "!(session.user ? session.user.roles.some(r => r.display === 'PHCC Program Manager' || r.display === 'PHCC doctor') : false)"
             }
           }
         }
@@ -321,7 +321,7 @@
         "configure": {
           "reject-lab-request-worklist-action": {
             "Display conditions": {
-              "expression": "!(session.user ? session.user.roles.some(r => r.display === 'PHCC Program Manager') : false)"
+              "expression": "!(session.user ? session.user.roles.some(r => r.display === 'PHCC Program Manager' || r.display === 'PHCC doctor') : false)"
             }
           },
           "add-lab-request-results-action": {
