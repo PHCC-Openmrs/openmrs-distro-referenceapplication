@@ -5,7 +5,7 @@
         "configure": {
           "laboratory-dashboard-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'PHCC Lab Technician' || r.display === 'PHCC Program Manager' || r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false)"
+              "expression": "(session.user ? session.user.roles.some(r => r.display === 'PHCC Lab Technician' || r.display === 'PHCC Program Manager' || r.display === 'PHCC doctor' || r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false)"
             }
           },
           "patient-lists-dashboard-link": {
@@ -121,7 +121,7 @@
         "configure": {
           "dispensing-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges' || r.display === 'PHCC Program Manager') : false) || (!(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard') : false) && (session.user ? session.user.privileges.some(p => p.display === 'Task: dispensing.create.dispense' || p.display === 'Task: dispensing.edit.dispense' || p.display === 'Task: dispensing.delete.dispense' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
+              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges' || r.display === 'PHCC Program Manager' || r.display === 'PHCC doctor') : false) || (!(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard') : false) && (session.user ? session.user.privileges.some(p => p.display === 'Task: dispensing.create.dispense' || p.display === 'Task: dispensing.edit.dispense' || p.display === 'Task: dispensing.delete.dispense' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
             }
           },
           "queue-screen-link": {
