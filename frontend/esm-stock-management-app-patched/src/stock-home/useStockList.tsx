@@ -1,5 +1,7 @@
-import useSWR from 'swr';
-import { openmrsFetch, restBaseUrl, useSession } from '@openmrs/esm-framework';
+import { useSession } from '@openmrs/esm-framework';
+import { ResourceRepresentation } from '../core/api/api';
+import { useFetchAllPages } from '../core/api/useFetchAllPages';
+import { type StockItemFilter } from '../stock-items/stock-items.resource';
 import { useStockItemQuantities } from '../stock-items/stock-item-quantities.resource';
 
 interface StockListItem {
@@ -15,14 +17,14 @@ interface StockListItem {
 const useStockList = () => {
   const { sessionLocation } = useSession();
 
-  const stockItemsUrl = `${restBaseUrl}/stockmanagement/stockitem?v=default&totalCount=true`;
   const {
-    data: stockItemsData,
+    items: stockItems,
     error: stockItemsError,
     isLoading: stockItemsLoading,
-  } = useSWR<{ data: { results: Array<StockListItem> } }>(stockItemsUrl, openmrsFetch);
+  } = useFetchAllPages<StockListItem, StockItemFilter>('/stockmanagement/stockitem', {
+    v: ResourceRepresentation.Default,
+  });
 
-  const stockItems = stockItemsData?.data.results ?? [];
   const stockItemUuids = stockItems.map((item) => item.uuid);
 
   const {

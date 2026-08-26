@@ -1,25 +1,20 @@
-import { useEffect, useState } from 'react';
-import { type StockItemFilter, useStockItems } from '../stock-items/stock-items.resource';
+import { type StockItemFilter } from '../stock-items/stock-items.resource';
 import { ResourceRepresentation } from '../core/api/api';
+import { useFetchAllPages } from '../core/api/useFetchAllPages';
+import { type StockItemDTO } from '../core/api/types/stockItem/StockItem';
 
 export function useStockInventoryItems(v?: ResourceRepresentation) {
-  const [stockItemFilter, setStockItemFilter] = useState<StockItemFilter>({
+  const filter: StockItemFilter = {
     v: v || ResourceRepresentation.Default,
-    q: null,
-    totalCount: true,
-  });
+  };
 
-  const { items, isLoading, error } = useStockItems(stockItemFilter);
-
-  useEffect(() => {
-    setStockItemFilter({
-      v: ResourceRepresentation.Default,
-      totalCount: true,
-    });
-  }, []);
+  const { items, isLoading, error } = useFetchAllPages<StockItemDTO, StockItemFilter>(
+    '/stockmanagement/stockitem',
+    filter,
+  );
 
   return {
-    items: items?.results ?? [],
+    items,
     isLoading,
     error,
   };

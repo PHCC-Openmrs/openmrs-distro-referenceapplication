@@ -1,26 +1,21 @@
 import { ResourceRepresentation } from '../core/api/api';
-import { useEffect, useState } from 'react';
-import { type StockBatchFilter, useStockBatches } from '../stock-items/stock-items.resource';
+import { type StockBatchFilter } from '../stock-items/stock-items.resource';
+import { useFetchAllPages } from '../core/api/useFetchAllPages';
+import { type StockBatchDTO } from '../core/api/types/stockItem/StockBatchDTO';
 
 export function useStockInventory() {
-  const [stockItemFilter, setStockItemFilter] = useState<StockBatchFilter>({
-    startIndex: 0,
+  const filter: StockBatchFilter = {
     v: ResourceRepresentation.Default,
-    q: null,
     includeStockItemName: 'true',
-  });
+  };
 
-  useEffect(() => {
-    setStockItemFilter({
-      v: ResourceRepresentation.Default,
-      includeStockItemName: 'true',
-    });
-  }, []);
-
-  const { items, isLoading, error } = useStockBatches(stockItemFilter);
+  const { items, isLoading, error } = useFetchAllPages<StockBatchDTO, StockBatchFilter>(
+    '/stockmanagement/stockbatch',
+    filter,
+  );
 
   return {
-    items: items.results ?? [],
+    items,
     isLoading,
     error,
   };
