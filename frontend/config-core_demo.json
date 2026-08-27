@@ -116,7 +116,7 @@
         "configure": {
           "dispensing-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges' || r.display === 'PHCC Program Manager' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator') : false) || (!(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard') : false) && (session.user ? session.user.privileges.some(p => p.display === 'Task: dispensing.create.dispense' || p.display === 'Task: dispensing.edit.dispense' || p.display === 'Task: dispensing.delete.dispense' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
+              "privileges": ["App: dispensing.dashboard"]
             }
           },
           "queue-screen-link": {
