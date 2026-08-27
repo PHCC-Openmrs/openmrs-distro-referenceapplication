@@ -53,7 +53,7 @@
           },
           "reports-overview-admin-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || !((session.user ? session.user.privileges.some(p => p.display === 'Task: stockmanagement.stockItems.dispense') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard') : false))"
+              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges' || r.display === 'PHCC Dispensing') : false) || !((session.user ? session.user.privileges.some(p => p.display === 'Task: stockmanagement.stockItems.dispense') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard') : false))"
             }
           },
           "admin-service-queues-card-link": {
