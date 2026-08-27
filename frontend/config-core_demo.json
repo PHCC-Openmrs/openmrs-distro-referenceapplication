@@ -38,32 +38,32 @@
         "configure": {
           "system-administration-cohort-builder-card-link": {
             "Display conditions": {
-              "expression": "!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Program Manager' || r.display === 'PHCC Dispensing') : false) && (session.user ? session.user.privileges.some(p => p.display === 'Get Patient Cohorts' || p.display === 'Add Cohorts' || p.display === 'Edit Cohorts') : false)"
+              "privileges": ["App: systemAdministration.cohortBuilder"]
             }
           },
           "stock-management-admin-card-link": {
             "Display conditions": {
-              "expression": "!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Dispensing') : false)"
+              "privileges": ["App: stockmanagement.dashboard"]
             }
           },
           "system-admin-page-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || (!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Program Manager' || r.display === 'PHCC Dispensing') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
+              "privileges": ["App: systemAdministration.legacyAdmin"]
             }
           },
           "reports-overview-admin-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges' || r.display === 'PHCC Dispensing') : false) || !((session.user ? session.user.privileges.some(p => p.display === 'Task: stockmanagement.stockItems.dispense') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard') : false))"
+              "privileges": ["App: systemAdministration.reports"]
             }
           },
           "admin-service-queues-card-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || (!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Program Manager' || r.display === 'PHCC Dispensing') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
+              "privileges": ["App: systemAdministration.serviceQueuesAdmin"]
             }
           },
           "system-administration-form-builder-card-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'System Developer' || r.display === 'Application: Has Super User Privileges') : false) || (!(session.user ? session.user.roles.some(r => r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Program Manager' || r.display === 'PHCC Dispensing') : false) && !(session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard' || p.display === 'Task: stockmanagement.stockItems.dispense') : false))"
+              "privileges": ["App: systemAdministration.formBuilder"]
             }
           }
         }
