@@ -131,7 +131,7 @@
           },
           "system-administration-app-menu-link": {
             "Display conditions": {
-              "expression": "(session.user ? session.user.roles.some(r => r.display === 'Organizational: System Administrator' || r.display === 'Organizational: Doctor' || r.display === 'PHCC doctor' || r.display === 'PHCC Coordinator' || r.display === 'PHCC Reporting' || r.display === 'PHCC Program Manager' || r.display === 'PHCC Dispensing') : false) || (session.user ? session.user.privileges.some(p => p.display === 'App: stockmanagement.dashboard') : false)"
+              "privileges": ["App: systemAdministration.dashboard"]
             }
           }
         }
