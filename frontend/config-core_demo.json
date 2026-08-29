@@ -273,6 +273,24 @@
       }
     }
   },
+  "@openmrs/esm-patient-orders-app": {
+    "extensionSlots": {
+      "order-basket-slot": {
+        "configure": {
+          "drug-order-panel": {
+            "Display conditions": {
+              "privileges": ["Task: patientChart.addDrugOrder"]
+            }
+          },
+          "lab-order-panel": {
+            "Display conditions": {
+              "privileges": ["Task: patientChart.addLabOrder"]
+            }
+          }
+        }
+      }
+    }
+  },
   "@openmrs/esm-laboratory-app": {
     "labTableColumns": ["name", "patientId", "urgency", "age", "sex", "totalOrders", "action"],
     "extensionSlots": {
