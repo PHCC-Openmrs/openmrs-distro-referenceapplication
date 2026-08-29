@@ -321,7 +321,7 @@
           },
           "add-lab-request-results-action": {
             "Display conditions": {
-              "expression": "!(session.user ? session.user.roles.some(r => r.display === 'PHCC Program Manager') : false)"
+              "privileges": ["Task: laboratory.addLabResults"]
             }
           }
         }
