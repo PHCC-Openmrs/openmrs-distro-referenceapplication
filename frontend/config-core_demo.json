@@ -377,6 +377,11 @@
             "Display conditions": {
               "expression": "(session.user ? session.user.privileges.some(p => p.display === 'Add Patients' || p.display === 'Edit Patients') : false)"
             }
+          },
+          "print-identifier-sticker-button": {
+            "Display conditions": {
+              "privileges": ["App: Can generate a Patient Identity Sticker"]
+            }
           }
         }
       },
