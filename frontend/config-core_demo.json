@@ -468,7 +468,7 @@
         "configure": {
           "user-scopes-db-link": {
             "Display conditions": {
-              "privileges": ["App: stockmanagement.userRoleScopes"]
+              "privileges": ["App: stockmanagement.userRoleScopesAdmin"]
             }
           }
         }
