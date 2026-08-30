@@ -24,6 +24,9 @@ public class StockMovementDetailRow {
 	// same operation vendorName is derived from) - see ExternalReferenceParser for the format.
 	private String externalReference;
 
+	/** Only populated for the Wastage report - null for Consumption and Distribution. */
+	private String reasonName;
+
 	public String getBatchNo() {
 		return batchNo;
 	}
@@ -82,5 +85,13 @@ public class StockMovementDetailRow {
 
 	public String getProjectFundCode() {
 		return ExternalReferenceParser.getProjectFundCode(externalReference);
+	}
+
+	public String getReasonName() {
+		return reasonName;
+	}
+
+	public void setReasonName(String reasonName) {
+		this.reasonName = reasonName;
 	}
 }

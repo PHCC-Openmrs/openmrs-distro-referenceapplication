@@ -62,6 +62,11 @@ public class StockFlowServiceImpl extends BaseOpenmrsService implements StockFlo
 			row.setQuantity(toDouble(r[3]));
 			row.setUnitName((String) r[4]);
 			row.setExternalReference((String) r[5]);
+			// Only the Wastage drilldown query (queries/stock_wastage_drilldown.sql) selects a 7th
+			// column for the disposal reason - Consumption/Distribution rows stop at 6 columns.
+			if (r.length > 6) {
+				row.setReasonName((String) r[6]);
+			}
 			rows.add(row);
 		}
 		return rows;

@@ -24,7 +24,8 @@ SELECT
   bv.vendorName           AS vendorName,
   SUM(-sit.quantity * puom.factor) AS quantity,
   un.name                 AS unitName,
-  bv.externalReference    AS externalReference
+  bv.externalReference    AS externalReference,
+  rn.name                 AS reasonName
 FROM stockmgmt_stock_item_transaction sit
 JOIN stockmgmt_stock_item si ON si.stock_item_id = sit.stock_item_id
 JOIN stockmgmt_stock_item_packaging_uom puom ON puom.stock_item_packaging_uom_id = sit.stock_item_packaging_uom_id
@@ -33,6 +34,7 @@ JOIN stockmgmt_stock_operation_type sot ON sot.stock_operation_type_id = so.oper
 LEFT JOIN stockmgmt_stock_batch sb ON sb.stock_batch_id = sit.stock_batch_id
 LEFT JOIN batch_vendor bv ON bv.stock_batch_id = sb.stock_batch_id AND bv.rn = 1
 LEFT JOIN concept_name un ON un.concept_id = si.dispensing_unit_id AND un.locale = 'en' AND un.locale_preferred = 1
+LEFT JOIN concept_name rn ON rn.concept_id = so.reason_id AND rn.locale = 'en' AND rn.locale_preferred = 1
 WHERE si.voided = 0
   AND sot.operation_type = 'disposed'
   AND sit.quantity < 0
@@ -40,5 +42,5 @@ WHERE si.voided = 0
   AND sit.party_id = :locationId
   AND (:startDate IS NULL OR DATE(sit.date_created) >= :startDate)
   AND (:endDate IS NULL OR DATE(sit.date_created) < DATE_ADD(:endDate, INTERVAL 1 DAY))
-GROUP BY sb.batch_no, sb.expiration, bv.vendorName, un.name, bv.externalReference
+GROUP BY sb.batch_no, sb.expiration, bv.vendorName, un.name, bv.externalReference, rn.name
 ORDER BY quantity DESC

@@ -27,6 +27,8 @@ export interface StockMovementDetailRow {
   purchaseOrderNo: string | null;
   purchaseRequestNo: string | null;
   projectFundCode: string | null;
+  /** Only populated for the Wastage report - undefined for Consumption and Distribution. */
+  reasonName?: string | null;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
