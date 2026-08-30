@@ -10,13 +10,14 @@ export interface BatchQuantity {
   quantityUoM?: string;
 }
 
-async function fetchBatchQuantities(stockItemUuids: Array<string>) {
+async function fetchBatchQuantities(stockItemUuids: Array<string>, locationUuid?: string) {
   const quantityByBatch = new Map<string, BatchQuantity>();
   await Promise.all(
     stockItemUuids.map(async (stockItemUuid) => {
       const url = `${restBaseUrl}/stockmanagement/stockiteminventory${toQueryParams<StockItemInventoryFilter>({
         v: ResourceRepresentation.Default,
         stockItemUuid,
+        locationUuid,
         groupBy: LocationStockItemBatchNo,
         totalCount: true,
       })}`;
@@ -36,14 +37,14 @@ async function fetchBatchQuantities(stockItemUuids: Array<string>) {
   return quantityByBatch;
 }
 
-export function useStockBatchQuantities(stockItemUuids: Array<string>) {
+export function useStockBatchQuantities(stockItemUuids: Array<string>, locationUuid?: string) {
   // String key starting with the stockiteminventory REST path, not an array tuple, so
   // handleMutate's prefix-based invalidation (called after operations complete) reaches
   // this cache - see the matching comment in stock-item-quantities.resource.ts.
   const key =
     stockItemUuids.length > 0
-      ? `${restBaseUrl}/stockmanagement/stockiteminventory?batchQuantities=${stockItemUuids.join(',')}`
+      ? `${restBaseUrl}/stockmanagement/stockiteminventory?batchQuantities=${stockItemUuids.join(',')}&locationUuid=${locationUuid ?? ''}`
       : null;
-  const { data, error, isLoading } = useSWR(key, () => fetchBatchQuantities(stockItemUuids));
+  const { data, error, isLoading } = useSWR(key, () => fetchBatchQuantities(stockItemUuids, locationUuid));
   return { quantityByBatch: data ?? new Map<string, BatchQuantity>(), isLoading, error };
 }

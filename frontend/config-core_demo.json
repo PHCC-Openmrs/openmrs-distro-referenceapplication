@@ -424,6 +424,7 @@
     }
   },
   "@openmrs/esm-stock-management-app": {
+    "autoPopulateResponsiblePerson": true,
     "packingUnitsUUID": "a6d438fe-05c1-4d4d-9755-c11cf6b0b3b9",
     "dispensingUnitsUUID": "162402AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     "stockAdjustmentReasonUUID": "3a9021d1-d6c1-4fc2-8e30-ca8e204e44de",

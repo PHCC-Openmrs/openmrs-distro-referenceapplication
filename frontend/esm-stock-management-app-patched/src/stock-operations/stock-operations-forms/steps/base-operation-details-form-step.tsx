@@ -13,7 +13,7 @@ import {
 import { ArrowRight } from '@carbon/react/icons';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { ErrorState } from '@openmrs/esm-framework';
+import { ErrorState, useSession } from '@openmrs/esm-framework';
 import { DATE_PICKER_CONTROL_FORMAT, DATE_PICKER_FORMAT, MAIN_STORE_LOCATION_TAG } from '../../../constants';
 import { type Party } from '../../../core/api/types/Party';
 import { type StockOperationDTO } from '../../../core/api/types/stockOperation/StockOperationDTO';
@@ -37,6 +37,7 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
   onNext,
 }) => {
   const { t } = useTranslation();
+  const { sessionLocation } = useSession();
   const operationTypePermision = useOperationTypePermisions(stockOperationType);
   const {
     destinationParties,
@@ -78,6 +79,14 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
         if (shouldLockSource && sourceParties?.length) {
           const party = sourceParties[0];
           form.setValue('sourceUuid', party.uuid);
+        } else {
+          // Otherwise, default to wherever the user is currently logged in, when that's one of
+          // the locations this operation type is scoped to - saves reselecting your own
+          // location on every operation, while still leaving it editable.
+          const currentLocationParty = sourceParties?.find((party) => party.locationUuid === sessionLocation?.uuid);
+          if (currentLocationParty) {
+            form.setValue('sourceUuid', currentLocationParty.uuid);
+          }
         }
       }
 
@@ -89,7 +98,33 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
         }
       }
     }
-  }, [sourceParties, destinationParties, stockOperation, stockOperationType, form, destinationTags, sourceTags]);
+  }, [
+    sourceParties,
+    destinationParties,
+    stockOperation,
+    stockOperationType,
+    form,
+    destinationTags,
+    sourceTags,
+    sessionLocation,
+  ]);
+
+  // Whether the source location above was auto-filled (either locked to a single Main Store, or
+  // defaulted to the session location) - in either case it was chosen for the user, not by them,
+  // so it shouldn't be left open to accidentally pick a different one.
+  const sourceLocationLocked = useMemo(() => {
+    if (stockOperation || stockOperationType.operationType === OperationType.STOCK_ISSUE_OPERATION_TYPE) {
+      return false;
+    }
+    if (!stockOperationType?.hasSource) {
+      return false;
+    }
+    const shouldLockSource = sourceTags.length === 1 && sourceTags[0] === MAIN_STORE_LOCATION_TAG;
+    if (shouldLockSource) {
+      return true;
+    }
+    return (sourceParties ?? []).some((party) => party.locationUuid === sessionLocation?.uuid);
+  }, [stockOperation, stockOperationType, sourceTags, sourceParties, sessionLocation]);
 
   if (isPartiesLoading)
     return (
@@ -161,7 +196,7 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
                   ? t('from', 'From')
                   : t('location', 'Location')
               }
-              readOnly={field.disabled}
+              readOnly={field.disabled || sourceLocationLocked}
               name={'sourceUuid'}
               id={'sourceUuid'}
               size="lg"

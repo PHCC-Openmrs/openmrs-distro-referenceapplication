@@ -48,7 +48,7 @@ public class StockLedgerReportController {
 		ModelMap model = new ModelMap();
 		model.addAttribute("items", items);
 		model.addAttribute("dayBlocks", dayBlocks);
-		model.addAttribute("totalColumns", 1 + items.size() * 4);
+		model.addAttribute("totalColumns", 1 + items.size() * 7);
 		model.addAttribute("startDate", startDate == null ? "" : dateFormat.format(startDate));
 		model.addAttribute("endDate", endDate == null ? "" : dateFormat.format(endDate));
 		return new ModelAndView("/module/labtestreport/stockLedgerReport", model);

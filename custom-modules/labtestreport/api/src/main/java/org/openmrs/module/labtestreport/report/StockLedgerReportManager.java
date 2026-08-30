@@ -80,7 +80,7 @@ public class StockLedgerReportManager extends BaseReportManager {
 
 	private static String buildPreviewSql() {
 		return "SELECT itemName AS `Item`, ledgerDate AS `Date`, "
-		        + "(remainingQty - incomingQty + outgoingQty) AS `Actual Qty`, "
+		        + "(remainingQty - incomingQty + outgoingQty - openingAdjustmentQty) AS `Actual Qty`, "
 		        + "incomingQty AS `Incoming`, outgoingQty AS `Outgoing`, remainingQty AS `Remaining` "
 		        + "FROM (" + SqlResources.load("stock_ledger_report.sql") + ") base";
 	}

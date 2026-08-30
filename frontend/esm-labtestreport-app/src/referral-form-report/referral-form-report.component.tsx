@@ -90,11 +90,9 @@ export default function ReferralFormReport() {
         t('familyName', 'Family Name'),
         t('encounterDate', 'Encounter Date'),
         t('location', 'Location'),
-        t('fullName', 'Full Name'),
         t('age', 'Age'),
         t('gender', 'Gender'),
         t('referralDate', 'Referral Date'),
-        t('referralTime', 'Referral Time'),
         t('nationalId', 'National ID'),
         t('phoneNumber', 'Phone Number'),
         t('referringFacility', 'Referring Facility'),
@@ -115,11 +113,9 @@ export default function ReferralFormReport() {
         row.familyName,
         row.encounterDatetime,
         row.location ?? '',
-        row.fullName ?? '',
         row.age ?? '',
         row.gender ?? '',
         row.referralDate ?? '',
-        row.referralTime ?? '',
         row.nationalId ?? '',
         row.phoneNumber ?? '',
         row.referringFacility ?? '',
@@ -234,14 +230,6 @@ export default function ReferralFormReport() {
                     className="left"
                   />
                   <SortableHeader
-                    label={t('fullName', 'Full Name (form)')}
-                    sortKey="fullName"
-                    activeSortKey={sortKey}
-                    direction={direction}
-                    onSort={toggleSort}
-                    className="left"
-                  />
-                  <SortableHeader
                     label={t('age', 'Age')}
                     sortKey="age"
                     activeSortKey={sortKey}
@@ -262,7 +250,6 @@ export default function ReferralFormReport() {
                     direction={direction}
                     onSort={toggleSort}
                   />
-                  <th>{t('referralTime', 'Referral Time')}</th>
                   <th>{t('nationalId', 'National ID')}</th>
                   <th>{t('phoneNumber', 'Phone Number')}</th>
                   <SortableHeader
@@ -311,11 +298,9 @@ export default function ReferralFormReport() {
                     </td>
                     <td>{row.encounterDatetime}</td>
                     <td className="left">{row.location || '--'}</td>
-                    <td className="left">{row.fullName || '--'}</td>
                     <td>{row.age ?? '--'}</td>
                     <td>{row.gender || '--'}</td>
                     <td>{row.referralDate || '--'}</td>
-                    <td>{row.referralTime || '--'}</td>
                     <td>{row.nationalId || '--'}</td>
                     <td>{row.phoneNumber || '--'}</td>
                     <td className="left">{row.referringFacility || '--'}</td>
@@ -334,7 +319,7 @@ export default function ReferralFormReport() {
                 ))}
                 {sortedRows.length === 0 && (
                   <tr>
-                    <td colSpan={22} className={pageStyles.emptyState}>
+                    <td colSpan={20} className={pageStyles.emptyState}>
                       {t('noSubmissionsForSelection', 'No Referral Form submissions found for this selection.')}
                     </td>
                   </tr>

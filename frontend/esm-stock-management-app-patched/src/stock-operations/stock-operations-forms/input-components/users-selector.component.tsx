@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { ComboBox, InlineNotification, SelectSkeleton, Column, TextInput } from '@carbon/react';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { useConfig, useSession } from '@openmrs/esm-framework';
+import { type ConfigObject } from '../../../config-schema';
 import { type User } from '../../../core/api/types/identity/User';
 import { useDebounce } from '../../../core/hooks/debounce-hook';
 import { otherUser } from '../../../core/utils/utils';
@@ -11,6 +13,10 @@ import useSearchUser from '../hooks/useSearchUser';
 const UsersSelector = () => {
   const { isLoading, userList, setSearchString } = useSearchUser();
   const { t } = useTranslation();
+  const { autoPopulateResponsiblePerson } = useConfig<ConfigObject>();
+  const {
+    user: { uuid: sessionUserUuid },
+  } = useSession();
   const debouncedSearch = useDebounce((query: string) => {
     setSearchString(query);
   }, 1000);
@@ -29,6 +35,14 @@ const UsersSelector = () => {
       form.resetField('responsiblePersonOther');
     }
   }, [observableresponsiblePersonUuid, form]);
+
+  useEffect(() => {
+    // Locked to the logged-in user - keep it pinned even if something else tries to change it,
+    // rather than only setting it once as a default the user could then edit away from.
+    if (autoPopulateResponsiblePerson && sessionUserUuid && observableresponsiblePersonUuid !== sessionUserUuid) {
+      form.setValue('responsiblePersonUuid', sessionUserUuid);
+    }
+  }, [autoPopulateResponsiblePerson, sessionUserUuid, observableresponsiblePersonUuid, form]);
 
   if (isLoadingUser && observableresponsiblePersonUuid !== otherUser.uuid && observableresponsiblePersonUuid)
     return <SelectSkeleton role="progressbar" />;
@@ -50,7 +64,7 @@ const UsersSelector = () => {
           control={form.control}
           render={({ field, fieldState: { error } }) => (
             <ComboBox
-              readOnly={field.disabled}
+              readOnly={field.disabled || autoPopulateResponsiblePerson}
               titleText={t('responsiblePerson', 'Responsible Person')}
               name={'responsiblePersonUuid'}
               id={'responsiblePersonUuid'}

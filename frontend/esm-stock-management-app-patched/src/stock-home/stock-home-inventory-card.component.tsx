@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@carbon/react';
 import { WarningHex, WarningAlt } from '@carbon/react/icons';
-import { showModal } from '@openmrs/esm-framework';
+import { showModal, useSession } from '@openmrs/esm-framework';
 import { useStockInventory } from './stock-home-inventory-expiry.resource';
 import { useStockInventoryItems } from './stock-home-inventory-items.resource';
 import { useStockBatchQuantities } from './stock-home-batch-quantities.resource';
@@ -13,6 +13,7 @@ import styles from './stock-home-detail-card.scss';
 
 const StockHomeInventoryCard = () => {
   const { t } = useTranslation();
+  const { sessionLocation } = useSession();
   const { items: expiryItems, isLoading: inventoryLoading } = useStockInventory();
   const { items: stockItems, isLoading } = useStockInventoryItems();
   const { outOfStockItems, understockedItems, isLoading: stockListLoading } = useStockList();
@@ -23,7 +24,10 @@ const StockHomeInventoryCard = () => {
     () => Array.from(new Set(expiryItems.map((batch) => batch.stockItemUuid))),
     [expiryItems],
   );
-  const { quantityByBatch, isLoading: quantityLoading } = useStockBatchQuantities(stockItemUuids);
+  const { quantityByBatch, isLoading: quantityLoading } = useStockBatchQuantities(
+    stockItemUuids,
+    sessionLocation?.uuid,
+  );
 
   if (isLoading || inventoryLoading || quantityLoading || stockListLoading) {
     return null;
@@ -42,7 +46,9 @@ const StockHomeInventoryCard = () => {
     };
   });
 
-  mergedArray = mergedArray.filter((item) => item.hasExpiration);
+  // quantityByBatch is now scoped to sessionLocation, so a batch this location doesn't actually
+  // hold any of shouldn't count as this location's "expiring stock".
+  mergedArray = mergedArray.filter((item) => item.hasExpiration && item.quantity > 0);
 
   const expiringSoon = mergedArray.filter((item) => {
     const expirationDate = new Date(item.expiration);

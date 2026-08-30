@@ -24,6 +24,9 @@ export interface StockMovementDetailRow {
   vendorName: string | null;
   quantity: number;
   unitName: string | null;
+  purchaseOrderNo: string | null;
+  purchaseRequestNo: string | null;
+  projectFundCode: string | null;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {

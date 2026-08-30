@@ -2390,7 +2390,12 @@ public class StockManagementDao extends DaoBase {
             monthQuantityConsumedIndex++;
         } while (!startDate.isAfter(endDate));
 
-        hqlQuery.append("sum(case when (sb.expiration is null or sb.expiration > :today) then (sit.quantity * sipu.factor) else 0 end) as quantity");
+        // Bounded to :enddate (not left unrestricted / "as of today") so this reflects the
+        // balance as of the end of the filtered period, matching the historical consumption
+        // columns above - otherwise stock added after the report's date range (or an item with
+        // no activity at all until after it) would still show its present-day quantity even
+        // when every month in range had zero consumption and zero stock on hand.
+        hqlQuery.append("sum(case when (sit.dateCreated <= :enddate) and (sb.expiration is null or sb.expiration > :today) then (sit.quantity * sipu.factor) else 0 end) as quantity");
         hqlQuery.append(" from stockmanagement.StockItemTransaction sit join\n" +
                 "\t sit.stockItemPackagingUOM sipu join\n" +
                 " sit.stockBatch sb\n" +
@@ -4267,6 +4272,7 @@ public class StockManagementDao extends DaoBase {
                 "so.responsiblePerson.userId as responsiblePerson,\n" +
                 "so.responsiblePersonOther as responsiblePersonOther,\n" +
                 "so.remarks as remarks,\n" +
+                "so.externalReference as externalReference,\n" +
                 "so.status as stockOperationStatus,\n" +
                 "so.creator.userId as creator,\n" +
                 "so.dateCreated as dateCreated,\n" +

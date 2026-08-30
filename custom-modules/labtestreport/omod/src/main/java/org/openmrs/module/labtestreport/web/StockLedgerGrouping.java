@@ -59,13 +59,18 @@ public class StockLedgerGrouping {
 				cell.setStockItemId(item.getStockItemId());
 				cell.setItemName(item.getItemName());
 				cell.setLedgerDate(date);
-				cell.setActualQty(opening);
 				if (actualRow != null) {
+					// Opening Stock transactions establish a starting balance rather than a day's
+					// activity, so they're added straight into the day's opening balance instead of
+					// being counted as incoming.
+					cell.setActualQty(opening + actualRow.getOpeningAdjustmentQty());
 					cell.setIncomingQty(actualRow.getIncomingQty());
 					cell.setOutgoingQty(actualRow.getOutgoingQty());
 					cell.setRemainingQty(actualRow.getRemainingQty());
+					cell.setExternalReferences(actualRow.getExternalReferences());
 					lastRemaining.put(item.getStockItemId(), actualRow.getRemainingQty());
 				} else {
+					cell.setActualQty(opening);
 					cell.setIncomingQty(0);
 					cell.setOutgoingQty(0);
 					cell.setRemainingQty(opening);

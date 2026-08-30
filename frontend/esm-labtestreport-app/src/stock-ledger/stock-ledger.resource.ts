@@ -10,10 +10,14 @@ export interface StockLedgerRow {
   expirationDate: string | null;
   ledgerDate: string;
   actualQty: number;
+  openingAdjustmentQty: number;
   incomingQty: number;
   outgoingQty: number;
   remainingQty: number;
   unitName: string | null;
+  purchaseOrderNo: string | null;
+  purchaseRequestNo: string | null;
+  projectFundCode: string | null;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
