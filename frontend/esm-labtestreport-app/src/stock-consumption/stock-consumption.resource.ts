@@ -24,6 +24,8 @@ export interface StockMovementDetailRow {
   vendorName: string | null;
   quantity: number;
   unitName: string | null;
+  /** Only populated for the Wastage report - undefined for Consumption and Distribution. */
+  reasonName?: string | null;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
