@@ -59,6 +59,17 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
 
   const { error, isDrug, isLoading, items, setDrug, setSearchString } = useStockItemsPages(ResourceRepresentation.Full);
 
+  // Only the very first fetch should replace the toolbar/search with a full-page
+  // skeleton. Later refetches (e.g. triggered by typing in the search box) must
+  // keep the table mounted, otherwise the search input unmounts/remounts and
+  // steals focus after every debounced search.
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  useEffect(() => {
+    if (!isLoading) {
+      setHasLoadedOnce(true);
+    }
+  }, [isLoading]);
+
   const pageSizes = [10, 20, 30, 40, 50];
   const [currentPage, setCurrentPage] = useState(1);
   const [currentPageSize, setPageSize] = useState(10);
@@ -233,7 +244,7 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
     }));
   }, [pageItems, t, quantityByItem, quantityMetaByItem, canManageStockItems]);
 
-  if (isLoading) {
+  if (isLoading && !hasLoadedOnce) {
     return <DataTableSkeleton role="progressbar" />;
   }
 
