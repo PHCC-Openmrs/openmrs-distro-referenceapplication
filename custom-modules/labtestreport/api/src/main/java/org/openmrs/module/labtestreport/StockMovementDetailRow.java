@@ -20,6 +20,9 @@ public class StockMovementDetailRow {
 
 	private String unitName;
 
+	/** Only populated for the Wastage report - null for Consumption and Distribution. */
+	private String reasonName;
+
 	public String getBatchNo() {
 		return batchNo;
 	}
@@ -58,5 +61,13 @@ public class StockMovementDetailRow {
 
 	public void setUnitName(String unitName) {
 		this.unitName = unitName;
+	}
+
+	public String getReasonName() {
+		return reasonName;
+	}
+
+	public void setReasonName(String reasonName) {
+		this.reasonName = reasonName;
 	}
 }

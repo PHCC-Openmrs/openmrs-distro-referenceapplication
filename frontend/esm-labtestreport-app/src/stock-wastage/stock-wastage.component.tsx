@@ -356,6 +356,7 @@ export default function StockWastageReport() {
             rows={drilldownRows}
             isLoading={drilldownLoading}
             onClose={() => setSelectedRow(null)}
+            showReason
           />
         )}
       </div>

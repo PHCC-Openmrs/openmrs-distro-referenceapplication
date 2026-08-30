@@ -10,6 +10,8 @@ export interface StockMovementDetailRow {
   vendorName: string | null;
   quantity: number;
   unitName: string | null;
+  /** Only populated for the Wastage report - undefined for Consumption and Distribution. */
+  reasonName?: string | null;
 }
 
 interface StockMovementDrilldownModalProps {
@@ -17,6 +19,8 @@ interface StockMovementDrilldownModalProps {
   rows: Array<StockMovementDetailRow>;
   isLoading: boolean;
   onClose: () => void;
+  /** Shows the disposal reason column - only the Wastage report has one to show. */
+  showReason?: boolean;
 }
 
 /**
@@ -31,6 +35,7 @@ export default function StockMovementDrilldownModal({
   rows,
   isLoading,
   onClose,
+  showReason = false,
 }: StockMovementDrilldownModalProps) {
   const { t } = useTranslation();
 
@@ -49,6 +54,7 @@ export default function StockMovementDrilldownModal({
                 <th className="left">{t('expirationDate', 'Expiration Date')}</th>
                 <th className="left">{t('vendor', 'Vendor')}</th>
                 <th>{t('quantity', 'Quantity')}</th>
+                {showReason && <th className="left">{t('reason', 'Reason')}</th>}
               </tr>
             </thead>
             <tbody>
@@ -58,6 +64,7 @@ export default function StockMovementDrilldownModal({
                   <td className="left">{row.expirationDate?.slice(0, 10) ?? '—'}</td>
                   <td className="left">{row.vendorName ?? t('unknownVendor', 'Unknown')}</td>
                   <td>{formatQuantity(row.quantity, row.unitName)}</td>
+                  {showReason && <td className="left">{row.reasonName ?? '—'}</td>}
                 </tr>
               ))}
             </tbody>
