@@ -38,7 +38,10 @@ const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
   mergedArray = mergedArray.filter((item) => item.hasExpiration && item.quantity > 0);
 
   const filteredData = mergedArray.filter((item) => {
-    const expiryNotice = item.expiryNotice || 0;
+    // Stock items commonly have no configured notice period; falling back to 0 would only
+    // flag items that are already overdue, hiding ones expiring soon (e.g. in 3 days). Default
+    // to the same 180-day window the card itself uses (see sixMonthsExpiryStocks below).
+    const expiryNotice = item.expiryNotice ?? 180;
     const expirationDate = new Date(item.expiration);
     const differenceInDays = Math.ceil((expirationDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
     return differenceInDays <= expiryNotice || differenceInDays < 0;
@@ -57,7 +60,16 @@ const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
   const disposedStockHistory = React.useMemo(() => computeDisposedStockHistory(items ?? []), [items]);
 
   if (error) {
-    return <ErrorState headerTitle={t('errorStockMetric', 'Error fetching stock metrics')} error={error} />;
+    // openmrsFetch rejections carry the backend's actual message under responseBody.error.message;
+    // error.message alone is frequently undefined (e.g. on a 403 for a role without privilege to
+    // list stock items), which otherwise renders as the literal text "Error undefined".
+    const errorMessage =
+      (error as any)?.responseBody?.error?.message ??
+      error?.message ??
+      t('unknownErrorStockMetric', 'An unknown error occurred while fetching stock metrics.');
+    return (
+      <ErrorState headerTitle={t('errorStockMetric', 'Error fetching stock metrics')} error={{ message: errorMessage }} />
+    );
   }
 
   const filteredItems =

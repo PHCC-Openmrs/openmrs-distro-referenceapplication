@@ -32,6 +32,7 @@ export default function ComparisonSummaryTable({
   const totalCurrent = rows.reduce((sum, row) => sum + row.current, 0);
   const totalCompare = rows.reduce((sum, row) => sum + row.compare, 0);
   const totalDelta = totalCurrent - totalCompare;
+  const totalPercent = totalCompare !== 0 ? (totalDelta / Math.abs(totalCompare)) * 100 : null;
 
   return (
     <div className={pageStyles.tableContainer}>
@@ -82,7 +83,9 @@ export default function ComparisonSummaryTable({
               <td>
                 <strong>{formatDelta(totalDelta)}</strong>
               </td>
-              <td />
+              <td>
+                <strong>{totalPercent === null ? '—' : `${totalPercent > 0 ? '+' : ''}${totalPercent.toFixed(1)}%`}</strong>
+              </td>
             </tr>
           </tfoot>
         )}
