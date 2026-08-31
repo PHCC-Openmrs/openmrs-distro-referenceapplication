@@ -1556,7 +1556,13 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             String privelege = null;
             StockOperationPrivelegeTarget target = null;
             if (parameter1.isUpdateable()) {
-                privelege = Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE;
+                // approvalRequired is otherwise just UI-workflow metadata with no enforcement of
+                // its own - without this check, anyone with mutate (which they already need to
+                // create the operation) could complete it directly here, skipping Submit ->
+                // Approve entirely. Require the same privilege an approver would need instead.
+                privelege = Boolean.TRUE.equals(parameter1.getApprovalRequired())
+                        ? Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE
+                        : Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE;
                 target = StockOperationPrivelegeTarget.AtLocation;
             } else if (parameter1.getStatus() == StockOperationStatus.DISPATCHED) {
                 privelege = Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS;

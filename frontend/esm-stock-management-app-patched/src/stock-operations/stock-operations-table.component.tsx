@@ -26,7 +26,7 @@ import {
 } from '@carbon/react';
 import { ArrowRight } from '@carbon/react/icons';
 import { useTranslation } from 'react-i18next';
-import { isDesktop, restBaseUrl } from '@openmrs/esm-framework';
+import { isDesktop, restBaseUrl, useSession } from '@openmrs/esm-framework';
 import { DATE_PICKER_CONTROL_FORMAT, DATE_PICKER_FORMAT, StockFilters } from '../constants';
 import { formatDisplayDate } from '../core/utils/datetimeUtils';
 import { handleMutate } from '../utils';
@@ -45,6 +45,7 @@ interface StockOperationsTableProps {
 
 const StockOperations: React.FC<StockOperationsTableProps> = () => {
   const { t } = useTranslation();
+  const { sessionLocation } = useSession();
 
   const handleRefresh = () => {
     handleMutate(`${restBaseUrl}/stockmanagement/stockoperation`);
@@ -60,6 +61,9 @@ const StockOperations: React.FC<StockOperationsTableProps> = () => {
     useStockOperationPages({
       v: ResourceRepresentation.Full,
       totalCount: true,
+      // Operations where the logged-in location is either the source or the destination --
+      // matches the same session-location scoping already applied to stock item quantities.
+      locationUuid: sessionLocation?.uuid,
       operationDateMin: selectedFromDate?.toISOString(),
       operationDateMax: selectedToDate?.toISOString(),
       status: selectedStatus.join(','),
@@ -136,18 +140,7 @@ const StockOperations: React.FC<StockOperationsTableProps> = () => {
             stockOperation?.responsiblePersonFamilyName ?? stockOperation?.responsiblePersonOther ?? ''
           } ${stockOperation?.responsiblePersonGivenName ?? ''}`,
           operationDate: formatDisplayDate(stockOperation?.operationDate),
-          externalReferenceDisplay: (() => {
-            const { purchaseOrderNo, purchaseRequestNo, projectFundCode } = parseExternalReference(
-              stockOperation?.externalReference,
-            );
-            return [
-              purchaseOrderNo && `PO: ${purchaseOrderNo}`,
-              purchaseRequestNo && `PR: ${purchaseRequestNo}`,
-              projectFundCode && `Fund: ${projectFundCode}`,
-            ]
-              .filter(Boolean)
-              .join(' · ');
-          })(),
+          ...parseExternalReference(stockOperation?.externalReference),
           actions: <EditStockOperationActionMenu stockOperation={stockOperation} showIcon={true} showprops={false} />,
         };
       }),

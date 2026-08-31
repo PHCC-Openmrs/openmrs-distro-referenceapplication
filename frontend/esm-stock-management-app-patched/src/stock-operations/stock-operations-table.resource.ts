@@ -52,11 +52,21 @@ export function useStockOperationPages(filter: StockOperationFilter) {
       },
       {
         id: 7,
-        header: t('reference', 'Reference'),
-        key: 'externalReferenceDisplay',
+        header: t('purchaseOrderNo', 'Purchase Order No'),
+        key: 'purchaseOrderNo',
       },
       {
         id: 8,
+        header: t('purchaseRequestNo', 'Purchase Request No'),
+        key: 'purchaseRequestNo',
+      },
+      {
+        id: 9,
+        header: t('projectFundCode', 'Project Fund Code'),
+        key: 'projectFundCode',
+      },
+      {
+        id: 10,
         key: 'details',
         header: '',
       },

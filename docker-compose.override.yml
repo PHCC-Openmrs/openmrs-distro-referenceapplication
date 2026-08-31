@@ -8,6 +8,15 @@ services:
   frontend:
     build:
       context: ./frontend
+      # Build openmrs-esm-core from the local checkout (sibling to this repo)
+      # instead of cloning PHCC-Openmrs/openmrs-esm-core from GitHub, so local
+      # edits are picked up without needing to commit/push first. Remove
+      # these two lines (or set ESM_CORE_SOURCE back to "esm-core-remote") to
+      # go back to building against whatever's actually pushed to `main`.
+      additional_contexts:
+        - esm-core-local=../openmrs-esm-core
+      args:
+        ESM_CORE_SOURCE: esm-core-local-aliased
 
   backend:
     build:

@@ -97,7 +97,46 @@ public class StockOperationLineItem {
 	private Date dateCreated;
 	
 	private String requisitionOperationNumber;
-	
+
+	private String externalReference;
+
+	// externalReference (varchar(50)) is the only free-text slot the stock operation itself has -
+	// the UI packs Purchase Order No, Purchase Request No, and Project Fund Code into it with
+	// short prefixes ("PO:", "PR:", "FC:") separated by "|" (see external-reference.utils.ts on
+	// the frontend) rather than losing the distinction between the three. These getters split
+	// them back apart for reports, mirroring that same packing format exactly.
+	private static final String PURCHASE_ORDER_PREFIX = "PO:";
+
+	private static final String PURCHASE_REQUEST_PREFIX = "PR:";
+
+	private static final String PROJECT_FUND_CODE_PREFIX = "FC:";
+
+	private static final String EXTERNAL_REFERENCE_SEPARATOR = "\\|";
+
+	private String externalReferencePart(String prefix) {
+		if (externalReference == null) {
+			return "";
+		}
+		for (String part : externalReference.split(EXTERNAL_REFERENCE_SEPARATOR)) {
+			if (part.startsWith(prefix)) {
+				return part.substring(prefix.length());
+			}
+		}
+		return "";
+	}
+
+	public String getPurchaseOrderNo() {
+		return externalReferencePart(PURCHASE_ORDER_PREFIX);
+	}
+
+	public String getPurchaseRequestNo() {
+		return externalReferencePart(PURCHASE_REQUEST_PREFIX);
+	}
+
+	public String getProjectFundCode() {
+		return externalReferencePart(PROJECT_FUND_CODE_PREFIX);
+	}
+
 	public Integer getStockOperationItemId() {
 		return stockOperationItemId;
 	}
@@ -441,7 +480,15 @@ public class StockOperationLineItem {
 	public void setRequisitionOperationNumber(String requisitionOperationNumber) {
 		this.requisitionOperationNumber = requisitionOperationNumber;
 	}
-	
+
+	public String getExternalReference() {
+		return externalReference;
+	}
+
+	public void setExternalReference(String externalReference) {
+		this.externalReference = externalReference;
+	}
+
 	public StockOperationStatus getStockOperationStatus() {
 		return stockOperationStatus;
 	}

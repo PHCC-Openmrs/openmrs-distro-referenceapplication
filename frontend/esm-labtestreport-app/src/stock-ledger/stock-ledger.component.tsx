@@ -106,7 +106,10 @@ function buildDayBlocks(rows: Array<StockLedgerRow>, items: Array<LedgerItem>): 
         const opening = lastRemaining.get(item.key) ?? 0;
         if (actualRow) {
           lastRemaining.set(item.key, actualRow.remainingQty);
-          return { ...actualRow, actualQty: opening };
+          // Opening Stock transactions establish a starting balance rather than a day's
+          // activity, so they're added straight into the day's opening balance instead of
+          // being counted as incoming.
+          return { ...actualRow, actualQty: opening + actualRow.openingAdjustmentQty };
         }
         return {
           stockItemId: item.stockItemId,
@@ -117,10 +120,14 @@ function buildDayBlocks(rows: Array<StockLedgerRow>, items: Array<LedgerItem>): 
           expirationDate: item.expirationDate,
           ledgerDate: date,
           actualQty: opening,
+          openingAdjustmentQty: 0,
           incomingQty: 0,
           outgoingQty: 0,
           remainingQty: opening,
           unitName: unitNameByItem.get(item.key) ?? null,
+          purchaseOrderNo: null,
+          purchaseRequestNo: null,
+          projectFundCode: null,
         };
       });
       return { date, cells };
@@ -162,9 +169,19 @@ interface LedgerGroup {
   batchNo: string | null;
   expirationDate: string | null;
   rows: Array<StockLedgerRow>;
+  openingBalance: number;
   totalOutgoing: number;
   latestRemaining: number;
   unitName: string | null;
+  purchaseOrderNo: string;
+  purchaseRequestNo: string;
+  projectFundCode: string;
+}
+
+// A group can span several days, each potentially from a different operation with its own
+// codes - collect whatever distinct, non-blank values appear across the whole group.
+function distinctJoined(rows: Array<StockLedgerRow>, field: 'purchaseOrderNo' | 'purchaseRequestNo' | 'projectFundCode') {
+  return Array.from(new Set(rows.map((row) => row[field]).filter((value): value is string => !!value))).join(', ');
 }
 
 function buildGroupedRows(items: Array<LedgerItem>, flatRows: Array<StockLedgerRow>): Array<LedgerGroup> {
@@ -177,9 +194,13 @@ function buildGroupedRows(items: Array<LedgerItem>, flatRows: Array<StockLedgerR
       batchNo: item.batchNo,
       expirationDate: item.expirationDate,
       rows,
+      openingBalance: rows.length > 0 ? rows[0].actualQty : 0,
       totalOutgoing: rows.reduce((sum, row) => sum + row.outgoingQty, 0),
       latestRemaining: rows.length > 0 ? rows[rows.length - 1].remainingQty : 0,
       unitName: rows.length > 0 ? rows[0].unitName : null,
+      purchaseOrderNo: distinctJoined(rows, 'purchaseOrderNo'),
+      purchaseRequestNo: distinctJoined(rows, 'purchaseRequestNo'),
+      projectFundCode: distinctJoined(rows, 'projectFundCode'),
     };
   });
 }
@@ -336,6 +357,9 @@ export default function StockLedgerReport() {
         t('outgoing', 'Outgoing'),
         t('balanceOnStock', 'Balance on Stock'),
         t('unit', 'Unit'),
+        t('purchaseOrderNo', 'Purchase Order No'),
+        t('purchaseRequestNo', 'Purchase Request No'),
+        t('projectFundCode', 'Project Fund Code'),
       ],
       rows: flatRows.map((row) => [
         row.itemName,
@@ -347,6 +371,9 @@ export default function StockLedgerReport() {
         row.outgoingQty,
         row.remainingQty,
         row.unitName ?? '',
+        row.purchaseOrderNo ?? '',
+        row.purchaseRequestNo ?? '',
+        row.projectFundCode ?? '',
       ]),
     }),
     [t, flatRows, showLocationColumn],
@@ -518,6 +545,9 @@ export default function StockLedgerReport() {
                   <th>{t('openingBalance', 'Opening Balance')}</th>
                   <th>{t('outgoing', 'Outgoing')}</th>
                   <th>{t('balanceOnStock', 'Balance on Stock')}</th>
+                  <th className="left">{t('purchaseOrderNo', 'Purchase Order No')}</th>
+                  <th className="left">{t('purchaseRequestNo', 'Purchase Request No')}</th>
+                  <th className="left">{t('projectFundCode', 'Project Fund Code')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -537,10 +567,14 @@ export default function StockLedgerReport() {
                         <td className="left">{group.batchNo ?? '—'}</td>
                         <td className="left">{formatExpirationDate(group.expirationDate)}</td>
                         <td>{'—'}</td>
+                        <td>{formatQuantity(group.openingBalance, unitName)}</td>
                         <td>{formatQuantity(group.totalOutgoing, unitName)}</td>
                         <td>
                           <strong>{formatQuantity(group.latestRemaining, unitName)}</strong>
                         </td>
+                        <td className="left">{group.purchaseOrderNo || '—'}</td>
+                        <td className="left">{group.purchaseRequestNo || '—'}</td>
+                        <td className="left">{group.projectFundCode || '—'}</td>
                       </tr>
                       {expanded &&
                         group.rows.map((row) => (
@@ -553,6 +587,9 @@ export default function StockLedgerReport() {
                             <td>{formatQuantity(row.actualQty, row.unitName)}</td>
                             <td>{formatQuantity(row.outgoingQty, row.unitName)}</td>
                             <td>{formatQuantity(row.remainingQty, row.unitName)}</td>
+                            <td className="left">{row.purchaseOrderNo || '—'}</td>
+                            <td className="left">{row.purchaseRequestNo || '—'}</td>
+                            <td className="left">{row.projectFundCode || '—'}</td>
                           </tr>
                         ))}
                     </React.Fragment>
@@ -560,7 +597,7 @@ export default function StockLedgerReport() {
                 })}
                 {groupedRows.length === 0 && (
                   <tr>
-                    <td colSpan={showLocationColumn ? 8 : 7} className={pageStyles.emptyState}>
+                    <td colSpan={showLocationColumn ? 11 : 10} className={pageStyles.emptyState}>
                       {t('noDataForSelection', 'No data found for this selection.')}
                     </td>
                   </tr>

@@ -21,6 +21,11 @@ import { buildExternalReference } from '../../external-reference.utils';
 import useOperationTypePermisions from '../hooks/useOperationTypePermisions';
 import styles from '../stock-operation-form.scss';
 
+// Users holding this role must never be able to complete/dispatch a stock operation
+// themselves, regardless of operation type - every operation they create has to go through
+// someone else's approval.
+const STOCK_ADD_ROLE_NAME = 'Stock Add';
+
 type StockOperationSubmissionFormStepProps = {
   onPrevious?: () => void;
   stockOperation?: StockOperationDTO;
@@ -37,7 +42,7 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
   dismissWorkspace,
 }) => {
   const { t } = useTranslation();
-  const { sessionLocation } = useSession();
+  const { sessionLocation, user } = useSession();
   const operationTypePermision = useOperationTypePermisions(stockOperationType);
   const editable = useMemo(() => !stockOperation || stockOperation.status === 'NEW', [stockOperation]);
   const form = useFormContext<StockOperationItemDtoSchema>();
@@ -45,16 +50,29 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
     () => StockOperationTypeRequiresApproval(stockOperationType.operationType as OperationType),
     [stockOperationType],
   );
+  const isStockAddRoleUser = useMemo(
+    () =>
+      user?.roles?.some(
+        (role) => role.display?.toLowerCase() === STOCK_ADD_ROLE_NAME.toLowerCase() ||
+          role.name?.toLowerCase() === STOCK_ADD_ROLE_NAME.toLowerCase(),
+      ) ?? false,
+    [user],
+  );
+  // Whether the approval choice below is forced to "Yes" and locked - either because this
+  // operation type always requires approval (Opening Stock), or because the acting user's role
+  // never gets to skip approval.
+  const forcesApproval = isOpeningStockOperation || isStockAddRoleUser;
   const [approvalRequired, setApprovalRequired] = useState<boolean | null>(
-    isOpeningStockOperation ? true : stockOperation?.approvalRequired,
+    forcesApproval ? true : stockOperation?.approvalRequired,
   );
   const isStockIssueOperation = useMemo(
     () => OperationType.STOCK_ISSUE_OPERATION_TYPE === stockOperationType.operationType,
     [stockOperationType],
   );
   const handleRadioButtonChange = (selectedItem: boolean) => {
-    if (isOpeningStockOperation) {
-      // Opening Stock always requires approval - the choice isn't editable.
+    if (forcesApproval) {
+      // Opening Stock, and any operation from a Stock Add role user, always requires approval -
+      // the choice isn't editable.
       return;
     }
     setApprovalRequired(selectedItem);
@@ -185,7 +203,7 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
           name="rbgApprovelRequired"
           legendText={t('doesThisTransactionRequireApproval', 'Does the transaction require approval ?')}
           onChange={(value) => handleRadioButtonChange(value === 'true')}
-          readOnly={!editable || isOpeningStockOperation}
+          readOnly={!editable || forcesApproval}
           valueSelected={approvalRequired === true ? 'true' : approvalRequired === false ? 'false' : null}
         >
           <RadioButton value="true" id="rbgApprovelRequired-true" labelText={t('yes', 'Yes')} />

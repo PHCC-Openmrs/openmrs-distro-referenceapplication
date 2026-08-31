@@ -40,8 +40,9 @@ public interface StockFlowDAO {
 	        throws DAOException;
 
 	/**
-	 * @return one row per batch behind a Wastage summary cell, each a 5-element array matching
-	 *         the column order of queries/stock_wastage_drilldown.sql
+	 * @return one row per batch/reason behind a Wastage summary cell, each a 6-element array
+	 *         matching the column order of queries/stock_wastage_drilldown.sql (the 6th being the
+	 *         disposal reason - unique to Wastage, absent from Consumption/Distribution)
 	 */
 	List<Object[]> getWastageDetailRows(Integer stockItemId, Integer locationId, Date startDate, Date endDate)
 	        throws DAOException;

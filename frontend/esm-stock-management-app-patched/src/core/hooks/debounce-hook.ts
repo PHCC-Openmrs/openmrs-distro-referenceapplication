@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 type Timer = ReturnType<typeof setTimeout>;
 type SomeFunction = (...args: any[]) => void;
@@ -13,7 +13,9 @@ type SomeFunction = (...args: any[]) => void;
 export function useDebounce<Func extends SomeFunction>(func: Func, delay = 1000) {
   const timer = useRef<Timer>();
   const funcRef = useRef(func);
+  const delayRef = useRef(delay);
   funcRef.current = func;
+  delayRef.current = delay;
 
   useEffect(() => {
     return () => {
@@ -22,19 +24,14 @@ export function useDebounce<Func extends SomeFunction>(func: Func, delay = 1000)
     };
   }, []);
 
-  // Stable across renders (only changes if `delay` changes) - callers that put the returned
-  // function in a useEffect dependency array (e.g. to re-run when their input changes) would
-  // otherwise see a new function identity on every render and have that effect fire constantly,
-  // which can visibly interfere with typing in a bound search input.
-  const debouncedFunction = useCallback(
-    ((...args) => {
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => {
-        funcRef.current(...args);
-      }, delay);
-    }) as Func,
-    [delay],
-  );
+  // Keep the returned function's identity stable across renders (only the ref
+  // contents change), so effects that depend on it don't re-fire on every render.
+  const debouncedFunctionRef = useRef((...args: Parameters<Func>) => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      funcRef.current(...args);
+    }, delayRef.current);
+  });
 
-  return debouncedFunction;
+  return debouncedFunctionRef.current as Func;
 }

@@ -299,6 +299,17 @@ public class StockForecastReport extends ReportGenerator {
 	protected void preWriteBuffer(StockItemInventorySearchFilter inventorySearchFilter,
 	        StockInventoryResult stockInventoryResult) {
         stockInventoryResult.getData().removeIf(p->p.getStockBatchId() != null && p.getExpiration() != null && todaysDate.after(p.getExpiration()));
+        // Items with no stock on hand as of the end of the filtered period and no consumption
+        // in any month within it have nothing to report for this window - e.g. an item first
+        // stocked after the report's end date would otherwise still show up with today's real
+        // quantity even though it didn't exist yet during the period being reported on.
+        stockInventoryResult.getData().removeIf(p -> {
+            StockItemInventoryForecast forecast = (StockItemInventoryForecast) p;
+            boolean hasNoQuantity = forecast.getQuantity() == null || forecast.getQuantity().compareTo(BigDecimal.ZERO) == 0;
+            boolean hasNoConsumption = forecast.getQuantityConsumed() == null || forecast.getQuantityConsumed().stream()
+                    .allMatch(consumed -> consumed == null || consumed.compareTo(BigDecimal.ZERO) == 0);
+            return hasNoQuantity && hasNoConsumption;
+        });
 		if (!stockInventoryResult.getData().isEmpty()) {
 			stockManagementService.setStockItemInformation(stockInventoryResult.getData());
 			stockManagementService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);

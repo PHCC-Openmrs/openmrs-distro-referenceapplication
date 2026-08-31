@@ -60,6 +60,18 @@ export const StockOperationTypeIsNegativeQtyAllowed = (operationType: OperationT
   return operationType === OperationType.ADJUSTMENT_OPERATION_TYPE;
 };
 
+// Operation types whose item quantity is always deducted from the source location's on-hand
+// batch (mirrors the backend's StockOperationTypeProcessor#getQuantityToApplyAtSource negating
+// the quantity for these three). Adjustment can also remove stock, but only when its entered
+// quantity is negative, so it's checked separately by callers instead of listed here.
+export const StockOperationTypeReducesStockAtSource = (operationType: OperationType) => {
+  return (
+    operationType === OperationType.TRANSFER_OUT_OPERATION_TYPE ||
+    operationType === OperationType.DISPOSED_OPERATION_TYPE ||
+    operationType === OperationType.STOCK_ISSUE_OPERATION_TYPE
+  );
+};
+
 export const StockOperationTypeRequiresBatchUuid = (operationType: OperationType) => {
   return (
     !StockOperationTypeRequiresActualBatchInformation(operationType) &&

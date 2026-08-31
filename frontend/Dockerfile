@@ -1,4 +1,39 @@
-# syntax=docker/dockerfile:1.3
+# syntax=docker/dockerfile:1.7
+#--------------------------------------------
+# openmrs-esm-core source, cloned from git by default. To build against a
+# local checkout instead (e.g. to test changes before pushing them), pass
+# --build-context esm-core-local=<path-to-checkout> and set the
+# ESM_CORE_SOURCE build arg below to "esm-core-local-aliased" -- see
+# docker-compose.override.yml, which does exactly this for local dev builds.
+# BuildKit only builds a stage if something actually depends on it, so
+# esm-core-remote (and its network calls) is skipped entirely when a local
+# checkout is used instead.
+#
+# COPY --from=$ARG does not support resolving $ARG to a stage/context name
+# (a long-standing BuildKit limitation: moby/buildkit#2374). FROM $ARG,
+# however, IS supported -- so ESM_CORE_SOURCE selects between the two
+# candidate stages below via FROM, and every COPY --from= elsewhere in this
+# file then references the single, fixed "esm-core-source" name that
+# resolves to, whichever candidate was actually selected. The ARG must be
+# declared here, before the first FROM, for FROM $ARG to see it at all.
+#--------------------------------------------
+ARG ESM_CORE_SOURCE=esm-core-remote
+
+FROM alpine/git:latest AS esm-core-remote
+ARG ESM_CORE_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-core.git
+ARG ESM_CORE_REF=main
+ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-core/commits/${ESM_CORE_REF} /tmp/esm-core-commit.json
+WORKDIR /repo
+RUN git clone --branch ${ESM_CORE_REF} --depth 1 ${ESM_CORE_REPO} .
+
+# Aliases the "esm-core-local" additional build context (see above) to the
+# same /repo path esm-core-remote uses, so the two candidates are
+# interchangeable from esm-core-source's perspective below.
+FROM scratch AS esm-core-local-aliased
+COPY --from=esm-core-local . /repo
+
+FROM ${ESM_CORE_SOURCE} AS esm-core-source
+
 #--------------------------------------------
 # Dev Stage - Assembles and Builds Frontend
 #--------------------------------------------
@@ -113,29 +148,17 @@ RUN git clone --branch ${LABORATORY_REF} --depth 1 ${LABORATORY_REPO} openmrs-es
 # app shell's service worker. esm-app-shell and esm-framework are pinned CLI
 # dependencies (not entries in spa-assemble-config.json), so their builds are
 # only packed here -- they get spliced into node_modules below.
-ARG ESM_CORE_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-core.git
-ARG ESM_CORE_REF=main
-ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-core/commits/${ESM_CORE_REF} /tmp/esm-core-commit.json
-RUN git clone --branch ${ESM_CORE_REF} --depth 1 ${ESM_CORE_REPO} openmrs-esm-core && \
-    corepack enable && \
+COPY --from=esm-core-source /repo openmrs-esm-core
+# Also build @openmrs/esm-styleguide from this same checkout instead of the
+# published version, to fix the redundant/duplicate scrollbar that shows up
+# in form workspaces (workspace header used box-sizing: content-box, so its
+# 1px border wasn't accounted for in --desktop-workspace-window-height,
+# leaving the workspace content 1px taller than its container).
+RUN corepack enable && \
     cd openmrs-esm-core && \
     yarn install && \
-    npx turbo run build --filter=...@openmrs/esm-login-app --filter=...@openmrs/esm-app-shell --filter=...@openmrs/esm-framework && \
+    npx turbo run build --filter=...@openmrs/esm-login-app --filter=...@openmrs/esm-app-shell --filter=...@openmrs/esm-framework --filter=...@openmrs/esm-styleguide && \
     (cd packages/apps/esm-login-app && npm pack --pack-destination /app)
-
-# Build @openmrs/esm-styleguide from our fork instead of the published version,
-# to fix the redundant/duplicate scrollbar that shows up in form workspaces
-# (workspace header used box-sizing: content-box, so its 1px border wasn't
-# accounted for in --desktop-workspace-window-height, leaving the workspace
-# content 1px taller than its container).
-ARG ESM_CORE_STYLEGUIDE_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-core.git
-ARG ESM_CORE_STYLEGUIDE_REF=main
-ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-core/commits/${ESM_CORE_STYLEGUIDE_REF} /tmp/esm-core-styleguide-commit.json
-RUN git clone --branch ${ESM_CORE_STYLEGUIDE_REF} --depth 1 ${ESM_CORE_STYLEGUIDE_REPO} openmrs-esm-core-styleguide && \
-    corepack enable && \
-    cd openmrs-esm-core-styleguide && \
-    yarn install && \
-    npx turbo run build --filter=...@openmrs/esm-styleguide
 
 ARG CACHE_BUST
 # Install the openmrs CLI locally (instead of via npx) so we know exactly
@@ -151,17 +174,27 @@ RUN npm install --no-save --legacy-peer-deps openmrs@${APP_SHELL_VERSION:-next} 
     echo "Found esm-styleguide at: ${STYLEGUIDE_DIR}" && \
     test -n "${STYLEGUIDE_DIR}" && \
     rm -rf "${STYLEGUIDE_DIR}/dist" && \
-    cp -r openmrs-esm-core-styleguide/packages/framework/esm-styleguide/dist "${STYLEGUIDE_DIR}/dist" && \
+    cp -r openmrs-esm-core/packages/framework/esm-styleguide/dist "${STYLEGUIDE_DIR}/dist" && \
     APP_SHELL_DIR=$(find node_modules -type d -path '*@openmrs/esm-app-shell' | head -n1) && \
     echo "Found esm-app-shell at: ${APP_SHELL_DIR}" && \
     test -n "${APP_SHELL_DIR}" && \
-    rm -rf "${APP_SHELL_DIR}/dist" && \
+    rm -rf "${APP_SHELL_DIR}/dist" "${APP_SHELL_DIR}/tools" "${APP_SHELL_DIR}/src/assets" && \
     cp -r openmrs-esm-core/packages/shell/esm-app-shell/dist "${APP_SHELL_DIR}/dist" && \
+    cp -r openmrs-esm-core/packages/shell/esm-app-shell/tools "${APP_SHELL_DIR}/tools" && \
+    cp -r openmrs-esm-core/packages/shell/esm-app-shell/src/assets "${APP_SHELL_DIR}/src/assets" && \
+    cp openmrs-esm-core/packages/shell/esm-app-shell/src/index.ejs "${APP_SHELL_DIR}/src/index.ejs" && \
+    cp openmrs-esm-core/packages/shell/esm-app-shell/rspack.config.js "${APP_SHELL_DIR}/rspack.config.js" && \
+    cp openmrs-esm-core/packages/shell/esm-app-shell/dependencies.json "${APP_SHELL_DIR}/dependencies.json" && \
     FRAMEWORK_DIR=$(find node_modules -type d -path '*@openmrs/esm-framework' | head -n1) && \
     echo "Found esm-framework at: ${FRAMEWORK_DIR}" && \
     test -n "${FRAMEWORK_DIR}" && \
     rm -rf "${FRAMEWORK_DIR}/dist" && \
-    cp -r openmrs-esm-core/packages/framework/esm-framework/dist "${FRAMEWORK_DIR}/dist"
+    cp -r openmrs-esm-core/packages/framework/esm-framework/dist "${FRAMEWORK_DIR}/dist" && \
+    ROUTES_DIR=$(find node_modules -type d -path '*@openmrs/esm-routes' | head -n1) && \
+    echo "Found esm-routes at: ${ROUTES_DIR}" && \
+    test -n "${ROUTES_DIR}" && \
+    rm -rf "${ROUTES_DIR}/dist" && \
+    cp -r openmrs-esm-core/packages/framework/esm-routes/dist "${ROUTES_DIR}/dist"
 RUN node_modules/.bin/openmrs assemble --manifest --mode config --config spa-assemble-config.json --target ./spa
 RUN node_modules/.bin/openmrs build --build-config spa-build-config.json --target ./spa
 RUN if [ ! -f ./spa/index.html ]; then echo 'Build failed. Please check the logs above for details. This may have happened because of an update to a library that OpenMRS depends on.'; exit 1; fi

@@ -20,6 +20,13 @@ public class StockMovementDetailRow {
 
 	private String unitName;
 
+	// The raw packed externalReference of the batch's originating receipt/initial operation (the
+	// same operation vendorName is derived from) - see ExternalReferenceParser for the format.
+	private String externalReference;
+
+	/** Only populated for the Wastage report - null for Consumption and Distribution. */
+	private String reasonName;
+
 	public String getBatchNo() {
 		return batchNo;
 	}
@@ -58,5 +65,33 @@ public class StockMovementDetailRow {
 
 	public void setUnitName(String unitName) {
 		this.unitName = unitName;
+	}
+
+	public String getExternalReference() {
+		return externalReference;
+	}
+
+	public void setExternalReference(String externalReference) {
+		this.externalReference = externalReference;
+	}
+
+	public String getPurchaseOrderNo() {
+		return ExternalReferenceParser.getPurchaseOrderNo(externalReference);
+	}
+
+	public String getPurchaseRequestNo() {
+		return ExternalReferenceParser.getPurchaseRequestNo(externalReference);
+	}
+
+	public String getProjectFundCode() {
+		return ExternalReferenceParser.getProjectFundCode(externalReference);
+	}
+
+	public String getReasonName() {
+		return reasonName;
+	}
+
+	public void setReasonName(String reasonName) {
+		this.reasonName = reasonName;
 	}
 }

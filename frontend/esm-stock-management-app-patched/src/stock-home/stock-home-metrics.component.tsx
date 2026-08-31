@@ -23,7 +23,7 @@ const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
     () => Array.from(new Set(expiryItems.map((batch) => batch.stockItemUuid))),
     [expiryItems],
   );
-  const { quantityByBatch } = useStockBatchQuantities(expiryItemUuids);
+  const { quantityByBatch } = useStockBatchQuantities(expiryItemUuids, sessionLocation?.uuid);
 
   const currentDate = new Date();
 
@@ -33,7 +33,9 @@ const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
     return { ...batch, ...matchingItem, quantity: batchQuantity?.quantity ?? 0 };
   });
 
-  mergedArray = mergedArray.filter((item) => item.hasExpiration);
+  // quantityByBatch is now scoped to sessionLocation, so a batch this location doesn't actually
+  // hold any of shouldn't count as this location's "expiring stock".
+  mergedArray = mergedArray.filter((item) => item.hasExpiration && item.quantity > 0);
 
   const filteredData = mergedArray.filter((item) => {
     // Stock items commonly have no configured notice period; falling back to 0 would only

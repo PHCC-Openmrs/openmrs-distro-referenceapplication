@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   Button,
   ButtonSet,
@@ -22,6 +22,7 @@ import {
   operationFromString,
   type StockOperationType,
 } from '../../../core/api/types/stockOperation/StockOperationType';
+import { useStockItemBatchInformationHook } from '../../../stock-items/add-stock-item/batch-information/batch-information.resource';
 import { useStockItem } from '../../../stock-items/stock-items.resource';
 import { type BaseStockOperationItemFormData, getStockOperationItemFormSchema } from '../../validation-schema';
 import useOperationTypePermisions from '../hooks/useOperationTypePermisions';
@@ -32,11 +33,18 @@ import styles from './stock-item-form.scss';
 export interface StockItemFormProps {
   stockOperationType: StockOperationType;
   stockOperationItem: BaseStockOperationItemFormData;
+  sourceUuid?: string;
   onSave?: (data: BaseStockOperationItemFormData) => void;
   onBack?: () => void;
 }
 
-const StockItemForm: React.FC<StockItemFormProps> = ({ stockOperationType, stockOperationItem, onSave, onBack }) => {
+const StockItemForm: React.FC<StockItemFormProps> = ({
+  stockOperationType,
+  stockOperationItem,
+  sourceUuid,
+  onSave,
+  onBack,
+}) => {
   const isTablet = useLayoutType() === 'tablet';
   const operationType = useMemo(() => {
     return operationFromString(stockOperationType.operationType);
@@ -67,6 +75,76 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ stockOperationType, stock
     const commonName = item?.commonName ? `(Common name: ${item.commonName})` : undefined;
     return `${item?.drugName || t('noDrugNameAvailable', 'No drug name available') + (commonName ?? '')}`;
   }, [item, useItemCommonNameAsDisplay, t]);
+
+  // Stock leaving the source location (Transfer Out, Disposal, Stock Issue, or a negative
+  // Adjustment) can't exceed what's actually on hand in the selected batch at that location --
+  // otherwise the operation only fails once submitted for completion, on the server. Checking it
+  // here, against the same batch/location the user just picked, surfaces that before they can
+  // even save this item into the operation.
+  const watchedQuantity = form.watch('quantity' as keyof FormData);
+  const watchedStockBatchUuid = form.watch('stockBatchUuid' as keyof FormData) as unknown as string | undefined;
+  const watchedPackagingUOMUuid = form.watch('stockItemPackagingUOMUuid' as keyof FormData) as unknown as
+    | string
+    | undefined;
+
+  const reducesStockAtSource =
+    operationTypePermision.reducesStockAtSource ||
+    (operationTypePermision.isNegativeQuantityAllowed && Number(watchedQuantity) < 0);
+
+  const {
+    items: availabilityItems,
+    isLoading: isLoadingAvailability,
+    setStockItemUuid: setAvailabilityStockItemUuid,
+    setPartyUuid: setAvailabilityPartyUuid,
+    setStockBatchUuid: setAvailabilityStockBatchUuid,
+  } = useStockItemBatchInformationHook();
+
+  useEffect(() => {
+    if (!reducesStockAtSource) {
+      return;
+    }
+    setAvailabilityStockItemUuid(form.getValues('stockItemUuid') || null);
+    setAvailabilityPartyUuid(sourceUuid || null);
+    setAvailabilityStockBatchUuid(watchedStockBatchUuid || null);
+  }, [
+    reducesStockAtSource,
+    sourceUuid,
+    watchedStockBatchUuid,
+    form,
+    setAvailabilityStockItemUuid,
+    setAvailabilityPartyUuid,
+    setAvailabilityStockBatchUuid,
+  ]);
+
+  const matchingBatchAvailability = useMemo(
+    () => availabilityItems?.find((entry) => entry.stockBatchUuid === watchedStockBatchUuid),
+    [availabilityItems, watchedStockBatchUuid],
+  );
+
+  const requestedBaseQuantity = useMemo(() => {
+    const selectedUom = item?.packagingUnits?.find((unit) => unit.uuid === watchedPackagingUOMUuid);
+    return Math.abs(Number(watchedQuantity) || 0) * (selectedUom?.factor ?? 1);
+  }, [item, watchedPackagingUOMUuid, watchedQuantity]);
+
+  const availableBaseQuantity = useMemo(() => {
+    if (!matchingBatchAvailability) return 0;
+    const factor = Number.parseFloat(matchingBatchAvailability.quantityFactor) || 1;
+    return Number(matchingBatchAvailability.quantity) * factor;
+  }, [matchingBatchAvailability]);
+
+  const insufficientStock =
+    reducesStockAtSource &&
+    !!watchedStockBatchUuid &&
+    !isLoadingAvailability &&
+    requestedBaseQuantity > availableBaseQuantity;
+
+  const insufficientStockMessage = matchingBatchAvailability
+    ? t(
+        'insufficientStockInBatch',
+        'Only {{quantity}} {{uom}} available in this batch at the source location',
+        { quantity: matchingBatchAvailability.quantity, uom: matchingBatchAvailability.quantityUoM },
+      )
+    : t('outOfStockInBatch', 'This batch has no stock available at the source location');
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     onSave?.(data);
@@ -110,6 +188,7 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ stockOperationType, stock
                   initialValue={stockOperationItem?.stockBatchUuid}
                   onValueChange={field.onChange}
                   stockItemUuid={stockOperationItem.stockItemUuid}
+                  partyUuid={sourceUuid}
                   error={error?.message}
                 />
               )}
@@ -163,8 +242,8 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ stockOperationType, stock
                 id={`qty`}
                 {...field}
                 label={t('quantity', 'Quantity')}
-                invalidText={error?.message}
-                invalid={!!error?.message}
+                invalidText={error?.message || (insufficientStock ? insufficientStockMessage : undefined)}
+                invalid={!!error?.message || insufficientStock}
               />
             )}
           />
@@ -221,7 +300,12 @@ const StockItemForm: React.FC<StockItemFormProps> = ({ stockOperationType, stock
         <Button className={styles.button} kind="secondary" onClick={onBack}>
           {t('discard', 'Discard')}
         </Button>
-        <Button className={styles.button} kind="primary" type="submit" disabled={form.formState.isSubmitting}>
+        <Button
+          className={styles.button}
+          kind="primary"
+          type="submit"
+          disabled={form.formState.isSubmitting || insufficientStock}
+        >
           {t('save', 'Save')}
         </Button>
       </ButtonSet>

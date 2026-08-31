@@ -34,13 +34,10 @@ export default function ReportsHome() {
   const isSuperUser = session?.user?.roles?.some(
     (role) => role.display === 'System Developer' || role.display === 'Application: Has Super User Privileges',
   );
-  const hasFullReportsAccess =
-    isSuperUser || session?.user?.roles?.some((role) => role.display === 'PHCC Program Manager');
-  const isDoctor = session?.user?.roles?.some(
-    (role) =>
-      role.display === 'Organizational: Doctor' || role.display === 'PHCC doctor' || role.display === 'PHCC Reporting',
-  );
-  const isStockManager = session?.user?.privileges?.some((p) => p.display === 'App: stockmanagement.dashboard');
+  const hasProgrammaticReportsAccess =
+    isSuperUser || session?.user?.privileges?.some((p) => p.display === 'App: reports.programmatic');
+  const hasStockReportsAccess =
+    isSuperUser || session?.user?.privileges?.some((p) => p.display === 'App: stockmanagement.dashboard');
 
   const { rows: cmamAlertRows, isLoading: cmamAlertLoading } = useCmamSummaryReport('under5');
   const cmamAlertCount = useMemo(
@@ -181,13 +178,9 @@ export default function ReportsHome() {
     },
   ];
 
-  const visibleCategories = hasFullReportsAccess
-    ? categories
-    : isStockManager
-      ? categories.filter((category) => category.key === 'stock')
-      : isDoctor
-        ? categories.filter((category) => category.key !== 'stock')
-        : categories;
+  const visibleCategories = categories.filter((category) =>
+    category.key === 'stock' ? hasStockReportsAccess : hasProgrammaticReportsAccess,
+  );
 
   return (
     <div>
