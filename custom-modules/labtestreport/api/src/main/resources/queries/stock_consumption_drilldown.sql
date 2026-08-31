@@ -5,10 +5,10 @@
 -- transaction does).
 WITH batch_vendor AS (
   -- An Opening Stock transaction's source is a location, not a vendor (it has no
-  -- stock_source_id to join against) - label those explicitly instead of leaving them to fall
-  -- through to the "Unknown" the frontend shows for a genuinely missing vendor.
+  -- stock_source_id to join against) - leave those NULL here so the outer query's COALESCE
+  -- falls back to the stock item's own configured Preferred Vendor instead of a batch vendor.
   SELECT rt.stock_batch_id,
-    CASE WHEN rsot.operation_type = 'initial' THEN 'Opening Stock' ELSE ss.name END AS vendorName,
+    CASE WHEN rsot.operation_type = 'initial' THEN NULL ELSE ss.name END AS vendorName,
     rso.external_reference AS externalReference,
     ROW_NUMBER() OVER (PARTITION BY rt.stock_batch_id ORDER BY rt.date_created DESC) AS rn
   FROM stockmgmt_stock_item_transaction rt
@@ -21,7 +21,7 @@ WITH batch_vendor AS (
 SELECT
   sb.batch_no             AS batchNo,
   sb.expiration           AS expirationDate,
-  bv.vendorName           AS vendorName,
+  COALESCE(bv.vendorName, pv.name) AS vendorName,
   SUM(-sit.quantity * puom.factor) AS quantity,
   un.name                 AS unitName,
   bv.externalReference    AS externalReference
@@ -32,6 +32,9 @@ JOIN stockmgmt_stock_operation so ON so.stock_operation_id = sit.stock_operation
 JOIN stockmgmt_stock_operation_type sot ON sot.stock_operation_type_id = so.operation_type_id
 LEFT JOIN stockmgmt_stock_batch sb ON sb.stock_batch_id = sit.stock_batch_id
 LEFT JOIN batch_vendor bv ON bv.stock_batch_id = sb.stock_batch_id AND bv.rn = 1
+-- Falls back to the item's own Preferred Vendor when the batch's receiving transaction
+-- didn't carry a real vendor (Opening Stock) or no receiving transaction was found at all.
+LEFT JOIN stockmgmt_stock_source pv ON pv.stock_source_id = si.preferred_vendor_id
 LEFT JOIN concept_name un ON un.concept_id = si.dispensing_unit_id AND un.locale = 'en' AND un.locale_preferred = 1
 WHERE si.voided = 0
   AND sot.operation_type = 'stockissue'
@@ -40,5 +43,5 @@ WHERE si.voided = 0
   AND sit.party_id = :locationId
   AND (:startDate IS NULL OR DATE(sit.date_created) >= :startDate)
   AND (:endDate IS NULL OR DATE(sit.date_created) < DATE_ADD(:endDate, INTERVAL 1 DAY))
-GROUP BY sb.batch_no, sb.expiration, bv.vendorName, un.name, bv.externalReference
+GROUP BY sb.batch_no, sb.expiration, bv.vendorName, pv.name, un.name, bv.externalReference
 ORDER BY quantity DESC

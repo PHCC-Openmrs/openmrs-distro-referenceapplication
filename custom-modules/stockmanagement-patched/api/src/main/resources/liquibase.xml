@@ -4739,4 +4739,48 @@ CREATE TRIGGER stockmgmt_location_after_delete
                              referencedColumnNames="stock_item_packaging_uom_id"
                              constraintName="stock_item_reference_packaging_uom_id_fk"/>
   </changeSet>
+  <changeSet author="claude" id="stockmanagement-2026-08-31-0900">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="stockmgmt_stock_item_packaging_uom" />
+      <columnExists columnName="dispensing_unit_id" tableName="stockmgmt_stock_item" />
+      <columnExists columnName="dispensing_unit_packaging_uom_id" tableName="stockmgmt_stock_item" />
+    </preConditions>
+    <comment>
+      Every stock item so far has only ever been given one packaging UOM - its bulk/procurement
+      pack (e.g. Box) - so dispensing_unit_packaging_uom_id was left pointing at that same bulk
+      entry for lack of any alternative. StockManagementServiceImpl's dispensing lookup
+      (postProcessInventoryResult, the filter.dispensing() branch) treats whichever packaging UOM
+      that column points at as "the dispensing unit": a dispense recorded in the drug's actual
+      dispensing unit (e.g. Tablet) was therefore tagged and scaled as if it were that many whole
+      bulk packs instead, hugely over-deducting stock and showing the wrong unit on the stock
+      ledger report. Give every item a proper factor=1 packaging UOM for its own dispensing unit
+      and point dispensing_unit_packaging_uom_id at that instead, leaving
+      default_stock_operations_uom_id (bulk receiving/issuing operations) untouched.
+    </comment>
+    <sql>
+      INSERT INTO stockmgmt_stock_item_packaging_uom (stock_item_id, packaging_uom_id, factor, creator, date_created, voided, uuid)
+      SELECT si.stock_item_id, si.dispensing_unit_id, 1, 1, NOW(), 0, UUID()
+      FROM stockmgmt_stock_item si
+      WHERE si.voided = 0
+        AND si.dispensing_unit_id IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM stockmgmt_stock_item_packaging_uom p
+          WHERE p.stock_item_id = si.stock_item_id
+            AND p.packaging_uom_id = si.dispensing_unit_id
+            AND p.voided = 0
+        )
+    </sql>
+    <sql>
+      UPDATE stockmgmt_stock_item si
+      JOIN stockmgmt_stock_item_packaging_uom p
+        ON p.stock_item_id = si.stock_item_id
+        AND p.packaging_uom_id = si.dispensing_unit_id
+        AND p.factor = 1
+        AND p.voided = 0
+      SET si.dispensing_unit_packaging_uom_id = p.stock_item_packaging_uom_id
+      WHERE si.voided = 0
+        AND si.dispensing_unit_id IS NOT NULL
+        AND (si.dispensing_unit_packaging_uom_id IS NULL OR si.dispensing_unit_packaging_uom_id != p.stock_item_packaging_uom_id)
+    </sql>
+  </changeSet>
 </databaseChangeLog>
