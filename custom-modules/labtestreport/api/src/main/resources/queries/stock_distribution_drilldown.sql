@@ -4,13 +4,21 @@
 -- most recent receipt/initial transaction - a batch itself carries no vendor field, only its
 -- receiving transaction does).
 WITH batch_vendor AS (
-  SELECT rt.stock_batch_id, ss.name AS vendorName,
+  -- Opening/initial-stock transactions legitimately have no source party (they establish a
+  -- starting count, not a purchase), so ss.name is NULL for them - that's not a data problem,
+  -- so it's labeled distinctly rather than surfacing as an unqualified, alarming "Unknown".
+  SELECT rt.stock_batch_id,
+    CASE
+      WHEN ss.name IS NOT NULL THEN ss.name
+      WHEN rsot.operation_type = 'initial' THEN 'Opening stock (no vendor)'
+      ELSE NULL
+    END AS vendorName,
     ROW_NUMBER() OVER (PARTITION BY rt.stock_batch_id ORDER BY rt.date_created DESC) AS rn
   FROM stockmgmt_stock_item_transaction rt
   JOIN stockmgmt_stock_operation rso ON rso.stock_operation_id = rt.stock_operation_id
   JOIN stockmgmt_stock_operation_type rsot ON rsot.stock_operation_type_id = rso.operation_type_id
-  JOIN stockmgmt_party rsp ON rsp.party_id = rso.source_id
-  JOIN stockmgmt_stock_source ss ON ss.stock_source_id = rsp.stock_source_id
+  LEFT JOIN stockmgmt_party rsp ON rsp.party_id = rso.source_id
+  LEFT JOIN stockmgmt_stock_source ss ON ss.stock_source_id = rsp.stock_source_id
   WHERE rsot.operation_type IN ('receipt', 'initial') AND rt.quantity > 0
 )
 SELECT

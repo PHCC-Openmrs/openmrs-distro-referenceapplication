@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 type Timer = ReturnType<typeof setTimeout>;
 type SomeFunction = (...args: any[]) => void;
@@ -12,6 +12,8 @@ type SomeFunction = (...args: any[]) => void;
 
 export function useDebounce<Func extends SomeFunction>(func: Func, delay = 1000) {
   const timer = useRef<Timer>();
+  const funcRef = useRef(func);
+  funcRef.current = func;
 
   useEffect(() => {
     return () => {
@@ -20,13 +22,19 @@ export function useDebounce<Func extends SomeFunction>(func: Func, delay = 1000)
     };
   }, []);
 
-  const debouncedFunction = ((...args) => {
-    const newTimer = setTimeout(() => {
-      func(...args);
-    }, delay);
-    clearTimeout(timer.current);
-    timer.current = newTimer;
-  }) as Func;
+  // Stable across renders (only changes if `delay` changes) - callers that put the returned
+  // function in a useEffect dependency array (e.g. to re-run when their input changes) would
+  // otherwise see a new function identity on every render and have that effect fire constantly,
+  // which can visibly interfere with typing in a bound search input.
+  const debouncedFunction = useCallback(
+    ((...args) => {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => {
+        funcRef.current(...args);
+      }, delay);
+    }) as Func,
+    [delay],
+  );
 
   return debouncedFunction;
 }
