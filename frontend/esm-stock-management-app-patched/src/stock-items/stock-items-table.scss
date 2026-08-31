@@ -90,7 +90,9 @@
 
   :global(.cds--list-box__menu) {
     min-width: 15rem;
-    z-index: 1;
+    // Was previously pinned to 1, which sat below nearby page controls (e.g. the operations
+    // table's Pagination) in the stacking order, letting them visibly poke through the open menu.
+    z-index: 9000;
   }
 }
 
