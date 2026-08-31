@@ -14,7 +14,10 @@ WITH batch_vendor AS (
   FROM stockmgmt_stock_item_transaction rt
   JOIN stockmgmt_stock_operation rso ON rso.stock_operation_id = rt.stock_operation_id
   JOIN stockmgmt_stock_operation_type rsot ON rsot.stock_operation_type_id = rso.operation_type_id
-  JOIN stockmgmt_party rsp ON rsp.party_id = rso.source_id
+  -- LEFT, not INNER: an Opening Stock operation's source_id can be a location-only party with
+  -- no matching row at all, and an INNER join here would silently drop that transaction out of
+  -- the rn=1 ranking below, letting an older transaction's vendor win instead.
+  LEFT JOIN stockmgmt_party rsp ON rsp.party_id = rso.source_id
   LEFT JOIN stockmgmt_stock_source ss ON ss.stock_source_id = rsp.stock_source_id
   WHERE rsot.operation_type IN ('receipt', 'initial') AND rt.quantity > 0
 )
