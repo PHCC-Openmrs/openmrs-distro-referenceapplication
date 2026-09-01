@@ -2363,25 +2363,62 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 }
 
                 Party party = partyMap.get(dispenseGroup.getKey()).get(0);
+
+                // Dispensing is recorded as a completed Stock Issue operation (rather than a bare
+                // StockItemTransaction) so that it is attributed to a stockmgmt_stock_operation row of
+                // type 'stockissue' - that is what the Stock Consumption report joins against.
+                StockOperationType stockIssueType = getStockOperationTypeByType(StockOperationType.STOCK_ISSUE);
+                if (stockIssueType == null) {
+                    throw new StockManagementException(
+                            messageSourceService.getMessage("stockmanagement.stockoperation.notfound"));
+                }
+
+                StockOperation stockOperation = new StockOperation();
+                stockOperation.setStockOperationType(stockIssueType);
+                stockOperation.setOperationOrder(1);
+                stockOperation.setLocked(false);
+                stockOperation.setStatus(StockOperationStatus.COMPLETED);
+                stockOperation.setCreator(Context.getAuthenticatedUser());
+                stockOperation.setDateCreated(new Date());
+                stockOperation.setOperationDate(new Date());
+                stockOperation.setAtLocation(dispenseGroup.getValue().get(0).getLocation());
+                stockOperation.setSource(party);
+                stockOperation.setResponsiblePerson(Context.getAuthenticatedUser());
+                stockOperation.setCompletedBy(Context.getAuthenticatedUser());
+                stockOperation.setCompletedDate(new Date());
+                stockOperation.setStockOperationItems(new HashSet<>());
+                stockOperation.setStockItemTransactions(new HashSet<>());
+
                 for (DispenseRequestProcessingInfo item : dispenseGroup.getValue()) {
-                    StockItemTransaction stockItemTransaction = new StockItemTransaction();
+                    StockOperationItem stockOperationItem = new StockOperationItem();
+                    stockOperationItem.setCreator(Context.getAuthenticatedUser());
+                    stockOperationItem.setDateCreated(new Date());
+                    stockOperationItem.setStockItem(item.getStockItem());
+                    stockOperationItem.setStockBatch(item.getStockBatch());
+                    stockOperationItem.setQuantity(item.getQuantity());
+                    stockOperationItem.setStockItemPackagingUOM(item.getPackagingUOM());
+                    stockOperation.addStockOperationItem(stockOperationItem);
+
+                    StockItemTransaction stockItemTransaction = new StockItemTransaction(stockOperation,
+                            stockOperationItem);
                     stockItemTransaction.setParty(party);
                     stockItemTransaction.setPatient(item.getPatient());
                     stockItemTransaction.setCreator(Context.getAuthenticatedUser());
                     stockItemTransaction.setDateCreated(new Date());
-                    stockItemTransaction.setStockItem(item.getStockItem());
-                    stockItemTransaction.setStockBatch(item.getStockBatch());
                     stockItemTransaction.setQuantity(item.getQuantity().multiply(BigDecimal.valueOf(-1)));
-                    stockItemTransaction.setStockItemPackagingUOM(item.getPackagingUOM());
                     if (item.getOrder() != null) {
                         stockItemTransaction.setOrder(item.getOrder());
                     }
                     if (item.getEncounter() != null) {
                         stockItemTransaction.setEncounter(item.getEncounter());
                     }
-                    dao.saveStockItemTransaction(stockItemTransaction);
-
+                    stockOperation.addStockItemTransaction(stockItemTransaction);
                 }
+
+                dao.saveStockOperation(stockOperation);
+                stockOperation.setOperationNumber(String.format("%1s-%2s", stockIssueType.getAcronym(),
+                        StringUtils.leftPad(Integer.toString(stockOperation.getId()), 4, '0')));
+                dao.saveStockOperation(stockOperation);
             }
         }
     }
