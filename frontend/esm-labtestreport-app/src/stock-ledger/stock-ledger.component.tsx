@@ -83,6 +83,7 @@ function buildItemList(rows: Array<StockLedgerRow>): Array<LedgerItem> {
 function buildDayBlocks(rows: Array<StockLedgerRow>, items: Array<LedgerItem>): Array<DayBlock> {
   const byItemAndDate = new Map<string, Map<string, StockLedgerRow>>();
   const unitNameByItem = new Map<string, string | null>();
+  const firstDateByItem = new Map<string, string>();
   const allDates = new Set<string>();
   rows.forEach((row) => {
     const key = groupKey(row.stockItemId, row.locationId, row.batchNo);
@@ -92,6 +93,10 @@ function buildDayBlocks(rows: Array<StockLedgerRow>, items: Array<LedgerItem>): 
     byItemAndDate.get(key)!.set(row.ledgerDate, row);
     unitNameByItem.set(key, row.unitName);
     allDates.add(row.ledgerDate);
+    const firstDate = firstDateByItem.get(key);
+    if (!firstDate || row.ledgerDate < firstDate) {
+      firstDateByItem.set(key, row.ledgerDate);
+    }
   });
 
   const lastRemaining = new Map<string, number>();
@@ -100,36 +105,41 @@ function buildDayBlocks(rows: Array<StockLedgerRow>, items: Array<LedgerItem>): 
   return Array.from(allDates)
     .sort()
     .map((date) => {
-      const cells: Array<StockLedgerRow> = items.map((item) => {
-        const byDate = byItemAndDate.get(item.key);
-        const actualRow = byDate?.get(date);
-        const opening = lastRemaining.get(item.key) ?? 0;
-        if (actualRow) {
-          lastRemaining.set(item.key, actualRow.remainingQty);
-          // Opening Stock transactions establish a starting balance rather than a day's
-          // activity, so they're added straight into the day's opening balance instead of
-          // being counted as incoming.
-          return { ...actualRow, actualQty: opening + actualRow.openingAdjustmentQty };
-        }
-        return {
-          stockItemId: item.stockItemId,
-          itemName: item.itemName,
-          locationId: item.locationId,
-          locationName: item.locationName,
-          batchNo: item.batchNo,
-          expirationDate: item.expirationDate,
-          ledgerDate: date,
-          actualQty: opening,
-          openingAdjustmentQty: 0,
-          incomingQty: 0,
-          outgoingQty: 0,
-          remainingQty: opening,
-          unitName: unitNameByItem.get(item.key) ?? null,
-          purchaseOrderNo: null,
-          purchaseRequestNo: null,
-          projectFundCode: null,
-        };
-      });
+      // allDates spans every item/location/batch in the filtered result, not just this one - an
+      // item/batch shouldn't get a zero continuation row for a date before its own first real
+      // transaction just because something else was active at the same location that day.
+      const cells: Array<StockLedgerRow> = items
+        .filter((item) => date >= (firstDateByItem.get(item.key) ?? date))
+        .map((item) => {
+          const byDate = byItemAndDate.get(item.key);
+          const actualRow = byDate?.get(date);
+          const opening = lastRemaining.get(item.key) ?? 0;
+          if (actualRow) {
+            lastRemaining.set(item.key, actualRow.remainingQty);
+            // Opening Stock transactions establish a starting balance rather than a day's
+            // activity, so they're added straight into the day's opening balance instead of
+            // being counted as incoming.
+            return { ...actualRow, actualQty: opening + actualRow.openingAdjustmentQty };
+          }
+          return {
+            stockItemId: item.stockItemId,
+            itemName: item.itemName,
+            locationId: item.locationId,
+            locationName: item.locationName,
+            batchNo: item.batchNo,
+            expirationDate: item.expirationDate,
+            ledgerDate: date,
+            actualQty: opening,
+            openingAdjustmentQty: 0,
+            incomingQty: 0,
+            outgoingQty: 0,
+            remainingQty: opening,
+            unitName: unitNameByItem.get(item.key) ?? null,
+            purchaseOrderNo: null,
+            purchaseRequestNo: null,
+            projectFundCode: null,
+          };
+        });
       return { date, cells };
     })
     .filter((block) =>
