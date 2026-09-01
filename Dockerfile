@@ -39,6 +39,18 @@ RUN --mount=type=secret,id=m2settings,target=/usr/share/maven/ref/settings-docke
     mvn -s /usr/share/maven/ref/settings-docker.xml -DskipTests -pl api,omod -am install && \
     rm -rf /tmp/patientdocuments
 
+# Build queue from our fork and install it into the local Maven repo, so distro/pom.xml can
+# depend on it as a plain artifact (org.openmrs.module:queue-omod) without vendoring a copy of
+# its source into custom-modules/ - same approach as locationbasedaccess and patientdocuments above.
+ARG QUEUE_REPO=https://github.com/PHCC-Openmrs/openmrs-module-queue.git
+ARG QUEUE_REF=main
+ADD https://github.com/PHCC-Openmrs/openmrs-module-queue/commits/${QUEUE_REF}.atom /tmp/queue-head.atom
+RUN --mount=type=secret,id=m2settings,target=/usr/share/maven/ref/settings-docker.xml \
+    git clone --branch ${QUEUE_REF} --depth 1 ${QUEUE_REPO} /tmp/queue && \
+    cd /tmp/queue && \
+    mvn -s /usr/share/maven/ref/settings-docker.xml -DskipTests -pl api,omod -am install && \
+    rm -rf /tmp/queue
+
 # Copy build files
 COPY pom.xml ./
 COPY custom-modules ./custom-modules/
