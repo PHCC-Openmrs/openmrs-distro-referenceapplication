@@ -544,30 +544,30 @@ public class StockManagementDao extends DaoBase {
                 Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = getConceptNamesByConceptIds(conceptNamesToFetch).stream().collect(Collectors.groupingBy(ConceptNameDTO::getConceptId));
                 for (StockItemDTO stockItemDTO : result.getData()) {
                     if (stockItemDTO.getConceptId() != null && conceptNameDTOs.containsKey(stockItemDTO.getConceptId())) {
-                        stockItemDTO.setConceptName(getLocalizedConceptName(conceptNameDTOs.get(stockItemDTO.getConceptId())));
+                        stockItemDTO.setConceptName(conceptNameDTOs.get(stockItemDTO.getConceptId()).get(0).getName());
                     }
 
                     if (stockItemDTO.getDispensingUnitId() != null && conceptNameDTOs.containsKey(stockItemDTO.getDispensingUnitId())) {
-                        stockItemDTO.setDispensingUnitName(getLocalizedConceptName(conceptNameDTOs.get(stockItemDTO.getDispensingUnitId())));
+                        stockItemDTO.setDispensingUnitName(conceptNameDTOs.get(stockItemDTO.getDispensingUnitId()).get(0).getName());
                     }
 
                     if (stockItemDTO.getPurchasePriceConceptId() != null && conceptNameDTOs.containsKey(stockItemDTO.getPurchasePriceConceptId())) {
-                        stockItemDTO.setPurchasePriceUoMName(getLocalizedConceptName(conceptNameDTOs.get(stockItemDTO.getPurchasePriceConceptId())));
+                        stockItemDTO.setPurchasePriceUoMName(conceptNameDTOs.get(stockItemDTO.getPurchasePriceConceptId()).get(0).getName());
                     }
 
                     if (stockItemDTO.getDispensingUnitPackagingConceptId() != null && conceptNameDTOs.containsKey(stockItemDTO.getDispensingUnitPackagingConceptId())) {
-                        stockItemDTO.setDispensingUnitPackagingUoMName(getLocalizedConceptName(conceptNameDTOs.get(stockItemDTO.getDispensingUnitPackagingConceptId())));
+                        stockItemDTO.setDispensingUnitPackagingUoMName(conceptNameDTOs.get(stockItemDTO.getDispensingUnitPackagingConceptId()).get(0).getName());
                     }
 
                     if (stockItemDTO.getDefaultStockOperationsConceptId() != null && conceptNameDTOs.containsKey(stockItemDTO.getDefaultStockOperationsConceptId())) {
-                        stockItemDTO.setDefaultStockOperationsUoMName(getLocalizedConceptName(conceptNameDTOs.get(stockItemDTO.getDefaultStockOperationsConceptId())));
+                        stockItemDTO.setDefaultStockOperationsUoMName(conceptNameDTOs.get(stockItemDTO.getDefaultStockOperationsConceptId()).get(0).getName());
                     }
 
                     if (stockItemDTO.getReorderLevelConceptId() != null && conceptNameDTOs.containsKey(stockItemDTO.getReorderLevelConceptId())) {
-                        stockItemDTO.setReorderLevelUoMName(getLocalizedConceptName(conceptNameDTOs.get(stockItemDTO.getReorderLevelConceptId())));
+                        stockItemDTO.setReorderLevelUoMName(conceptNameDTOs.get(stockItemDTO.getReorderLevelConceptId()).get(0).getName());
                     }
                     if (stockItemDTO.getCategoryId() != null && conceptNameDTOs.containsKey(stockItemDTO.getCategoryId())) {
-                        stockItemDTO.setCategoryName(getLocalizedConceptName(conceptNameDTOs.get(stockItemDTO.getCategoryId())));
+                        stockItemDTO.setCategoryName(conceptNameDTOs.get(stockItemDTO.getCategoryId()).get(0).getName());
                     }
                 }
             }
@@ -965,24 +965,32 @@ public class StockManagementDao extends DaoBase {
                 .setParameterList("ids", ids)
                 .setParameter("cnt", ConceptNameType.FULLY_SPECIFIED);
         query = query.setResultTransformer(new AliasToBeanResultTransformer(ConceptNameDTO.class));
-        return query.list();
+        List<ConceptNameDTO> allLocaleNames = query.list();
+        return resolveToSingleNamePerConcept(allLocaleNames);
     }
 
 	/**
-	 * getConceptNamesByConceptIds returns every locale's name for a concept with no
-	 * defined order, so callers must not blindly take the first entry. This picks the
-	 * name matching the current session locale, falling back to whatever is available.
+	 * The query above returns a concept's fully specified name in every locale it has one,
+	 * with no defined order. Every caller of getConceptNamesByConceptIds only ever wants a
+	 * single display name per concept (via list.get(0) or stream().findFirst()), so without
+	 * this step whichever locale the DB happened to return first would be shown - e.g. a
+	 * French name on an English screen. Collapsing to one entry per concept here, preferring
+	 * the current session locale and falling back to any available name, fixes every caller
+	 * at once instead of requiring each call site to filter by locale itself.
 	 */
-	private String getLocalizedConceptName(List<ConceptNameDTO> conceptNames) {
-        if (conceptNames == null || conceptNames.isEmpty()) return null;
+	private List<ConceptNameDTO> resolveToSingleNamePerConcept(List<ConceptNameDTO> allLocaleNames) {
         Locale currentLocale = Context.getLocale();
-        return conceptNames.stream()
-                .filter(p -> p.getLocale() != null && p.getLocale().getDisplayName().equals(currentLocale.getDisplayName()))
-                .findFirst()
-                .orElse(conceptNames.get(0))
-                .getName();
+        return allLocaleNames.stream()
+                .collect(Collectors.groupingBy(ConceptNameDTO::getConceptId))
+                .values()
+                .stream()
+                .map(namesForConcept -> namesForConcept.stream()
+                        .filter(p -> p.getLocale() != null && p.getLocale().getDisplayName().equals(currentLocale.getDisplayName()))
+                        .findFirst()
+                        .orElse(namesForConcept.get(0)))
+                .collect(Collectors.toList());
     }
-	
+
 	public List<ConceptNameDTO> getDrugNamesByDrugIds(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) return new ArrayList<>();
         Query query = getSession().createQuery("select d.drugId as conceptId, d.name as name from Drug d where d.drugId in (:ids)")
