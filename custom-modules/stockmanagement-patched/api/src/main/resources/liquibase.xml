@@ -4783,4 +4783,24 @@ CREATE TRIGGER stockmgmt_location_after_delete
         AND (si.dispensing_unit_packaging_uom_id IS NULL OR si.dispensing_unit_packaging_uom_id != p.stock_item_packaging_uom_id)
     </sql>
   </changeSet>
+  <changeSet author="claude" id="stockmanagement-2026-09-01-1000">
+    <preConditions onFail="MARK_RAN">
+      <sqlCheck expectedResult="1">
+        SELECT COUNT(*) FROM stockmgmt_operation_type_location_scope
+        WHERE uuid = '5b341a26-28a2-11ed-bdcb-507b9dea1806'
+      </sqlCheck>
+    </preConditions>
+    <comment>
+      The stockmanagement-1758855877841-249 changeset above restricted Transfer Out's source
+      location to locations tagged 'Main Store' only. That meant a user logged in anywhere
+      else always had the source field forced to whichever Main Store location the API
+      returned first (base-operation-details-form-step.tsx's shouldLockSource branch), instead
+      of their own login location. Removing this scope row lifts the tag restriction so any
+      location can be a Transfer Out source, letting the frontend's existing session-location
+      fallback auto-populate the field from wherever the user is actually logged in.
+    </comment>
+    <delete tableName="stockmgmt_operation_type_location_scope">
+      <where>uuid = '5b341a26-28a2-11ed-bdcb-507b9dea1806'</where>
+    </delete>
+  </changeSet>
 </databaseChangeLog>
