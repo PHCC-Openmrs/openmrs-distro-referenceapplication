@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { InlineLoading, Search, Button } from '@carbon/react';
-import { navigate } from '@openmrs/esm-framework';
+import { InlineLoading, Search, Select, SelectItem, Button } from '@carbon/react';
+import { navigate, useLocations } from '@openmrs/esm-framework';
 import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import KpiTiles from '../reports-shell/kpi-tiles.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
@@ -14,12 +14,18 @@ import { useNcdPatientCardReport, type NcdPatientCardRow } from './ncd-patient-c
 
 const SEARCHABLE_FIELDS: Array<keyof NcdPatientCardRow> = [
   'givenName',
+  'middleName',
   'familyName',
-  'fullName',
   'nationalId',
   'phoneNumber',
   'condition',
 ];
+
+const LOCATION_TAG = 'Login Location';
+
+function formatFullName(row: Pick<NcdPatientCardRow, 'givenName' | 'middleName' | 'familyName'>): string {
+  return [row.givenName, row.middleName, row.familyName].filter(Boolean).join(' ');
+}
 
 export default function NcdPatientCardReport() {
   const { t } = useTranslation();
@@ -27,8 +33,10 @@ export default function NcdPatientCardReport() {
   const [endDateInput, setEndDateInput] = useState('');
   const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [locationUuid, setLocationUuid] = useState('');
+  const locations = useLocations(LOCATION_TAG);
 
-  const { rows, isLoading } = useNcdPatientCardReport(appliedDates.startDate, appliedDates.endDate);
+  const { rows, isLoading } = useNcdPatientCardReport(appliedDates.startDate, appliedDates.endDate, locationUuid || undefined);
 
   const searchedRows = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -44,7 +52,7 @@ export default function NcdPatientCardReport() {
 
   const sortAccessors = useMemo(
     () => ({
-      name: (row: NcdPatientCardRow) => `${row.familyName} ${row.givenName}`,
+      name: (row: NcdPatientCardRow) => `${row.familyName} ${row.givenName} ${row.middleName ?? ''}`,
       encounterDatetime: (row: NcdPatientCardRow) => row.encounterDatetime,
       location: (row: NcdPatientCardRow) => row.location ?? '',
       nationalId: (row: NcdPatientCardRow) => row.nationalId ?? '',
@@ -89,10 +97,10 @@ export default function NcdPatientCardReport() {
       name: t('ncdPatientCardReport', 'NCD Patient Card Report'),
       headers: [
         t('givenName', 'Given Name'),
+        t('middleName', 'Middle Name'),
         t('familyName', 'Family Name'),
         t('encounterDate', 'Encounter Date'),
         t('location', 'Location'),
-        t('fullName', 'Full Name'),
         t('nationalId', 'National ID'),
         t('dob', 'Date of Birth'),
         t('gender', 'Gender'),
@@ -109,10 +117,10 @@ export default function NcdPatientCardReport() {
       ],
       rows: searchedRows.map((row) => [
         row.givenName,
+        row.middleName,
         row.familyName,
         row.encounterDatetime,
         row.location ?? '',
-        row.fullName ?? '',
         row.nationalId ?? '',
         row.dob ?? '',
         row.gender ?? '',
@@ -140,6 +148,7 @@ export default function NcdPatientCardReport() {
     setEndDateInput('');
     setAppliedDates({});
     setSearchTerm('');
+    setLocationUuid('');
   }
 
   function goToPatientChart(patientUuid: string) {
@@ -174,6 +183,21 @@ export default function NcdPatientCardReport() {
               max={getTodayDateString()}
               onChange={(e) => setEndDateInput(clampToToday(e.target.value))}
             />
+          </div>
+          <div className={pageStyles.filterField}>
+            <Select
+              id="locationFilter"
+              labelText={t('location', 'Location')}
+              value={locationUuid}
+              onChange={(e) => setLocationUuid(e.target.value)}
+            >
+              <SelectItem value="" text={t('allLocations', 'All locations')} />
+              {locations?.map((location) => (
+                <React.Fragment key={location.uuid}>
+                  <SelectItem value={location.uuid} text={location.display} />
+                </React.Fragment>
+              ))}
+            </Select>
           </div>
           <Button size="md" onClick={applyFilter}>
             {t('filter', 'Filter')}
@@ -225,7 +249,6 @@ export default function NcdPatientCardReport() {
                     onSort={toggleSort}
                     className="left"
                   />
-                  <th className="left">{t('fullName', 'Full Name (form)')}</th>
                   <SortableHeader
                     label={t('nationalId', 'National ID')}
                     sortKey="nationalId"
@@ -284,12 +307,9 @@ export default function NcdPatientCardReport() {
                     className={pageStyles.clickableRow}
                     onClick={() => goToPatientChart(row.patientUuid)}
                   >
-                    <td className="left">
-                      {row.givenName} {row.familyName}
-                    </td>
+                    <td className="left">{formatFullName(row)}</td>
                     <td>{row.encounterDatetime}</td>
                     <td className="left">{row.location || '--'}</td>
-                    <td className="left">{row.fullName || '--'}</td>
                     <td>{row.nationalId || '--'}</td>
                     <td>{row.dob || '--'}</td>
                     <td>{row.gender || '--'}</td>
@@ -307,7 +327,7 @@ export default function NcdPatientCardReport() {
                 ))}
                 {sortedRows.length === 0 && (
                   <tr>
-                    <td colSpan={17} className={pageStyles.emptyState}>
+                    <td colSpan={16} className={pageStyles.emptyState}>
                       {t('noSubmissionsForSelection', 'No NCD Patient Card submissions found for this selection.')}
                     </td>
                   </tr>

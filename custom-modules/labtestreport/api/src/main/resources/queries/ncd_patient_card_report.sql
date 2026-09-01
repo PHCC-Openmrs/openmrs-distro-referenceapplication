@@ -2,11 +2,11 @@ SELECT
   p.person_id                   AS patientId,
   p.uuid                        AS patientUuid,
   COALESCE(pn.given_name, '')   AS givenName,
+  COALESCE(pn.middle_name, '')  AS middleName,
   COALESCE(pn.family_name, '')  AS familyName,
   e.encounter_id                AS encounterId,
   e.encounter_datetime          AS encounterDatetime,
   l.name                        AS location,
-  fullNameObs.value_text        AS fullName,
   -- The "File Number" question was renamed to "National ID" (and moved to the same concept the
   -- Referral Form uses) in a later form version. Older submissions only ever filled in the old
   -- File Number concept, so fall back to it when the current concept is empty.
@@ -43,8 +43,6 @@ JOIN form f ON f.form_id = e.form_id AND f.uuid = '07c0ec98-4986-48c7-b2c9-d99a4
 JOIN person p ON p.person_id = e.patient_id
 LEFT JOIN person_name pn ON pn.person_id = p.person_id AND pn.voided = 0 AND pn.preferred = 1
 LEFT JOIN location l ON l.location_id = e.location_id
-LEFT JOIN obs fullNameObs ON fullNameObs.encounter_id = e.encounter_id AND fullNameObs.voided = 0
-  AND fullNameObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '0e4e0186-f554-4756-bd95-563c92ab3584')
 LEFT JOIN obs fileNumberObs ON fileNumberObs.encounter_id = e.encounter_id AND fileNumberObs.voided = 0
   AND fileNumberObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '5df735ce-f0fd-45c3-b192-b6e8ad842ac3')
 LEFT JOIN obs nationalIdObs ON nationalIdObs.encounter_id = e.encounter_id AND nationalIdObs.voided = 0
@@ -79,4 +77,5 @@ LEFT JOIN obs nextFollowObs ON nextFollowObs.encounter_id = e.encounter_id AND n
 WHERE e.voided = 0
   AND (:startDate IS NULL OR e.encounter_datetime >= :startDate)
   AND (:endDate IS NULL OR e.encounter_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
+  AND (:locationUuid IS NULL OR l.uuid = :locationUuid)
 ORDER BY e.encounter_datetime DESC

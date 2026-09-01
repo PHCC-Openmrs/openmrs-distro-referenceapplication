@@ -18,18 +18,18 @@ public class NcdPatientCardReportServiceImpl extends BaseOpenmrsService implemen
 	}
 
 	@Override
-	public List<NcdPatientCardRow> getNcdPatientCardReport(Date startDate, Date endDate) {
+	public List<NcdPatientCardRow> getNcdPatientCardReport(Date startDate, Date endDate, String locationUuid) {
 		List<NcdPatientCardRow> rows = new ArrayList<>();
-		for (Object[] r : dao.getNcdPatientCardReport(startDate, endDate)) {
+		for (Object[] r : dao.getNcdPatientCardReport(startDate, endDate, locationUuid)) {
 			NcdPatientCardRow row = new NcdPatientCardRow();
 			row.setPatientId(toInteger(r[0]));
 			row.setPatientUuid((String) r[1]);
 			row.setGivenName((String) r[2]);
-			row.setFamilyName((String) r[3]);
-			row.setEncounterId(toInteger(r[4]));
-			row.setEncounterDatetime((Date) r[5]);
-			row.setLocation((String) r[6]);
-			row.setFullName((String) r[7]);
+			row.setMiddleName((String) r[3]);
+			row.setFamilyName((String) r[4]);
+			row.setEncounterId(toInteger(r[5]));
+			row.setEncounterDatetime((Date) r[6]);
+			row.setLocation((String) r[7]);
 			row.setNationalId((String) r[8]);
 			row.setDob((Date) r[9]);
 			row.setGender((String) r[10]);

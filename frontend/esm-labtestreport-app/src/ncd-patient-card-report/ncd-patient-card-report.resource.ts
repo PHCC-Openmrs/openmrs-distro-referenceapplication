@@ -5,11 +5,11 @@ export interface NcdPatientCardRow {
   patientId: number;
   patientUuid: string;
   givenName: string;
+  middleName: string;
   familyName: string;
   encounterId: number;
   encounterDatetime: string;
   location: string | null;
-  fullName: string | null;
   nationalId: string | null;
   dob: string | null;
   gender: string | null;
@@ -25,13 +25,16 @@ export interface NcdPatientCardRow {
   nextFollow: string | null;
 }
 
-export function useNcdPatientCardReport(startDate?: string, endDate?: string) {
+export function useNcdPatientCardReport(startDate?: string, endDate?: string, locationUuid?: string) {
   const search = new URLSearchParams();
   if (startDate) {
     search.set('startDate', startDate);
   }
   if (endDate) {
     search.set('endDate', endDate);
+  }
+  if (locationUuid) {
+    search.set('locationUuid', locationUuid);
   }
   const query = search.toString();
   const url = `/module/labtestreport/api/ncd-patient-card-report.json${query ? `?${query}` : ''}`;

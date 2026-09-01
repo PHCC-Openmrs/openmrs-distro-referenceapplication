@@ -14,6 +14,8 @@ public class NcdPatientCardRow {
 
 	private String givenName;
 
+	private String middleName;
+
 	private String familyName;
 
 	private Integer encounterId;
@@ -21,8 +23,6 @@ public class NcdPatientCardRow {
 	private Date encounterDatetime;
 
 	private String location;
-
-	private String fullName;
 
 	private String nationalId;
 
@@ -74,6 +74,14 @@ public class NcdPatientCardRow {
 		this.givenName = givenName;
 	}
 
+	public String getMiddleName() {
+		return middleName;
+	}
+
+	public void setMiddleName(String middleName) {
+		this.middleName = middleName;
+	}
+
 	public String getFamilyName() {
 		return familyName;
 	}
@@ -104,14 +112,6 @@ public class NcdPatientCardRow {
 
 	public void setLocation(String location) {
 		this.location = location;
-	}
-
-	public String getFullName() {
-		return fullName;
-	}
-
-	public void setFullName(String fullName) {
-		this.fullName = fullName;
 	}
 
 	public String getNationalId() {

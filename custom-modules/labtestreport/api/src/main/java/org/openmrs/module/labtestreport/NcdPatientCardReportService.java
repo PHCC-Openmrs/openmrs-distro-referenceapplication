@@ -12,7 +12,8 @@ public interface NcdPatientCardReportService extends OpenmrsService {
 	 *            bound
 	 * @param endDate only include NCD Patient Card submissions through the end of this date (inclusive), or null for
 	 *            no upper bound
+	 * @param locationUuid only include submissions recorded at this location, or null for all locations
 	 * @return one row per (non-voided) NCD Patient Card encounter, most recent first
 	 */
-	List<NcdPatientCardRow> getNcdPatientCardReport(Date startDate, Date endDate);
+	List<NcdPatientCardRow> getNcdPatientCardReport(Date startDate, Date endDate, String locationUuid);
 }

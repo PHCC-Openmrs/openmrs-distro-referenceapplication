@@ -21,10 +21,11 @@ public class HibernateNcdPatientCardReportDAO implements NcdPatientCardReportDAO
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public List<Object[]> getNcdPatientCardReport(Date startDate, Date endDate) throws DAOException {
+	public List<Object[]> getNcdPatientCardReport(Date startDate, Date endDate, String locationUuid) throws DAOException {
 		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(NCD_PATIENT_CARD_REPORT_SQL);
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
 		return query.list();
 	}
 }

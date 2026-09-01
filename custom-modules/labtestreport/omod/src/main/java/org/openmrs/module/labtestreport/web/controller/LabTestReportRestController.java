@@ -132,9 +132,10 @@ public class LabTestReportRestController {
 	@ResponseBody
 	public ResponseEntity<String> ncdPatientCardReport(
 	        @RequestParam(value = "startDate", required = false) Date startDate,
-	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
 		List<NcdPatientCardRow> rows = Context.getService(NcdPatientCardReportService.class)
-		        .getNcdPatientCardReport(startDate, endDate);
+		        .getNcdPatientCardReport(startDate, endDate, locationUuid);
 		return jsonResponse(rows);
 	}
 
