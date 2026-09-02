@@ -37,7 +37,10 @@ export default function ReportsHome() {
   const hasProgrammaticReportsAccess =
     isSuperUser || session?.user?.privileges?.some((p) => p.display === 'App: reports.programmatic');
   const hasStockReportsAccess =
-    isSuperUser || session?.user?.privileges?.some((p) => p.display === 'App: stockmanagement.dashboard');
+    isSuperUser ||
+    session?.user?.privileges?.some(
+      (p) => p.display === 'App: stockmanagement.dashboard' || p.display === 'App: reports.stockManagement',
+    );
 
   const { rows: cmamAlertRows, isLoading: cmamAlertLoading } = useCmamSummaryReport('under5');
   const cmamAlertCount = useMemo(
