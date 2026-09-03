@@ -39,7 +39,15 @@ FROM ${ESM_CORE_SOURCE} AS esm-core-source
 #--------------------------------------------
 FROM --platform=$BUILDPLATFORM node:22-alpine as dev
 
-ARG APP_SHELL_VERSION=next
+# Pinned to the stable release rather than the `next` prerelease tag, which
+# republishes multiple times a day and can ship breaking changes with no
+# warning -- a `next` build once shipped an app-shell src/ requiring the
+# Module Federation runtime to be published (experiments.provideExternalRuntime)
+# while this repo's esm-core rspack.config.js (copied over that package's own
+# config below) didn't set that flag, leaving the runtime unpublished so no
+# lazily-loaded frontend module -- including every patient-chart dashboard
+# tab -- could start.
+ARG APP_SHELL_VERSION=latest
 
 RUN apk add --no-cache git
 
@@ -60,9 +68,9 @@ RUN corepack enable && \
     yarn pack --out /app/esm-stock-management-app-patched.tgz
 
 # Build @openmrs/esm-patient-registration-app, @openmrs/esm-patient-list-management-app,
-# @openmrs/esm-service-queues-app, AND @openmrs/esm-appointments-app from our fork
-# instead of the published "next" package, so fixes to any of them ship as soon as
-# they land on main.
+# @openmrs/esm-service-queues-app, @openmrs/esm-appointments-app AND
+# @openmrs/esm-bed-management-app from our fork instead of the published "next"
+# package, so fixes to any of them ship as soon as they land on main.
 ARG PATIENT_MANAGEMENT_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-patient-management.git
 ARG PATIENT_MANAGEMENT_REF=main
 # ADD from a URL is revalidated against its ETag/Last-Modified on every build,
