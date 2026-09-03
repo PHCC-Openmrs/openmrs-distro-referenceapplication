@@ -17,6 +17,14 @@ services:
         - esm-core-local=../openmrs-esm-core
       args:
         ESM_CORE_SOURCE: esm-core-local-aliased
+        # The Dockerfile defaults to the floating `next` prerelease tag for the
+        # openmrs CLI (app-shell builder), which republishes multiple times a
+        # day and can ship breaking changes with no warning -- it's what broke
+        # the Module Federation runtime here (esm-core's rspack.config.js
+        # didn't set `experiments.provideExternalRuntime`, which some recent
+        # `next` prerelease started requiring). Pin to the stable release for
+        # local dev builds instead.
+        APP_SHELL_VERSION: latest
 
   backend:
     build:
