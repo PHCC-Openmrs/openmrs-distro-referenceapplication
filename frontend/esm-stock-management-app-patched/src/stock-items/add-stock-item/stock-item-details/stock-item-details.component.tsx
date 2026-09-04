@@ -9,7 +9,7 @@ import { getCoreTranslation, restBaseUrl, showSnackbar, useLayoutType } from '@o
 import dayjs from 'dayjs';
 import { createStockItem, updateStockItem } from '../../stock-items.resource';
 import { expirationOptions, radioOptions, StockItemType } from './stock-item-details.resource';
-import { handleMutate } from '../../../utils';
+import { useHandleMutate } from '../../../utils';
 import { createStockItemDetailsSchema, type StockItemFormData } from '../../validationSchema';
 import { type StockItemDTO } from '../../../core/api/types/stockItem/StockItem';
 import { type Drug } from '../../../core/api/types/concept/Drug';
@@ -35,6 +35,7 @@ interface StockItemDetailsProps {
 const StockItemDetails = ({ stockItem, handleTabChange, onCloseWorkspace, onItemCreated }: StockItemDetailsProps) => {
   const { t } = useTranslation();
   const isTablet = useLayoutType() === 'tablet';
+  const handleMutate = useHandleMutate();
 
   const { handleSubmit, control, formState, watch, setValue } = useForm<StockItemFormData>({
     defaultValues: stockItem ?? {},

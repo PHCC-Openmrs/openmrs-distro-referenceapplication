@@ -4,12 +4,10 @@ import userEvent from '@testing-library/user-event';
 import { render, screen } from '@testing-library/react';
 import { type FetchResponse, showModal, showSnackbar } from '@openmrs/esm-framework';
 import { deleteStockSource } from '../stock-sources.resource';
-import { handleMutate } from '../../utils';
 import DeleteConfirmation from '../../stock-user-role-scopes/delete-stock-user-scope.modal';
 import StockSourcesDeleteActionMenu from './stock-sources-delete.component';
 
 const mockDeleteStockSource = vi.mocked(deleteStockSource);
-const mockHandleMutate = vi.mocked(handleMutate);
 const mockShowModal = vi.mocked(showModal);
 const mockShowSnackbar = vi.mocked(showSnackbar);
 
@@ -17,8 +15,10 @@ vi.mock('../stock-sources.resource', () => ({
   deleteStockSource: vi.fn(),
 }));
 
+const { mockHandleMutate } = vi.hoisted(() => ({ mockHandleMutate: vi.fn() }));
+
 vi.mock('../../utils', () => ({
-  handleMutate: vi.fn(),
+  useHandleMutate: () => mockHandleMutate,
 }));
 
 describe('StockSourcesDeleteActionMenu', () => {
@@ -99,7 +99,7 @@ describe('StockSourcesDeleteActionMenu', () => {
         close={mockClose}
         onConfirmation={async () => {
           await deleteStockSource([uuid]);
-          handleMutate('/openmrs/ws/rest/v1/stocksource');
+          mockHandleMutate('/openmrs/ws/rest/v1/stocksource');
         }}
       />,
     );
