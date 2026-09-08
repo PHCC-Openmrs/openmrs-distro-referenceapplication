@@ -60,7 +60,6 @@ Uuid,Void/Retire,Fully specified name:en,Data class,Data type
 78849AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Lidocaine,Drug,N/A
 78809AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,LEVOTHYROXINE SODIUM,Drug,N/A
 78764AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Levamisole,Drug,N/A
-78632AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,LACTULOSE,Drug,N/A
 78468AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Ketamine hydrochloride,Drug,N/A
 78342AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Ivermectin,Drug,N/A
 78258AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Isoflurane,Drug,N/A
@@ -83,7 +82,6 @@ Uuid,Void/Retire,Fully specified name:en,Data class,Data type
 75121AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Docusate sodium,Drug,N/A
 74745AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Diazepam,Drug,N/A
 74739AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Diatrizoate,Drug,N/A
-74609AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,DEXAMETHASONE,Drug,N/A
 74374AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Deferoxamine,Drug,N/A
 74258AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Darunavir,Drug,N/A
 74250AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Dapsone,Drug,N/A
@@ -519,7 +517,6 @@ ca247755-2a2e-4fcf-b1ea-fa4cdd5e4395,TRUE,Rotavirus antigen presence in stool,Te
 104527AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"Diphtheria toxoid / pertussis, acellular / tetanus toxoid",Drug,N/A
 104526AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"Diphtheria toxoid / hepatitis B vaccines / pertussis, acellular / poliovirus vaccine, inactivated / tetanus toxoid",Drug,N/A
 104525AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Diphtheria toxoid / haemophilus capsular oligosaccharide,Drug,N/A
-86339AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,VITAMIN A,Drug,N/A
 5261AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Hemophilus influenza B vaccine,Drug,N/A
 166703AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"RTS,S/AS01 vaccine",Drug,N/A
 162586AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Measles-rubella vaccine,Drug,N/A
@@ -710,7 +707,6 @@ a90d51dd-bd38-4534-8ff6-d363d7f11fb0,TRUE,Glycerin,Drug,N/A
 604fc052-da3e-4032-aeb8-3f88a8041448,TRUE,Glyceryl Trinitrate,Drug,N/A
 9643b503-02ec-4fde-aeb1-a293dc8d7c75,TRUE,Glycopyrrolate,Drug,N/A
 c9c0c627-7ba6-4880-a702-cfc985a296fa,TRUE,Griseofulvine,Drug,N/A
-0e35f48a-437d-4f32-8b83-bfb20c814457,TRUE,Guaifenesin,Drug,N/A
 b88ca045-2707-4fff-b383-89840293334d,TRUE,Heatwrap,Drug,N/A
 b07006a3-62c1-485a-b8ef-af0de629d04c,TRUE,Hialorunate de Na+,Drug,N/A
 bd8f1042-b1bd-4bb2-8b3b-fbda065e371f,TRUE,Hialorunate de Na+ et oxymetazoline,Drug,N/A
@@ -803,7 +799,6 @@ b78b18d6-b1ac-48dc-8111-5ab4ba588514,TRUE,Nitroglycerin (Glycerine Trinitrate),D
 3009dd8b-d64f-44a0-ba23-2e33ca11279b,TRUE,Nitroprussiate,Drug,N/A
 70298171-26e2-4e1c-8b46-036b09e52af9,TRUE,Noradrenaline,Drug,N/A
 cc4a27b0-78cb-4d3d-9c85-51f4a06d1f4a,TRUE,Normal Saline (NS),Drug,N/A
-984a9a0b-13f6-4bb4-b55d-c51d5ce225c9,TRUE,NYSTATIN,Drug,N/A
 a30dc1f2-a26b-4bc0-90a4-e7eb7feea473,TRUE,Nystatin & Zinc Oxide,Drug,N/A
 6ff87358-869f-4756-b74d-dda05de51848,TRUE,Ondansetron hydrochloride,Drug,N/A
 3bb1e50f-7d8e-440e-8bc9-9736d147a5bd,TRUE,OFLOXACIN,Drug,N/A
@@ -864,7 +859,6 @@ c5e3d595-76ae-4bf0-81d2-b3db54c36e6b,TRUE,Propacaine,Drug,N/A
 3ea17ac3-945f-48aa-a651-cd61ee838e97,TRUE,Protamine sulfate,Drug,N/A
 d58883a6-cd22-4d66-96dc-a2d3eace3d2e,TRUE,Proteines,Drug,N/A
 5fd156c3-c76f-4067-9856-6a6bd1912a96,TRUE,Pyrazinamide,Drug,N/A
-14f9dc07-8881-41fe-aee6-0f2ab502d0c3,TRUE,PYRIDOXINE,Drug,N/A
 35191c44-1b60-4f6f-b378-d3bc34b83612,TRUE,Pyrimethamine Sulfadoxine,Drug,N/A
 36d8bcf5-01f1-4c60-ac78-a7b5ccd31f2d,TRUE,Quinine sulfate,Drug,N/A
 a0660319-fed1-4830-ad75-4c9e02519fc5,TRUE,Rabeprazole Sodium,Drug,N/A
@@ -880,7 +874,6 @@ b368b7f7-f87b-4414-9537-1f6bee82e448,TRUE,Ringers Lactate (RL),Drug,N/A
 b85c29f2-21fe-4384-ab1e-b98f35112702,TRUE,Risperidone,Drug,N/A
 f296897c-9b91-41e7-9af0-46a3ac07b9ce,TRUE,Rocuronium,Drug,N/A
 7dc377e9-793c-4ad5-8d79-59811de57d31,TRUE,Rotavirus Vaccine (Rota),Drug,N/A
-9088359a-587f-4dbc-b13e-b3c38a07cd85,TRUE,SALBUTAMOL,Drug,N/A
 1dd509c8-b38b-4e7e-abde-8fc87652efc5,TRUE,Salbutamol & Bromhexine,Drug,N/A
 e1b3ec78-175f-449b-a689-250641da6a05,TRUE,Salbutamol & Ipratropium bromide,Drug,N/A
 702e6e2b-6098-4b48-9398-897faffe9e66,TRUE,Saline,Drug,N/A
@@ -892,7 +885,6 @@ facb9b18-efad-4c4f-8855-0d20316a9326,TRUE,Serum antitetatique,Drug,N/A
 984e4058-d87f-489f-a28d-138c90565666,TRUE,Silver Nitrate,Drug,N/A
 89e4c545-85af-4d9c-9e8c-c8e54f815cf0,TRUE,SILVER SULFADIAZINE,Drug,N/A
 26eafc63-b224-4b57-afb9-55c7c4a7686e,TRUE,Silver Sulphadiazine,Drug,N/A
-3fc5c46f-9c31-46ef-b96e-a12216f93a62,TRUE,Simethicone,Drug,N/A
 3cba8193-4ffd-4cc3-828b-3269da016da5,TRUE,Simvastatin,Drug,N/A
 800bb234-aabc-449c-ad8e-7510446dc1b1,TRUE,Sodium bicarbonate,Drug,N/A
 8ebe6adf-72e3-495e-860f-c4a71ffc8016,TRUE,Sodium chloride,Drug,N/A
