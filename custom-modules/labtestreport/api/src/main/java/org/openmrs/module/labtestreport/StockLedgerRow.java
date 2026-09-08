@@ -1,8 +1,6 @@
 package org.openmrs.module.labtestreport;
 
 import java.util.Date;
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 /**
  * One row of the stock inventory ledger report: a single stock item's activity in a single
@@ -44,43 +42,32 @@ public class StockLedgerRow {
 
 	private String unitName;
 
-	// Distinct raw packed externalReference strings (see ExternalReferenceParser) of every
-	// operation that contributed a transaction to this item/batch/location on this day, joined
-	// with ";;" - a day's activity for one batch can span more than one operation.
-	private String externalReferences;
+	// The raw packed externalReference (see ExternalReferenceParser) of the batch's originating
+	// receipt/initial operation. Purchase Order No, Purchase Request No and Project Fund Code
+	// describe the procurement that brought the batch into stock, so they belong to the batch as
+	// a whole and are the same on every day of that batch's ledger - they are deliberately not
+	// collected from the issues and transfers that later draw the batch down, whose own reference
+	// numbers would otherwise be mixed into the batch's codes.
+	private String externalReference;
 
-	public String getExternalReferences() {
-		return externalReferences;
+	public String getExternalReference() {
+		return externalReference;
 	}
 
-	public void setExternalReferences(String externalReferences) {
-		this.externalReferences = externalReferences;
-	}
-
-	private String joinedDistinctParts(java.util.function.Function<String, String> partExtractor) {
-		if (externalReferences == null || externalReferences.isEmpty()) {
-			return "";
-		}
-		Set<String> parts = new LinkedHashSet<>();
-		for (String reference : externalReferences.split(";;")) {
-			String part = partExtractor.apply(reference);
-			if (part != null && !part.isEmpty()) {
-				parts.add(part);
-			}
-		}
-		return String.join(", ", parts);
+	public void setExternalReference(String externalReference) {
+		this.externalReference = externalReference;
 	}
 
 	public String getPurchaseOrderNo() {
-		return joinedDistinctParts(ExternalReferenceParser::getPurchaseOrderNo);
+		return ExternalReferenceParser.getPurchaseOrderNo(externalReference);
 	}
 
 	public String getPurchaseRequestNo() {
-		return joinedDistinctParts(ExternalReferenceParser::getPurchaseRequestNo);
+		return ExternalReferenceParser.getPurchaseRequestNo(externalReference);
 	}
 
 	public String getProjectFundCode() {
-		return joinedDistinctParts(ExternalReferenceParser::getProjectFundCode);
+		return ExternalReferenceParser.getProjectFundCode(externalReference);
 	}
 
 	public Integer getStockItemId() {

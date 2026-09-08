@@ -25,6 +25,12 @@ interface LedgerItem {
   locationName: string | null;
   batchNo: string | null;
   expirationDate: string | null;
+  // Purchase Order No / Purchase Request No / Project Fund Code come from the procurement that
+  // brought the batch into stock, so they belong to the batch rather than to any one day of its
+  // ledger - they live here, on the batch, and every day row of that batch reads the same value.
+  purchaseOrderNo: string | null;
+  purchaseRequestNo: string | null;
+  projectFundCode: string | null;
 }
 
 interface DayBlock {
@@ -69,6 +75,9 @@ function buildItemList(rows: Array<StockLedgerRow>): Array<LedgerItem> {
         locationName: row.locationName,
         batchNo: row.batchNo,
         expirationDate: row.expirationDate,
+        purchaseOrderNo: row.purchaseOrderNo,
+        purchaseRequestNo: row.purchaseRequestNo,
+        projectFundCode: row.projectFundCode,
       });
     }
   });
@@ -135,9 +144,9 @@ function buildDayBlocks(rows: Array<StockLedgerRow>, items: Array<LedgerItem>): 
             outgoingQty: 0,
             remainingQty: opening,
             unitName: unitNameByItem.get(item.key) ?? null,
-            purchaseOrderNo: null,
-            purchaseRequestNo: null,
-            projectFundCode: null,
+            purchaseOrderNo: item.purchaseOrderNo,
+            purchaseRequestNo: item.purchaseRequestNo,
+            projectFundCode: item.projectFundCode,
           };
         });
       return { date, cells };
@@ -183,15 +192,9 @@ interface LedgerGroup {
   totalOutgoing: number;
   latestRemaining: number;
   unitName: string | null;
-  purchaseOrderNo: string;
-  purchaseRequestNo: string;
-  projectFundCode: string;
-}
-
-// A group can span several days, each potentially from a different operation with its own
-// codes - collect whatever distinct, non-blank values appear across the whole group.
-function distinctJoined(rows: Array<StockLedgerRow>, field: 'purchaseOrderNo' | 'purchaseRequestNo' | 'projectFundCode') {
-  return Array.from(new Set(rows.map((row) => row[field]).filter((value): value is string => !!value))).join(', ');
+  purchaseOrderNo: string | null;
+  purchaseRequestNo: string | null;
+  projectFundCode: string | null;
 }
 
 function buildGroupedRows(items: Array<LedgerItem>, flatRows: Array<StockLedgerRow>): Array<LedgerGroup> {
@@ -208,9 +211,9 @@ function buildGroupedRows(items: Array<LedgerItem>, flatRows: Array<StockLedgerR
       totalOutgoing: rows.reduce((sum, row) => sum + row.outgoingQty, 0),
       latestRemaining: rows.length > 0 ? rows[rows.length - 1].remainingQty : 0,
       unitName: rows.length > 0 ? rows[0].unitName : null,
-      purchaseOrderNo: distinctJoined(rows, 'purchaseOrderNo'),
-      purchaseRequestNo: distinctJoined(rows, 'purchaseRequestNo'),
-      projectFundCode: distinctJoined(rows, 'projectFundCode'),
+      purchaseOrderNo: item.purchaseOrderNo,
+      purchaseRequestNo: item.purchaseRequestNo,
+      projectFundCode: item.projectFundCode,
     };
   });
 }
@@ -597,9 +600,9 @@ export default function StockLedgerReport() {
                             <td>{formatQuantity(row.actualQty, row.unitName)}</td>
                             <td>{formatQuantity(row.outgoingQty, row.unitName)}</td>
                             <td>{formatQuantity(row.remainingQty, row.unitName)}</td>
-                            <td className="left">{row.purchaseOrderNo || '—'}</td>
-                            <td className="left">{row.purchaseRequestNo || '—'}</td>
-                            <td className="left">{row.projectFundCode || '—'}</td>
+                            <td className="left" />
+                            <td className="left" />
+                            <td className="left" />
                           </tr>
                         ))}
                     </React.Fragment>

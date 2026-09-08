@@ -67,7 +67,7 @@ public class StockLedgerGrouping {
 					cell.setIncomingQty(actualRow.getIncomingQty());
 					cell.setOutgoingQty(actualRow.getOutgoingQty());
 					cell.setRemainingQty(actualRow.getRemainingQty());
-					cell.setExternalReferences(actualRow.getExternalReferences());
+					cell.setExternalReference(actualRow.getExternalReference());
 					lastRemaining.put(item.getStockItemId(), actualRow.getRemainingQty());
 				} else {
 					cell.setActualQty(opening);
