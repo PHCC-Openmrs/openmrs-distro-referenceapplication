@@ -13,6 +13,10 @@ export interface StockMovementDetailRow {
   purchaseOrderNo: string | null;
   purchaseRequestNo: string | null;
   projectFundCode: string | null;
+  // The item's bulk/procurement pack and how many dispensing units it holds - see
+  // ./format-quantity. Both null when the item has no bulk pack configured.
+  bulkUnitName: string | null;
+  bulkFactor: number | null;
   /** Only populated for the Wastage report - undefined for Consumption and Distribution. */
   reasonName?: string | null;
 }
@@ -72,7 +76,7 @@ export default function StockMovementDrilldownModal({
                   <td className="left">{row.purchaseOrderNo || '—'}</td>
                   <td className="left">{row.purchaseRequestNo || '—'}</td>
                   <td className="left">{row.projectFundCode || '—'}</td>
-                  <td>{formatQuantity(row.quantity, row.unitName)}</td>
+                  <td>{formatQuantity(row.quantity, row.unitName, row.bulkUnitName, row.bulkFactor)}</td>
                   {showReason && <td className="left">{row.reasonName ?? '—'}</td>}
                 </tr>
               ))}

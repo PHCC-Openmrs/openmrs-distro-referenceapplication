@@ -27,7 +27,9 @@ SELECT
   COALESCE(bv.vendorName, pv.name) AS vendorName,
   SUM(sit.quantity * puom.factor) AS quantity,
   un.name                 AS unitName,
-  bv.externalReference    AS externalReference
+  bv.externalReference    AS externalReference,
+  bun.name                AS bulkUnitName,
+  bulk.factor             AS bulkFactor
 FROM stockmgmt_stock_item_transaction sit
 JOIN stockmgmt_stock_item si ON si.stock_item_id = sit.stock_item_id
 JOIN stockmgmt_stock_item_packaging_uom puom ON puom.stock_item_packaging_uom_id = sit.stock_item_packaging_uom_id
@@ -41,14 +43,21 @@ LEFT JOIN batch_vendor bv ON bv.stock_batch_id = sb.stock_batch_id AND bv.rn = 1
 -- didn't carry a real vendor (Opening Stock) or no receiving transaction was found at all.
 LEFT JOIN stockmgmt_stock_source pv ON pv.stock_source_id = si.preferred_vendor_id
 LEFT JOIN concept_name un ON un.concept_id = si.dispensing_unit_id AND un.locale = 'en' AND un.locale_preferred = 1
+-- Bulk/procurement pack, for the "92 Box (2,760 Tablet)" rendering - see stock_current_onhand.sql.
+LEFT JOIN stockmgmt_stock_item_packaging_uom bulk ON bulk.stock_item_packaging_uom_id = si.default_stock_operations_uom_id AND bulk.voided = 0
+LEFT JOIN concept_name bun ON bun.concept_id = bulk.packaging_uom_id AND bun.locale = 'en' AND bun.locale_preferred = 1
 WHERE si.voided = 0
   AND sot.operation_type = 'transferout'
   AND sit.quantity > 0
   AND sit.party_id != so.source_id
+  -- Must stay identical to stock_distribution_from_source.sql's filter, or the batches listed here
+  -- will not add up to the summary cell the user clicked.
+  AND so.status = 'COMPLETED'
+  AND COALESCE(so.voided, 0) = 0
   AND si.stock_item_id = :stockItemId
   AND sit.party_id = :locationId
   AND (:sourceLocationUuid IS NULL OR srcL.uuid = :sourceLocationUuid)
-  AND (:startDate IS NULL OR DATE(sit.date_created) >= :startDate)
-  AND (:endDate IS NULL OR DATE(sit.date_created) < DATE_ADD(:endDate, INTERVAL 1 DAY))
-GROUP BY sb.batch_no, sb.expiration, bv.vendorName, pv.name, un.name, bv.externalReference
+  AND (:startDate IS NULL OR DATE(so.operation_date) >= :startDate)
+  AND (:endDate IS NULL OR DATE(so.operation_date) < DATE_ADD(:endDate, INTERVAL 1 DAY))
+GROUP BY sb.batch_no, sb.expiration, bv.vendorName, pv.name, un.name, bv.externalReference, bun.name, bulk.factor
 ORDER BY quantity DESC

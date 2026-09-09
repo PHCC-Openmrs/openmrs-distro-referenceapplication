@@ -29,14 +29,30 @@ public class StockLedgerServiceImpl extends BaseOpenmrsService implements StockL
 			row.setBatchNo((String) r[4]);
 			row.setExpirationDate((Date) r[5]);
 			row.setLedgerDate((Date) r[6]);
-			row.setOpeningAdjustmentQty(toDouble(r[7]));
-			row.setIncomingQty(toDouble(r[8]));
-			row.setOutgoingQty(toDouble(r[9]));
-			row.setRemainingQty(toDouble(r[10]));
-			row.setActualQty(row.getRemainingQty() - row.getIncomingQty() + row.getOutgoingQty()
-			        - row.getOpeningAdjustmentQty());
+			row.setInflowQty(toDouble(r[7]));
+			row.setOutgoingQty(toDouble(r[8]));
+			row.setRemainingQty(toDouble(r[9]));
+			row.setCarryInQty(toDouble(r[10]));
+			// The day's Opening Balance. "Opening - Outgoing = Balance" is the identity the report
+			// is built around, which fixes this as remainingQty + outgoingQty; because the query
+			// computes remaining as (previous balance + inflow - outgoing), that is the same thing
+			// as (previous balance + the day's arrivals) - so arrivals fold into Opening Balance,
+			// whether they came from an Opening Stock, a transfer in or a receipt.
+			//
+			// Deliberately NOT remainingQty - inflowQty + outgoingQty: that cancels down to the
+			// previous balance alone, i.e. the pre-arrival figure, which drops the day's arrivals
+			// and breaks the identity on any day stock came in - the day a transfer reaches its
+			// destination, for one. The two agree whenever inflow is 0, which is exactly what
+			// makes the wrong form look correct in an outflow-only test.
+			//
+			// Computed from this row alone rather than by carrying a running total, so the three
+			// rendered numbers cannot be pulled out of step by filtering or ordering downstream.
+			row.setActualQty(row.getRemainingQty() + row.getOutgoingQty());
 			row.setUnitName((String) r[11]);
 			row.setExternalReference((String) r[12]);
+			row.setBatchId(toInteger(r[13]));
+			row.setBulkUnitName((String) r[14]);
+			row.setBulkFactor(toNullableDouble(r[15]));
 			rows.add(row);
 		}
 		return rows;
@@ -48,5 +64,14 @@ public class StockLedgerServiceImpl extends BaseOpenmrsService implements StockL
 
 	private static double toDouble(Object value) {
 		return value == null ? 0d : ((Number) value).doubleValue();
+	}
+
+	/**
+	 * Unlike {@link #toDouble(Object)}, keeps null as null: a missing bulk factor means the item has
+	 * no bulk pack configured, which the consumer must be able to tell from a factor it can divide
+	 * by. Collapsing it to 0 would invite a divide-by-zero downstream.
+	 */
+	private static Double toNullableDouble(Object value) {
+		return value == null ? null : ((Number) value).doubleValue();
 	}
 }

@@ -84,6 +84,7 @@ daily AS (
 )
 SELECT
   d.stockItemId,
+  d.batchId,
   si.common_name AS itemName,
   d.partyId      AS locationId,
   l.name         AS locationName,
@@ -102,13 +103,18 @@ SELECT
       ) AS remainingQty,
   COALESCE(c.carryInQty, 0) AS carryInQty,
   un.name AS unitName,
-  br.externalReference AS externalReference
+  br.externalReference AS externalReference,
+  bun.name AS bulkUnitName,
+  bulk.factor AS bulkFactor
 FROM daily d
 JOIN stockmgmt_stock_item si ON si.stock_item_id = d.stockItemId
 JOIN stockmgmt_party p ON p.party_id = d.partyId
 LEFT JOIN location l ON l.location_id = p.location_id
 JOIN stockmgmt_stock_batch sb ON sb.stock_batch_id = d.batchId
 LEFT JOIN concept_name un ON un.concept_id = si.dispensing_unit_id AND un.locale = 'en' AND un.locale_preferred = 1
+-- Bulk/procurement pack, for the "92 Box (2,760 Tablet)" rendering - see stock_current_onhand.sql.
+LEFT JOIN stockmgmt_stock_item_packaging_uom bulk ON bulk.stock_item_packaging_uom_id = si.default_stock_operations_uom_id AND bulk.voided = 0
+LEFT JOIN concept_name bun ON bun.concept_id = bulk.packaging_uom_id AND bun.locale = 'en' AND bun.locale_preferred = 1
 LEFT JOIN carry_in c ON c.stockItemId = d.stockItemId AND c.partyId = d.partyId AND c.batchId = d.batchId
 LEFT JOIN batch_reference br ON br.stock_batch_id = d.batchId AND br.rn = 1
 ORDER BY itemName, locationName, batchNo, ledgerDate

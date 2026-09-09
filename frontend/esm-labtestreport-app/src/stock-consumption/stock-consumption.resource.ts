@@ -12,6 +12,11 @@ export interface StockLocationQtyRow {
   sourceLocationName: string | null;
   /** Current on-hand quantity at the row's location, as of now (not the moved quantity above). */
   remainingQty: number;
+  // The item's bulk/procurement pack and how many dispensing units it holds, so a quantity can also
+  // be read as whole packs - see reports-shell/format-quantity. Both null when the item has no bulk
+  // pack configured.
+  bulkUnitName: string | null;
+  bulkFactor: number | null;
 }
 
 /**
@@ -27,6 +32,8 @@ export interface StockMovementDetailRow {
   purchaseOrderNo: string | null;
   purchaseRequestNo: string | null;
   projectFundCode: string | null;
+  bulkUnitName: string | null;
+  bulkFactor: number | null;
   /** Only populated for the Wastage report - undefined for Consumption and Distribution. */
   reasonName?: string | null;
 }

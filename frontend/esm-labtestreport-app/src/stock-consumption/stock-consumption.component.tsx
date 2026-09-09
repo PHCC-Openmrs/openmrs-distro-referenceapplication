@@ -12,7 +12,7 @@ import { buildKpiExportSheet, buildComparisonExportSheet, type ExportSheet } fro
 import { useMonthComparison } from '../reports-shell/month-compare';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
 import { filterByItemAndSearch, distinctItemNames } from '../reports-shell/row-filter';
-import { formatQuantity } from '../reports-shell/format-quantity';
+import { bulkExportCells, formatQuantity } from '../reports-shell/format-quantity';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
@@ -147,12 +147,19 @@ export default function StockConsumptionReport() {
         t('quantityConsumed', 'Quantity Consumed'),
         t('remainingQty', 'Remaining Qty'),
         t('unit', 'Unit'),
+        t('bulkUnit', 'Bulk Unit'),
+        t('unitsPerBulk', 'Units per Bulk'),
       ],
-      rows: rows.map((row) =>
-        showLocationInLabel
-          ? [row.itemName, row.locationName ?? '', row.quantity, row.remainingQty, row.unitName ?? '']
-          : [row.itemName, row.quantity, row.remainingQty, row.unitName ?? ''],
-      ),
+      rows: rows.map((row) => [
+        row.itemName,
+        ...(showLocationInLabel ? [row.locationName ?? ''] : []),
+        row.quantity,
+        row.remainingQty,
+        row.unitName ?? '',
+        // The pack is carried as unit + factor rather than as a pre-divided figure, so the
+        // quantity columns above stay numeric and summable in the spreadsheet.
+        ...bulkExportCells(row.bulkUnitName, row.bulkFactor),
+      ]),
     }),
     [t, rows, showLocationInLabel],
   );
@@ -345,8 +352,8 @@ export default function StockConsumptionReport() {
                   >
                     <td className="left">{row.itemName}</td>
                     {showLocationInLabel && <td className="left">{row.locationName ?? '—'}</td>}
-                    <td>{formatQuantity(row.quantity, row.unitName)}</td>
-                    <td>{formatQuantity(row.remainingQty, row.unitName)}</td>
+                    <td>{formatQuantity(row.quantity, row.unitName, row.bulkUnitName, row.bulkFactor)}</td>
+                    <td>{formatQuantity(row.remainingQty, row.unitName, row.bulkUnitName, row.bulkFactor)}</td>
                   </tr>
                 ))}
                 {rows.length === 0 && (

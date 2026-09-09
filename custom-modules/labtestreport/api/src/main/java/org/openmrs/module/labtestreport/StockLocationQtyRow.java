@@ -21,6 +21,15 @@ public class StockLocationQtyRow {
 
 	private String unitName;
 
+	// The item's bulk/procurement pack and how many dispensing units it holds, so a quantity can
+	// also be read as whole packs - 2,760 Tablet at 30 to a Box renders as "92 Box (2,760 Tablet)".
+	// Both are null when the item has no bulk pack configured, and a factor of 1 (e.g. a Box of one
+	// Bottle) leaves nothing worth converting - the consumer renders the plain unit in both cases
+	// rather than "5 Box (5 Bottle)".
+	private String bulkUnitName;
+
+	private Double bulkFactor;
+
 	/** Only populated for the Distribution report - null for Consumption and Wastage. */
 	private String sourceLocationName;
 
@@ -88,5 +97,21 @@ public class StockLocationQtyRow {
 
 	public void setRemainingQty(double remainingQty) {
 		this.remainingQty = remainingQty;
+	}
+
+	public String getBulkUnitName() {
+		return bulkUnitName;
+	}
+
+	public void setBulkUnitName(String bulkUnitName) {
+		this.bulkUnitName = bulkUnitName;
+	}
+
+	public Double getBulkFactor() {
+		return bulkFactor;
+	}
+
+	public void setBulkFactor(Double bulkFactor) {
+		this.bulkFactor = bulkFactor;
 	}
 }

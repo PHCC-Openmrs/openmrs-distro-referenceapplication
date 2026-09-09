@@ -9,8 +9,8 @@ public interface StockFlowService extends OpenmrsService {
 
 	/**
 	 * How much of each stock item was actually issued out of (consumed at) one or all
-	 * locations over a date range - i.e. stock leaving the system for patient use, not
-	 * internal transfers between locations.
+	 * locations over a date range - stock dispensed to patients plus stock transferred out
+	 * to another location, both counted the same way: it has left the location either way.
 	 *
 	 * @param startDate only include activity on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only include activity through the end of this date (inclusive), or null for no upper bound
