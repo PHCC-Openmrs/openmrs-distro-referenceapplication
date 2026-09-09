@@ -122,9 +122,10 @@ public class LabTestReportRestController {
 	@ResponseBody
 	public ResponseEntity<String> referralFormReport(
 	        @RequestParam(value = "startDate", required = false) Date startDate,
-	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
 		List<ReferralFormRow> rows = Context.getService(ReferralFormReportService.class)
-		        .getReferralFormReport(startDate, endDate);
+		        .getReferralFormReport(startDate, endDate, locationUuid);
 		return jsonResponse(rows);
 	}
 

@@ -5,6 +5,7 @@ export interface ReferralFormRow {
   patientId: number;
   patientUuid: string;
   givenName: string;
+  middleName: string;
   familyName: string;
   encounterId: number;
   encounterDatetime: string;
@@ -30,13 +31,16 @@ export interface ReferralFormRow {
   treatingDoctor: string | null;
 }
 
-export function useReferralFormReport(startDate?: string, endDate?: string) {
+export function useReferralFormReport(startDate?: string, endDate?: string, locationUuid?: string) {
   const search = new URLSearchParams();
   if (startDate) {
     search.set('startDate', startDate);
   }
   if (endDate) {
     search.set('endDate', endDate);
+  }
+  if (locationUuid) {
+    search.set('locationUuid', locationUuid);
   }
   const query = search.toString();
   const url = `/module/labtestreport/api/referral-form-report.json${query ? `?${query}` : ''}`;

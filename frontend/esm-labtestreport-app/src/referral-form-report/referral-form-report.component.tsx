@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { InlineLoading, Search, Button } from '@carbon/react';
-import { navigate } from '@openmrs/esm-framework';
+import { InlineLoading, Search, Select, SelectItem, Button } from '@carbon/react';
+import { navigate, useLocations } from '@openmrs/esm-framework';
 import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import KpiTiles from '../reports-shell/kpi-tiles.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
@@ -14,6 +14,7 @@ import { useReferralFormReport, type ReferralFormRow } from './referral-form-rep
 
 const SEARCHABLE_FIELDS: Array<keyof ReferralFormRow> = [
   'givenName',
+  'middleName',
   'familyName',
   'fullName',
   'nationalId',
@@ -22,14 +23,22 @@ const SEARCHABLE_FIELDS: Array<keyof ReferralFormRow> = [
   'referredTo',
 ];
 
+const LOCATION_TAG = 'Login Location';
+
 export default function ReferralFormReport() {
   const { t } = useTranslation();
   const [startDateInput, setStartDateInput] = useState('');
   const [endDateInput, setEndDateInput] = useState('');
   const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [locationUuid, setLocationUuid] = useState('');
+  const locations = useLocations(LOCATION_TAG);
 
-  const { rows, isLoading } = useReferralFormReport(appliedDates.startDate, appliedDates.endDate);
+  const { rows, isLoading } = useReferralFormReport(
+    appliedDates.startDate,
+    appliedDates.endDate,
+    locationUuid || undefined,
+  );
 
   const searchedRows = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -45,7 +54,8 @@ export default function ReferralFormReport() {
 
   const sortAccessors = useMemo(
     () => ({
-      name: (row: ReferralFormRow) => `${row.familyName} ${row.givenName}`,
+      name: (row: ReferralFormRow) =>
+        `${row.familyName} ${row.givenName}${row.middleName ? ` ${row.middleName}` : ''}`,
       encounterDatetime: (row: ReferralFormRow) => row.encounterDatetime,
       location: (row: ReferralFormRow) => row.location ?? '',
       fullName: (row: ReferralFormRow) => row.fullName ?? '',
@@ -87,6 +97,7 @@ export default function ReferralFormReport() {
       name: t('referralFormReport', 'Referral Form Report'),
       headers: [
         t('givenName', 'Given Name'),
+        t('middleName', 'Middle Name'),
         t('familyName', 'Family Name'),
         t('encounterDate', 'Encounter Date'),
         t('location', 'Location'),
@@ -110,6 +121,7 @@ export default function ReferralFormReport() {
       ],
       rows: searchedRows.map((row) => [
         row.givenName,
+        row.middleName ?? '',
         row.familyName,
         row.encounterDatetime,
         row.location ?? '',
@@ -144,6 +156,7 @@ export default function ReferralFormReport() {
     setEndDateInput('');
     setAppliedDates({});
     setSearchTerm('');
+    setLocationUuid('');
   }
 
   function goToPatientChart(patientUuid: string) {
@@ -178,6 +191,21 @@ export default function ReferralFormReport() {
               max={getTodayDateString()}
               onChange={(e) => setEndDateInput(clampToToday(e.target.value))}
             />
+          </div>
+          <div className={pageStyles.filterField}>
+            <Select
+              id="locationFilter"
+              labelText={t('location', 'Location')}
+              value={locationUuid}
+              onChange={(e) => setLocationUuid(e.target.value)}
+            >
+              <SelectItem value="" text={t('allLocations', 'All locations')} />
+              {locations?.map((location) => (
+                <React.Fragment key={location.uuid}>
+                  <SelectItem value={location.uuid} text={location.display} />
+                </React.Fragment>
+              ))}
+            </Select>
           </div>
           <Button size="md" onClick={applyFilter}>
             {t('filter', 'Filter')}
@@ -294,7 +322,8 @@ export default function ReferralFormReport() {
                     onClick={() => goToPatientChart(row.patientUuid)}
                   >
                     <td className="left">
-                      {row.givenName} {row.familyName}
+                      {row.givenName} {row.middleName ? `${row.middleName} ` : ''}
+                      {row.familyName}
                     </td>
                     <td>{row.encounterDatetime}</td>
                     <td className="left">{row.location || '--'}</td>

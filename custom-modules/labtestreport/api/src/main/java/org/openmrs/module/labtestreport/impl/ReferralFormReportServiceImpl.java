@@ -18,36 +18,37 @@ public class ReferralFormReportServiceImpl extends BaseOpenmrsService implements
 	}
 
 	@Override
-	public List<ReferralFormRow> getReferralFormReport(Date startDate, Date endDate) {
+	public List<ReferralFormRow> getReferralFormReport(Date startDate, Date endDate, String locationUuid) {
 		List<ReferralFormRow> rows = new ArrayList<>();
-		for (Object[] r : dao.getReferralFormReport(startDate, endDate)) {
+		for (Object[] r : dao.getReferralFormReport(startDate, endDate, locationUuid)) {
 			ReferralFormRow row = new ReferralFormRow();
 			row.setPatientId(toInteger(r[0]));
 			row.setPatientUuid((String) r[1]);
 			row.setGivenName((String) r[2]);
-			row.setFamilyName((String) r[3]);
-			row.setEncounterId(toInteger(r[4]));
-			row.setEncounterDatetime((Date) r[5]);
-			row.setLocation((String) r[6]);
-			row.setFullName((String) r[7]);
-			row.setAge(toDouble(r[8]));
-			row.setGender((String) r[9]);
-			row.setReferralDate((Date) r[10]);
-			row.setReferralTime((String) r[11]);
-			row.setNationalId((String) r[12]);
-			row.setPhoneNumber((String) r[13]);
-			row.setReferringFacility((String) r[14]);
-			row.setReferredTo((String) r[15]);
-			row.setUrgency((String) r[16]);
-			row.setTransportation((String) r[17]);
-			row.setReferralCause((String) r[18]);
-			row.setClinicalHistory((String) r[19]);
-			row.setManagementReceived((String) r[20]);
-			row.setReferringDoctor((String) r[21]);
-			row.setHeadOfClinic((String) r[22]);
-			row.setFeedback((String) r[23]);
-			row.setFollowUp((String) r[24]);
-			row.setTreatingDoctor((String) r[25]);
+			row.setMiddleName((String) r[3]);
+			row.setFamilyName((String) r[4]);
+			row.setEncounterId(toInteger(r[5]));
+			row.setEncounterDatetime((Date) r[6]);
+			row.setLocation((String) r[7]);
+			row.setFullName((String) r[8]);
+			row.setAge(toDouble(r[9]));
+			row.setGender((String) r[10]);
+			row.setReferralDate((Date) r[11]);
+			row.setReferralTime((String) r[12]);
+			row.setNationalId((String) r[13]);
+			row.setPhoneNumber((String) r[14]);
+			row.setReferringFacility((String) r[15]);
+			row.setReferredTo((String) r[16]);
+			row.setUrgency((String) r[17]);
+			row.setTransportation((String) r[18]);
+			row.setReferralCause((String) r[19]);
+			row.setClinicalHistory((String) r[20]);
+			row.setManagementReceived((String) r[21]);
+			row.setReferringDoctor((String) r[22]);
+			row.setHeadOfClinic((String) r[23]);
+			row.setFeedback((String) r[24]);
+			row.setFollowUp((String) r[25]);
+			row.setTreatingDoctor((String) r[26]);
 			rows.add(row);
 		}
 		return rows;
