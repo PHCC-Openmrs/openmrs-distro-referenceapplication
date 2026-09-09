@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { TrashCan } from '@carbon/react/icons';
 import { deleteStockSource } from '../stock-sources.resource';
 import { restBaseUrl, showModal, showSnackbar, useSession, userHasAccess } from '@openmrs/esm-framework';
-import { handleMutate } from '../../utils';
+import { useHandleMutate } from '../../utils';
 
 interface StockSourcesDeleteActionMenuProps {
   uuid: string;
@@ -12,6 +12,7 @@ interface StockSourcesDeleteActionMenuProps {
 
 const StockSourcesDeleteActionMenu: React.FC<StockSourcesDeleteActionMenuProps> = ({ uuid }) => {
   const { t } = useTranslation();
+  const handleMutate = useHandleMutate();
   const session = useSession();
 
   const [deletingSource, setDeletingSource] = useState(false);

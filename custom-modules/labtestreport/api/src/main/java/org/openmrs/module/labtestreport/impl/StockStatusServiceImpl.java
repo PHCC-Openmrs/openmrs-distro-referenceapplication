@@ -47,6 +47,8 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 			row.setRemainingQty(toDouble(r[6]));
 			row.setDaysUntilExpiry(toInteger(r[7]));
 			row.setUnitName((String) r[8]);
+			row.setBulkUnitName((String) r[9]);
+			row.setBulkFactor(toNullableDouble(r[10]));
 			rows.add(row);
 		}
 		return rows;
@@ -74,11 +76,16 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 			row.setLocationId(locationId);
 			row.setLocationName((String) r[3]);
 			row.setOnHandQty(toDouble(r[4]));
-			row.setUnitName((String) r[5]);
+			row.setExpiredQty(toDouble(r[5]));
+			row.setUnitName((String) r[6]);
+			row.setBulkUnitName((String) r[7]);
+			row.setBulkFactor(toNullableDouble(r[8]));
 
 			double totalConsumed = consumedByKey.getOrDefault(rowKey(stockItemId, locationId), 0d);
 			double avgDailyConsumption = totalConsumed / windowDays;
 			row.setAvgDailyConsumption(avgDailyConsumption);
+			// onHandQty already excludes expired batches, so this forecasts against stock the
+			// location can actually dispense rather than against units awaiting disposal.
 			row.setDaysRemaining(avgDailyConsumption > 0 ? row.getOnHandQty() / avgDailyConsumption : null);
 			rows.add(row);
 		}
@@ -104,7 +111,10 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 			row.setRuleName((String) r[4]);
 			row.setReorderLevel(toDouble(r[5]));
 			row.setOnHandQty(toDouble(r[6]));
-			row.setUnitName((String) r[7]);
+			row.setExpiredQty(toDouble(r[7]));
+			row.setUnitName((String) r[8]);
+			row.setBulkUnitName((String) r[9]);
+			row.setBulkFactor(toNullableDouble(r[10]));
 			rows.add(row);
 		}
 		return rows;
@@ -148,5 +158,14 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 
 	private static double toDouble(Object value) {
 		return value == null ? 0d : ((Number) value).doubleValue();
+	}
+
+	/**
+	 * Unlike {@link #toDouble(Object)}, keeps null as null: a missing bulk factor means the item has
+	 * no bulk pack configured, which the consumer must be able to tell from a factor it can divide
+	 * by. Collapsing it to 0 would invite a divide-by-zero downstream.
+	 */
+	private static Double toNullableDouble(Object value) {
+		return value == null ? null : ((Number) value).doubleValue();
 	}
 }

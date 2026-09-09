@@ -4803,4 +4803,25 @@ CREATE TRIGGER stockmgmt_location_after_delete
       <where>uuid = '5b341a26-28a2-11ed-bdcb-507b9dea1806'</where>
     </delete>
   </changeSet>
+  <changeSet author="claude" id="stockmanagement-2026-09-09-1000">
+    <preConditions onFail="MARK_RAN">
+      <sqlCheck expectedResult="1">
+        SELECT COUNT(*) FROM stockmgmt_stock_operation_type WHERE operation_type = 'transferout'
+      </sqlCheck>
+    </preConditions>
+    <comment>
+      Transfer Out moves stock between internal locations here, so its destination is a Location,
+      not an external stock source. The stockmanagement-1758855877841-248 changeset above seeds
+      destination_type as 'Other', and because that changeset's precondition skips the insert on
+      any database where the transferout row already exists, editing the seed would not correct a
+      running system - hence a separate update. Without this the destination of a transfer is an
+      external source rather than a location, so the receiving location is never credited and
+      location-to-location transfers stop working; the live database only has 'Location' because
+      it was set by hand, which a rebuilt database would silently lose.
+    </comment>
+    <update tableName="stockmgmt_stock_operation_type">
+      <column name="destination_type">Location</column>
+      <where>operation_type = 'transferout'</where>
+    </update>
+  </changeSet>
 </databaseChangeLog>

@@ -4,7 +4,7 @@ import { IconButton, InlineLoading } from '@carbon/react';
 import { TrashCan } from '@carbon/react/icons';
 import { restBaseUrl, showModal, showSnackbar, useSession, userHasAccess } from '@openmrs/esm-framework';
 import { deleteStockItems } from './stock-items.resource';
-import { handleMutate } from '../utils';
+import { useHandleMutate } from '../utils';
 
 interface DeleteStockItemActionButtonProps {
   uuid: string | null | undefined;
@@ -19,6 +19,7 @@ const DeleteStockItemActionButton: React.FC<DeleteStockItemActionButtonProps> = 
   quantityOnHand,
 }) => {
   const { t } = useTranslation();
+  const handleMutate = useHandleMutate();
   const session = useSession();
   const [isDeleting, setIsDeleting] = useState(false);
 

@@ -62,10 +62,14 @@ public class StockFlowServiceImpl extends BaseOpenmrsService implements StockFlo
 			row.setQuantity(toDouble(r[3]));
 			row.setUnitName((String) r[4]);
 			row.setExternalReference((String) r[5]);
-			// Only the Wastage drilldown query (queries/stock_wastage_drilldown.sql) selects a 7th
-			// column for the disposal reason - Consumption/Distribution rows stop at 6 columns.
-			if (r.length > 6) {
-				row.setReasonName((String) r[6]);
+			row.setBulkUnitName((String) r[6]);
+			row.setBulkFactor(toNullableDouble(r[7]));
+			// Only the Wastage drilldown query (queries/stock_wastage_drilldown.sql) selects a 9th
+			// column for the disposal reason - Consumption/Distribution rows stop at 8 columns. The
+			// reason deliberately stays last there: the bulk columns were inserted ahead of it in
+			// all three queries so this length test still identifies the same column.
+			if (r.length > 8) {
+				row.setReasonName((String) r[8]);
 			}
 			rows.add(row);
 		}
@@ -84,6 +88,8 @@ public class StockFlowServiceImpl extends BaseOpenmrsService implements StockFlo
 			row.setUnitName((String) r[5]);
 			row.setSourceLocationName((String) r[6]);
 			row.setRemainingQty(toDouble(r[7]));
+			row.setBulkUnitName((String) r[8]);
+			row.setBulkFactor(toNullableDouble(r[9]));
 			rows.add(row);
 		}
 		return rows;
@@ -95,5 +101,14 @@ public class StockFlowServiceImpl extends BaseOpenmrsService implements StockFlo
 
 	private static double toDouble(Object value) {
 		return value == null ? 0d : ((Number) value).doubleValue();
+	}
+
+	/**
+	 * Unlike {@link #toDouble(Object)}, keeps null as null: a missing bulk factor means the item has
+	 * no bulk pack configured, which the consumer must be able to tell from a factor it can divide
+	 * by. Collapsing it to 0 would invite a divide-by-zero downstream.
+	 */
+	private static Double toNullableDouble(Object value) {
+		return value == null ? null : ((Number) value).doubleValue();
 	}
 }

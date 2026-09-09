@@ -1,42 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
+import useSWR from 'swr';
+import { restBaseUrl } from '@openmrs/esm-framework';
 import { fetchAllPages } from './fetchAllPages';
-import { type ResourceFilterCriteria } from './api';
+import { type ResourceFilterCriteria, toQueryParams } from './api';
+
+// Stable reference so consumers that key effects/memos off `items` don't see a new
+// array on every render while the first request is still in flight.
+const noItems = [];
 
 /**
  * React hook wrapper around {@link fetchAllPages} - loads the complete result set
  * of a paged REST resource (not just the server's first page) and re-fetches
  * whenever the filter changes.
+ *
+ * Backed by SWR, and keyed on the same `${restBaseUrl}${resourcePath}?...` string the
+ * underlying requests use, so that the app's prefix-based cache invalidation (see
+ * `useHandleMutate`) refreshes these lists after a create/update/delete instead of
+ * leaving them stale until the component remounts.
  */
 export function useFetchAllPages<T, F extends ResourceFilterCriteria>(resourcePath: string, filter: F) {
-  const [items, setItems] = useState<T[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | undefined>();
-  const requestId = useRef(0);
-  const filterKey = JSON.stringify(filter);
+  const apiUrl = `${restBaseUrl}${resourcePath}${toQueryParams(filter)}`;
 
-  useEffect(() => {
-    const thisRequest = ++requestId.current;
-    const controller = new AbortController();
-    setIsLoading(true);
-    setError(undefined);
+  const { data, error, isLoading } = useSWR<T[], Error>(apiUrl, () => fetchAllPages<T, F>(resourcePath, filter));
 
-    fetchAllPages<T, F>(resourcePath, filter, controller.signal)
-      .then((all) => {
-        if (thisRequest === requestId.current) {
-          setItems(all);
-          setIsLoading(false);
-        }
-      })
-      .catch((e: Error) => {
-        if (thisRequest === requestId.current && e?.name !== 'AbortError') {
-          setError(e);
-          setIsLoading(false);
-        }
-      });
-
-    return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resourcePath, filterKey]);
-
-  return { items, isLoading, error };
+  return { items: (data ?? noItems) as T[], isLoading, error };
 }

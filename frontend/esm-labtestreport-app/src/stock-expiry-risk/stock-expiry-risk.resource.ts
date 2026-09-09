@@ -11,6 +11,11 @@ export interface StockBatchExpiryRow {
   remainingQty: number;
   daysUntilExpiry: number;
   unitName: string | null;
+  // The item's bulk/procurement pack and how many dispensing units it holds, so a quantity can also
+  // be read as whole packs - see reports-shell/format-quantity. Both null when the item has no bulk
+  // pack configured.
+  bulkUnitName: string | null;
+  bulkFactor: number | null;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {

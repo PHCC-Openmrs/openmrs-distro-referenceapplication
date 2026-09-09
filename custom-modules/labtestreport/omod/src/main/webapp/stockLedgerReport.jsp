@@ -33,7 +33,7 @@
 		<tr>
 			<c:forEach items="${items}" var="item">
 				<th><spring:message code="labtestreport.stockLedger.actual" /></th>
-				<th><spring:message code="labtestreport.stockLedger.incoming" /></th>
+				<th><spring:message code="labtestreport.stockLedger.inflow" /></th>
 				<th><spring:message code="labtestreport.stockLedger.outgoing" /></th>
 				<th><spring:message code="labtestreport.stockLedger.remaining" /></th>
 				<th><spring:message code="labtestreport.stockLedger.purchaseOrderNo" /></th>
@@ -48,7 +48,7 @@
 				<td class="ledgerDate"><fmt:formatDate value="${block.date}" pattern="yyyy-MM-dd" /></td>
 				<c:forEach items="${block.cells}" var="cell">
 					<td>${cell.actualQty}</td>
-					<td>${cell.incomingQty}</td>
+					<td>${cell.inflowQty}</td>
 					<td>${cell.outgoingQty}</td>
 					<td>${cell.remainingQty}</td>
 					<td>${cell.purchaseOrderNo}</td>

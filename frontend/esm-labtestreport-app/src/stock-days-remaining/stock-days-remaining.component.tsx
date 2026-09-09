@@ -7,7 +7,7 @@ import KpiTiles from '../reports-shell/kpi-tiles.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
 import type { ExportSheet } from '../reports-shell/export-utils';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
-import { formatQuantity } from '../reports-shell/format-quantity';
+import { bulkExportCells, formatQuantity } from '../reports-shell/format-quantity';
 import { filterByItemAndSearch, distinctItemNames } from '../reports-shell/row-filter';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
@@ -55,6 +55,7 @@ export default function StockDaysRemainingReport() {
       item: (row: StockDaysRemainingRow) => row.itemName,
       location: (row: StockDaysRemainingRow) => row.locationName ?? '',
       onHandQty: (row: StockDaysRemainingRow) => row.onHandQty,
+      expiredQty: (row: StockDaysRemainingRow) => row.expiredQty,
       avgDailyConsumption: (row: StockDaysRemainingRow) => row.avgDailyConsumption,
       daysRemaining: (row: StockDaysRemainingRow) => row.daysRemaining,
     }),
@@ -84,19 +85,26 @@ export default function StockDaysRemainingReport() {
       headers: [
         t('item', 'Item'),
         ...(showLocationColumn ? [t('location', 'Location')] : []),
-        t('onHandQty', 'On-Hand Qty'),
+        t('usableQty', 'Usable Qty'),
+        t('expiredQty', 'Expired Qty'),
         t('avgDailyConsumption', 'Avg Daily Consumption'),
         t('daysRemaining', 'Days Remaining'),
         t('unit', 'Unit'),
+        t('bulkUnit', 'Bulk Unit'),
+        t('unitsPerBulk', 'Units per Bulk'),
       ],
       rows: sortedRows.map((row) => {
         const base = showLocationColumn ? [row.itemName, row.locationName ?? ''] : [row.itemName];
         return [
           ...base,
           row.onHandQty,
+          row.expiredQty,
           Number(row.avgDailyConsumption.toFixed(2)),
           row.daysRemaining === null ? '' : Number(row.daysRemaining.toFixed(1)),
           row.unitName ?? '',
+          // The pack is carried as unit + factor rather than as a pre-divided figure, so the
+          // quantity columns above stay numeric and summable in the spreadsheet.
+          ...bulkExportCells(row.bulkUnitName, row.bulkFactor),
         ];
       }),
     }),
@@ -228,8 +236,15 @@ export default function StockDaysRemainingReport() {
                     />
                   )}
                   <SortableHeader
-                    label={t('onHandQty', 'On-Hand Qty')}
+                    label={t('usableQty', 'Usable Qty')}
                     sortKey="onHandQty"
+                    activeSortKey={sortKey}
+                    direction={direction}
+                    onSort={toggleSort}
+                  />
+                  <SortableHeader
+                    label={t('expiredQty', 'Expired Qty')}
+                    sortKey="expiredQty"
                     activeSortKey={sortKey}
                     direction={direction}
                     onSort={toggleSort}
@@ -255,7 +270,18 @@ export default function StockDaysRemainingReport() {
                   <tr key={`${row.stockItemId}-${row.locationId}`}>
                     <td className="left">{row.itemName}</td>
                     {showLocationColumn && <td className="left">{row.locationName ?? '—'}</td>}
-                    <td>{formatQuantity(row.onHandQty, row.unitName)}</td>
+                    <td>{formatQuantity(row.onHandQty, row.unitName, row.bulkUnitName, row.bulkFactor)}</td>
+                    <td>
+                      {row.expiredQty > 0 ? (
+                        <Tag type="magenta" size="sm">
+                          {formatQuantity(row.expiredQty, row.unitName, row.bulkUnitName, row.bulkFactor)}
+                        </Tag>
+                      ) : (
+                        formatQuantity(0, row.unitName, row.bulkUnitName, row.bulkFactor)
+                      )}
+                    </td>
+                    {/* Left in dispensing units deliberately: this is a rate, and a fifth of a
+                        Box per day is a less useful reading than 6 Tablet per day. */}
                     <td>{formatQuantity(Number(row.avgDailyConsumption.toFixed(2)), row.unitName)}</td>
                     <td>
                       {row.daysRemaining === null ? (
@@ -274,7 +300,7 @@ export default function StockDaysRemainingReport() {
                 ))}
                 {sortedRows.length === 0 && (
                   <tr>
-                    <td colSpan={showLocationColumn ? 5 : 4} className={pageStyles.emptyState}>
+                    <td colSpan={showLocationColumn ? 6 : 5} className={pageStyles.emptyState}>
                       {t('noDataForSelection', 'No data found for this selection.')}
                     </td>
                   </tr>

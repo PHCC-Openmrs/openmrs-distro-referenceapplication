@@ -6,7 +6,7 @@ import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import KpiTiles from '../reports-shell/kpi-tiles.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
 import type { ExportSheet } from '../reports-shell/export-utils';
-import { formatQuantity } from '../reports-shell/format-quantity';
+import { bulkExportCells, formatQuantity } from '../reports-shell/format-quantity';
 import { filterByItemAndSearch, distinctItemNames } from '../reports-shell/row-filter';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
@@ -17,6 +17,9 @@ const STOCK_LOCATION_TAG = 'Login Location';
 
 type ReorderStatus = 'outOfStock' | 'lowStock';
 
+// onHandQty is usable stock, so an item holding nothing but expired batches reads as out of stock -
+// which is what it is, since the stock module will not release an expired batch to anything but a
+// Disposal.
 function reorderStatus(onHandQty: number): ReorderStatus {
   return onHandQty <= 0 ? 'outOfStock' : 'lowStock';
 }
@@ -55,6 +58,7 @@ export default function StockReorderReport() {
       location: (row: StockReorderRow) => row.locationName ?? '',
       reorderLevel: (row: StockReorderRow) => row.reorderLevel,
       onHandQty: (row: StockReorderRow) => row.onHandQty,
+      expiredQty: (row: StockReorderRow) => row.expiredQty,
       deficit: (row: StockReorderRow) => row.reorderLevel - row.onHandQty,
     }),
     [],
@@ -68,13 +72,26 @@ export default function StockReorderReport() {
         t('item', 'Item'),
         ...(showLocationColumn ? [t('location', 'Location')] : []),
         t('reorderLevel', 'Reorder Level'),
-        t('onHandQty', 'On-Hand Qty'),
+        t('usableQty', 'Usable Qty'),
+        t('expiredQty', 'Expired Qty'),
         t('deficit', 'Deficit'),
         t('unit', 'Unit'),
+        t('bulkUnit', 'Bulk Unit'),
+        t('unitsPerBulk', 'Units per Bulk'),
       ],
       rows: rows.map((row) => {
         const base = showLocationColumn ? [row.itemName, row.locationName ?? ''] : [row.itemName];
-        return [...base, row.reorderLevel, row.onHandQty, row.reorderLevel - row.onHandQty, row.unitName ?? ''];
+        return [
+          ...base,
+          row.reorderLevel,
+          row.onHandQty,
+          row.expiredQty,
+          row.reorderLevel - row.onHandQty,
+          row.unitName ?? '',
+          // The pack is carried as unit + factor rather than as a pre-divided figure, so the
+          // quantity columns above stay numeric and summable in the spreadsheet.
+          ...bulkExportCells(row.bulkUnitName, row.bulkFactor),
+        ];
       }),
     }),
     [t, rows, showLocationColumn],
@@ -184,8 +201,15 @@ export default function StockReorderReport() {
                     onSort={toggleSort}
                   />
                   <SortableHeader
-                    label={t('onHandQty', 'On-Hand Qty')}
+                    label={t('usableQty', 'Usable Qty')}
                     sortKey="onHandQty"
+                    activeSortKey={sortKey}
+                    direction={direction}
+                    onSort={toggleSort}
+                  />
+                  <SortableHeader
+                    label={t('expiredQty', 'Expired Qty')}
+                    sortKey="expiredQty"
                     activeSortKey={sortKey}
                     direction={direction}
                     onSort={toggleSort}
@@ -205,9 +229,25 @@ export default function StockReorderReport() {
                   <tr key={`${row.stockItemId}-${row.locationId}`}>
                     <td className="left">{row.itemName}</td>
                     {showLocationColumn && <td className="left">{row.locationName ?? '—'}</td>}
-                    <td>{formatQuantity(row.reorderLevel, row.unitName)}</td>
-                    <td>{formatQuantity(row.onHandQty, row.unitName)}</td>
-                    <td>{formatQuantity(row.reorderLevel - row.onHandQty, row.unitName)}</td>
+                    <td>{formatQuantity(row.reorderLevel, row.unitName, row.bulkUnitName, row.bulkFactor)}</td>
+                    <td>{formatQuantity(row.onHandQty, row.unitName, row.bulkUnitName, row.bulkFactor)}</td>
+                    <td>
+                      {row.expiredQty > 0 ? (
+                        <Tag type="magenta" size="sm">
+                          {formatQuantity(row.expiredQty, row.unitName, row.bulkUnitName, row.bulkFactor)}
+                        </Tag>
+                      ) : (
+                        formatQuantity(0, row.unitName, row.bulkUnitName, row.bulkFactor)
+                      )}
+                    </td>
+                    <td>
+                      {formatQuantity(
+                        row.reorderLevel - row.onHandQty,
+                        row.unitName,
+                        row.bulkUnitName,
+                        row.bulkFactor,
+                      )}
+                    </td>
                     <td className="left">
                       <Tag type={reorderStatus(row.onHandQty) === 'outOfStock' ? 'red' : 'magenta'} size="sm">
                         {reorderStatus(row.onHandQty) === 'outOfStock'
@@ -219,7 +259,7 @@ export default function StockReorderReport() {
                 ))}
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={showLocationColumn ? 6 : 5} className={pageStyles.emptyState}>
+                    <td colSpan={showLocationColumn ? 7 : 6} className={pageStyles.emptyState}>
                       {t(
                         'noItemsBelowReorderLevel',
                         'No items are currently below their reorder level for this selection.',
