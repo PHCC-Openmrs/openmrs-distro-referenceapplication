@@ -2,6 +2,7 @@ SELECT
   p.person_id                      AS patientId,
   p.uuid                           AS patientUuid,
   COALESCE(pn.given_name, '')      AS givenName,
+  COALESCE(pn.middle_name, '')     AS middleName,
   COALESCE(pn.family_name, '')     AS familyName,
   e.encounter_id                   AS encounterId,
   e.encounter_datetime             AS encounterDatetime,
@@ -83,4 +84,5 @@ LEFT JOIN obs treatingDoctorObs ON treatingDoctorObs.encounter_id = e.encounter_
 WHERE e.voided = 0
   AND (:startDate IS NULL OR e.encounter_datetime >= :startDate)
   AND (:endDate IS NULL OR e.encounter_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
+  AND (:locationUuid IS NULL OR l.uuid = :locationUuid)
 ORDER BY e.encounter_datetime DESC

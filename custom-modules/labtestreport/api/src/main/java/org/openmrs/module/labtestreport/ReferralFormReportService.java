@@ -12,7 +12,8 @@ public interface ReferralFormReportService extends OpenmrsService {
 	 *            bound
 	 * @param endDate only include Referral Form submissions through the end of this date (inclusive), or null for no
 	 *            upper bound
+	 * @param locationUuid only include submissions at this location, or null for no location filter
 	 * @return one row per (non-voided) Referral Form encounter, most recent first
 	 */
-	List<ReferralFormRow> getReferralFormReport(Date startDate, Date endDate);
+	List<ReferralFormRow> getReferralFormReport(Date startDate, Date endDate, String locationUuid);
 }
