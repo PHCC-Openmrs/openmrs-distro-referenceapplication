@@ -23,12 +23,29 @@ LEFT JOIN person_attribute pa_phone
   ON pa_phone.person_id = p.person_id AND pa_phone.voided = 0
   AND pa_phone.person_attribute_type_id = (SELECT person_attribute_type_id FROM person_attribute_type WHERE name = 'Phone Number')
 LEFT JOIN location l ON l.location_id = v.location_id
--- The program active (enrolled, not yet completed) at the time this particular visit started --
--- one of our four service-type programs, if any -- classifies the visit as PH/SRH/Nutrition/Pediatric.
+-- Every service the patient was opted into for this particular visit -- one of our four
+-- service-type programs, if any -- classifies the visit as PH/SRH/Nutrition/Pediatric.
+-- Matched by overlap with the visit's own window rather than by "enrolled before the visit
+-- started": a service can be added part-way through a visit (from Care Services in the chart, or
+-- as a second service on an already-open visit), which enrolls the patient at that later moment.
+-- Requiring date_enrolled <= date_started dropped exactly those services from the report even
+-- though the patient was opted into them for the visit.
+-- NOTE: this join is duplicated (rather than shared) in patient_encounter_details.sql, which
+-- needs the same per-visit service resolution at visit grain instead of aggregated per patient.
+-- Keep the two in sync -- see SqlResources: these query files are loaded as plain text, with no
+-- include mechanism to factor the join out into one place.
 LEFT JOIN patient_program pp
   ON pp.patient_id = pt.patient_id AND pp.voided = 0
-  AND pp.date_enrolled <= v.date_started
+  -- Bounded by :endDate (falling back to NOW() only when the report itself is unbounded) rather
+  -- than always NOW(), so an open visit's still-running services don't shift between two runs of
+  -- the same bounded report taken minutes apart.
+  AND pp.date_enrolled <= COALESCE(v.date_stopped, :endDate, NOW())
   AND (pp.date_completed IS NULL OR pp.date_completed >= v.date_started)
+  -- Keep the service list inside the report period too. The visit filter below already does this
+  -- for closed visits, but a visit that starts inside the period and is still running picks up
+  -- episodes opened after the period ended without this guard.
+  AND (:startDate IS NULL OR pp.date_completed IS NULL OR pp.date_completed >= :startDate)
+  AND (:endDate IS NULL OR pp.date_enrolled < DATE_ADD(:endDate, INTERVAL 1 DAY))
 LEFT JOIN program pr
   ON pr.program_id = pp.program_id
   AND pr.uuid IN (

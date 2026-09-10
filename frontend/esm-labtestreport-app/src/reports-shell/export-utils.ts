@@ -79,57 +79,6 @@ export function buildKpiExportSheet(items: Array<KpiTileDatum>, t: Translate): E
   };
 }
 
-export interface VisitDetailForExport {
-  patientId: number;
-  givenName: string;
-  familyName: string;
-  visitDate: string;
-  locationName: string;
-  providerName: string;
-}
-
-/**
- * Wide-format detail sheet: one row per patient, with a Date/Location/Provider column triplet
- * for each visit, padded with blanks up to the most visits any one patient has.
- */
-export function buildVisitDetailExportSheet(details: Array<VisitDetailForExport>, t: Translate): ExportSheet {
-  const byPatient = new Map<number, Array<VisitDetailForExport>>();
-  for (const detail of details) {
-    const existing = byPatient.get(detail.patientId);
-    if (existing) {
-      existing.push(detail);
-    } else {
-      byPatient.set(detail.patientId, [detail]);
-    }
-  }
-
-  const maxVisits = Math.max(0, ...Array.from(byPatient.values(), (visits) => visits.length));
-
-  const headers = [t('givenName', 'Given Name'), t('familyName', 'Family Name')];
-  for (let i = 1; i <= maxVisits; i++) {
-    headers.push(
-      t('visitNDate', 'Visit {{n}} Date', { n: i }),
-      t('visitNLocation', 'Visit {{n}} Location', { n: i }),
-      t('visitNProvider', 'Visit {{n}} Provider', { n: i }),
-    );
-  }
-
-  const rows = Array.from(byPatient.values()).map((visits) => {
-    const row: Array<string | number> = [visits[0].givenName, visits[0].familyName];
-    for (let i = 0; i < maxVisits; i++) {
-      const visit = visits[i];
-      row.push(visit?.visitDate ?? '', visit?.locationName ?? '', visit?.providerName ?? '');
-    }
-    return row;
-  });
-
-  return {
-    name: t('visitDetails', 'Visit Details'),
-    headers,
-    rows,
-  };
-}
-
 export function buildComparisonExportSheet(
   rows: Array<ComparisonSummaryRow>,
   rowLabel: string,

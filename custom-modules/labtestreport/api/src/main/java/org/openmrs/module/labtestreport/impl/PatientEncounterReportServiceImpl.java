@@ -54,6 +54,7 @@ public class PatientEncounterReportServiceImpl extends BaseOpenmrsService implem
 			row.setVisitDate((Date) r[5]);
 			row.setLocationName((String) r[6]);
 			row.setProviderName((String) r[7]);
+			row.setServiceType((String) r[8]);
 			rows.add(row);
 		}
 		return rows;

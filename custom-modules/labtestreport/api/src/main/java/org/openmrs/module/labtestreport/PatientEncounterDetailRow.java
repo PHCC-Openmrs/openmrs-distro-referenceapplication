@@ -3,9 +3,9 @@ package org.openmrs.module.labtestreport;
 import java.util.Date;
 
 /**
- * One row per (non-voided) visit backing the patient visit summary report's detail export sheet:
- * which patient, when the visit happened, and where/by whom (providers aggregated across all of
- * the visit's encounters).
+ * One row per (non-voided) visit backing the patient visit summary report's visit-level view:
+ * which patient, when the visit happened, where/by whom (providers aggregated across all of the
+ * visit's encounters), and which of the four service-type programs (if any) it belongs to.
  */
 public class PatientEncounterDetailRow {
 
@@ -24,6 +24,8 @@ public class PatientEncounterDetailRow {
 	private String locationName;
 
 	private String providerName;
+
+	private String serviceType;
 
 	public Integer getPatientId() {
 		return patientId;
@@ -87,5 +89,13 @@ public class PatientEncounterDetailRow {
 
 	public void setProviderName(String providerName) {
 		this.providerName = providerName;
+	}
+
+	public String getServiceType() {
+		return serviceType;
+	}
+
+	public void setServiceType(String serviceType) {
+		this.serviceType = serviceType;
 	}
 }

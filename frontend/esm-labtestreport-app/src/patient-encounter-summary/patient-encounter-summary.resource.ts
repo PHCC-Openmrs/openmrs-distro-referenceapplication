@@ -40,6 +40,7 @@ export interface PatientEncounterDetailRow {
   visitDate: string;
   locationName: string;
   providerName: string;
+  serviceType: string;
 }
 
 export function usePatientEncounterDetails(startDate?: string, endDate?: string, enabled: boolean = true) {

@@ -1,0 +1,2 @@
+Uuid,Void/Retire,Entity name,Name,Description,Min occurs,Max occurs,Datatype classname,Datatype config,Preferred handler classname,Handler config
+487b03fe-8034-4e95-ab67-bac9f2d7a27b,,Visit,Service,The care service (program) this visit was for. Value is a Program UUID.,0,1,org.openmrs.customdatatype.datatype.FreeTextDatatype,,,
