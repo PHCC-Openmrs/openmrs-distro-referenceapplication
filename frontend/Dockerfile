@@ -115,6 +115,7 @@ RUN git clone --branch ${PATIENT_CHART_REF} --depth 1 ${PATIENT_CHART_REPO} open
     yarn workspace @openmrs/esm-patient-allergies-app run build && \
     yarn workspace @openmrs/esm-patient-notes-app run build && \
     yarn workspace @openmrs/esm-patient-immunizations-app run build && \
+    yarn workspace @openmrs/esm-patient-nursing-app run build && \
     (cd packages/esm-patient-chart-app && npm pack --pack-destination /app) && \
     (cd packages/esm-patient-programs-app && npm pack --pack-destination /app) && \
     (cd packages/esm-patient-medications-app && npm pack --pack-destination /app) && \
@@ -123,7 +124,8 @@ RUN git clone --branch ${PATIENT_CHART_REF} --depth 1 ${PATIENT_CHART_REPO} open
     (cd packages/esm-patient-vitals-app && npm pack --pack-destination /app) && \
     (cd packages/esm-patient-allergies-app && npm pack --pack-destination /app) && \
     (cd packages/esm-patient-notes-app && npm pack --pack-destination /app) && \
-    (cd packages/esm-patient-immunizations-app && npm pack --pack-destination /app)
+    (cd packages/esm-patient-immunizations-app && npm pack --pack-destination /app) && \
+    (cd packages/esm-patient-nursing-app && npm pack --pack-destination /app)
 
 # Build @openmrs/esm-dispensing-app from our fork instead of the published "next"
 # package, so the auto-complete-on-dispense and dispensed-quantity fixes ship.
