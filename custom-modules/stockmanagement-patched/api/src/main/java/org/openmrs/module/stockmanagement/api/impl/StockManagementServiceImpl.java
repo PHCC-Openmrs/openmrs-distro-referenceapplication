@@ -1948,6 +1948,17 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                                 messageSourceService);
                     }
                 }
+            } else if (action == StockOperationAction.Action.APPROVE
+                    || action == StockOperationAction.Action.COMPLETE) {
+                // These types leave the source balance untouched until now, so the check made at
+                // submission time can be stale: other operations on the same batch may have been
+                // approved in between.
+                if (stockOperationType.appliesStockAtCompletion() && !stockOperationType.isQuantityOptional()
+                        && stockOperationType.shouldVerifyNegativeStockAmountsAtSource()
+                        && !GlobalProperties.getNegativeStockBalanceAllowed() && stockOperation.getSource() != null
+                        && stockOperation.getSource().getLocation() != null) {
+                    validateStockInventoryAfterOperation(stockOperation, stockOperationType, messageSourceService);
+                }
             }
 
             processStockOperationAction(action, reason, stockOperation, stockOperationType, messageSourceService,

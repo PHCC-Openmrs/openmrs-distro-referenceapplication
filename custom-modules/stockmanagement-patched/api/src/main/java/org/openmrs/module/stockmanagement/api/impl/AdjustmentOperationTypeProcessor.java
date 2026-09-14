@@ -67,9 +67,25 @@ public class AdjustmentOperationTypeProcessor extends StockOperationTypeProcesso
 	}
 	
 	@Override
+	public boolean appliesStockAtCompletion() {
+		return true;
+	}
+
+	@Override
 	public void onPending(final StockOperation operation) {
-		executeCopyReserved(operation, new Action2<ReservedTransaction, StockItemTransaction>() {
-			
+		// Item stock is left untouched until the operation is approved/completed.
+	}
+
+	@Override
+	public void onCancelled(final StockOperation operation) {
+		// Nothing was applied while the operation was pending, so there is nothing to reverse.
+		clearReservedTransactions(operation);
+	}
+
+	@Override
+	public void onCompleted(final StockOperation operation) {
+		executeCopyReservedAndClear(operation, new Action2<ReservedTransaction, StockItemTransaction>() {
+
 			@Override
 			public void apply(ReservedTransaction reserved, StockItemTransaction tx) {
 				tx.setParty(operation.getSource());
@@ -78,29 +94,5 @@ public class AdjustmentOperationTypeProcessor extends StockOperationTypeProcesso
 				}
 			}
 		});
-	}
-	
-	@Override
-	public void onCancelled(final StockOperation operation) {
-		executeCopyReservedAndClear(operation, new Action2<ReservedTransaction, StockItemTransaction>() {
-			
-			@Override
-			public void apply(ReservedTransaction reserved, StockItemTransaction tx) {
-				tx.setParty(operation.getSource());
-				
-				// Undo the previously applied transaction by setting
-				// the quantity to the opposite of the pending
-				// transaction
-				if (!negateAppliedQuantity()) {
-					tx.setQuantity(tx.getQuantity().multiply(BigDecimal.valueOf(-1)));
-				}
-			}
-		});
-	}
-	
-	@Override
-	public void onCompleted(StockOperation operation) {
-		// Clear out the transactions for the operation
-		clearReservedTransactions(operation);
 	}
 }

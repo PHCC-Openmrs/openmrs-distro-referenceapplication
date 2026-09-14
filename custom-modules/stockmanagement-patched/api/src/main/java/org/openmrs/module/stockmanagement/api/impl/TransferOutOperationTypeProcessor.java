@@ -47,9 +47,26 @@ public class TransferOutOperationTypeProcessor extends StockOperationTypeProcess
 	}
 	
 	@Override
+	public boolean appliesStockAtCompletion() {
+		return true;
+	}
+
+	@Override
 	public void onPending(final StockOperation operation) {
+		// Item stock is left untouched until the operation is approved/completed.
+	}
+
+	@Override
+	public void onCancelled(final StockOperation operation) {
+		// Nothing was applied while the operation was pending, so there is nothing to reverse.
+		clearReservedTransactions(operation);
+	}
+
+	@Override
+	public void onCompleted(final StockOperation operation) {
+		// Remove the item stock from the source party
 		executeCopyReserved(operation, new Action2<ReservedTransaction, StockItemTransaction>() {
-			
+
 			@Override
 			public void apply(ReservedTransaction reserved, StockItemTransaction tx) {
 				tx.setParty(operation.getSource());
@@ -58,24 +75,10 @@ public class TransferOutOperationTypeProcessor extends StockOperationTypeProcess
 				tx.setQuantity(getQuantityToApplyAtSource(tx.getQuantity()));
 			}
 		});
-	}
-	
-	@Override
-	public void onCancelled(final StockOperation operation) {
-		executeCopyReservedAndClear(operation, new Action2<ReservedTransaction, StockItemTransaction>() {
-			
-			@Override
-			public void apply(ReservedTransaction reserved, StockItemTransaction tx) {
-				tx.setParty(operation.getSource());
-			}
-		});
-	}
-	
-	@Override
-	public void onCompleted(StockOperation operation) {
+
 		// Add the item stock to the destination party
 		executeCopyReservedAndClear(operation, new Action2<ReservedTransaction, StockItemTransaction>() {
-			
+
 			@Override
 			public void apply(ReservedTransaction reserved, StockItemTransaction tx) {
 				tx.setParty(operation.getDestination());
