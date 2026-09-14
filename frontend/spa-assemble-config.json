@@ -30,6 +30,7 @@
     "@openmrs/esm-patient-lists-app": "12.3.4",
     "@openmrs/esm-patient-medications-app": "file:/app/openmrs-esm-patient-medications-app-12.3.4.tgz",
     "@openmrs/esm-patient-notes-app": "file:/app/openmrs-esm-patient-notes-app-12.3.4.tgz",
+    "@openmrs/esm-patient-nursing-app": "file:/app/openmrs-esm-patient-nursing-app-12.3.4.tgz",
     "@openmrs/esm-patient-orders-app": "file:/app/openmrs-esm-patient-orders-app-12.3.4.tgz",
     "@openmrs/esm-patient-programs-app": "file:/app/openmrs-esm-patient-programs-app-12.3.4.tgz",
     "@openmrs/esm-patient-registration-app": "file:/app/openmrs-esm-patient-registration-app-11.1.0.tgz",

@@ -116,6 +116,24 @@ export default function ReportsHome() {
           ),
           route: 'ncd-patient-card-report',
         },
+        {
+          key: 'nursing-report',
+          title: t('nursingReportTitle', 'Nursing Report'),
+          description: t(
+            'nursingReportTileDesc',
+            'Every nursing record with the wound dressing, measurement and medication details recorded by the nursing team. Click a row to open that patient\'s chart.',
+          ),
+          route: 'nursing-report',
+        },
+        {
+          key: 'srh-report',
+          title: t('srhReportTitle', 'SRH Report'),
+          description: t(
+            'srhReportTileDesc',
+            'Sexual Reproductive Health records by section - Ultrasound, STI and Gynaecology, and Family Planning. Click a row to open that patient\'s chart.',
+          ),
+          route: 'srh-report',
+        },
       ],
     },
     {

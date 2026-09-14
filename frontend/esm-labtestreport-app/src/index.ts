@@ -97,6 +97,10 @@ export const ncdPatientCardReport = getAsyncLifecycle(
   options,
 );
 
+export const nursingReport = getAsyncLifecycle(() => import('./nursing-report/nursing-report.component'), options);
+
+export const srhReport = getAsyncLifecycle(() => import('./srh-report/srh-report.component'), options);
+
 export const labTestSummaryLink = getAsyncLifecycle(() => import('./lab-test-summary-link.component'), options);
 
 export const patientEncounterSummaryLink = getAsyncLifecycle(

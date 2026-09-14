@@ -1,0 +1,73 @@
+package org.openmrs.module.labtestreport.impl;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import org.openmrs.api.impl.BaseOpenmrsService;
+import org.openmrs.module.labtestreport.SrhReportRow;
+import org.openmrs.module.labtestreport.SrhReportService;
+import org.openmrs.module.labtestreport.db.SrhReportDAO;
+
+public class SrhReportServiceImpl extends BaseOpenmrsService implements SrhReportService {
+
+	private SrhReportDAO dao;
+
+	public void setDao(SrhReportDAO dao) {
+		this.dao = dao;
+	}
+
+	@Override
+	public List<SrhReportRow> getSrhReport(Date startDate, Date endDate, String locationUuid, String section) {
+		List<SrhReportRow> rows = new ArrayList<>();
+		for (Object[] r : dao.getSrhReport(startDate, endDate, locationUuid, section)) {
+			SrhReportRow row = new SrhReportRow();
+			row.setPatientId(toInteger(r[0]));
+			row.setPatientUuid((String) r[1]);
+			row.setGivenName((String) r[2]);
+			row.setMiddleName((String) r[3]);
+			row.setFamilyName((String) r[4]);
+			row.setEncounterId(toInteger(r[5]));
+			row.setEncounterDatetime((Date) r[6]);
+			row.setLocation((String) r[7]);
+			row.setAge(toInteger(r[8]));
+			row.setGender((String) r[9]);
+			row.setSection((String) r[10]);
+			row.setFetuses((String) r[11]);
+			row.setFetalHeartPulsation((String) r[12]);
+			row.setPresentation((String) r[13]);
+			row.setLieFetuses((String) r[14]);
+			row.setFetalGender((String) r[15]);
+			row.setFemurLength(toDouble(r[16]));
+			row.setCrownRumpLength(toDouble(r[17]));
+			row.setBiparietalDiameter(toDouble(r[18]));
+			row.setAbdominalCircumference(toDouble(r[19]));
+			row.setGestationalAgeWeeks(toDouble(r[20]));
+			row.setGestationalAgeDays(toDouble(r[21]));
+			row.setPlacenta((String) r[22]);
+			row.setAmnioticFluid((String) r[23]);
+			row.setExpectedDateOfDelivery((Date) r[24]);
+			row.setWeeksSinceLmp(toDouble(r[25]));
+			row.setReferrals((String) r[26]);
+			row.setUltrasoundNotes((String) r[27]);
+			row.setPncTiming((String) r[28]);
+			row.setSti((String) r[29]);
+			row.setGynaecology((String) r[30]);
+			row.setPreConceptionCare((String) r[31]);
+			row.setStiGynaecologyNotes((String) r[32]);
+			row.setFamilyPlanningVisitType((String) r[33]);
+			row.setContraceptionKind((String) r[34]);
+			row.setFamilyPlanningNotes((String) r[35]);
+			rows.add(row);
+		}
+		return rows;
+	}
+
+	private static Integer toInteger(Object value) {
+		return value == null ? null : ((Number) value).intValue();
+	}
+
+	private static Double toDouble(Object value) {
+		return value == null ? null : ((Number) value).doubleValue();
+	}
+}

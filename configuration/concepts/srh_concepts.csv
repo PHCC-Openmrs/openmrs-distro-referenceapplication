@@ -1,0 +1,26 @@
+Uuid,Void/Retire,Fully specified name:en,Short name:en,Description:en,Data class,Data type,Answers,Units,Allow decimals
+1baaf8f0-7b59-40d5-8aec-1af2436be3a4,FALSE,SRH Ultrasound Fetuses,,Number of fetuses seen on the ultrasound scan,Finding,Text,,,
+d31d549f-77f2-41fe-9463-d6f9cd5f39de,FALSE,SRH Ultrasound Fetal Heart Pulsation,,Whether fetal heart pulsation was seen on the ultrasound scan,Finding,Text,,,
+151f6ad3-83d6-4e99-8f9f-87253a569cbf,FALSE,SRH Ultrasound Presentation,,Fetal presentation seen on the ultrasound scan,Finding,Text,,,
+e5b825c6-8d33-4493-9afd-0162944e3094,FALSE,SRH Ultrasound Lie Fetuses,,Fetal lie seen on the ultrasound scan,Finding,Text,,,
+a8adc088-44db-4800-91d4-ed159666cea0,FALSE,SRH Ultrasound Fetal Gender,,Fetal gender seen on the ultrasound scan,Finding,Text,,,
+9ccb470d-4698-410c-80e8-ddf71626b9c8,FALSE,SRH Ultrasound Femur Length,,Femur length (FL) measured on the ultrasound scan,Finding,Numeric,,mm,TRUE
+1ccd71c9-7cff-4cb4-8250-f259c163a411,FALSE,SRH Ultrasound Crown Rump Length,,Crown rump length (CRL) measured on the ultrasound scan,Finding,Numeric,,mm,TRUE
+d7dd0030-62b3-4519-8e85-7d0cd65b5589,FALSE,SRH Ultrasound Biparietal Diameter,,Biparietal diameter (BPD) measured on the ultrasound scan,Finding,Numeric,,mm,TRUE
+af646e85-e5f4-4b10-8a8b-5711c3de1022,FALSE,SRH Ultrasound Abdominal Circumference,,Abdominal circumference (AC) measured on the ultrasound scan,Finding,Numeric,,mm,TRUE
+93f1d86b-6937-4fa7-8698-a405a4d31b17,FALSE,SRH Ultrasound Gestational Age Weeks,,Gestational age in completed weeks estimated from the ultrasound scan,Finding,Numeric,,weeks,FALSE
+e0765aa2-90bb-41ea-a033-6c9ccf25ab8d,FALSE,SRH Ultrasound Gestational Age Days,,Gestational age remainder in days estimated from the ultrasound scan,Finding,Numeric,,days,FALSE
+649772f8-7212-409b-bf63-fc0c20ecd80e,FALSE,SRH Ultrasound Placenta,,Free-text description of the placenta seen on the ultrasound scan,Finding,Text,,,
+6f0229ef-ddf2-452b-ae74-e42cc2d900af,FALSE,SRH Ultrasound Amniotic Fluid,,Amniotic fluid volume assessed on the ultrasound scan,Finding,Text,,,
+0983ec3a-3fdc-4398-a511-aaac695db09d,FALSE,SRH Ultrasound Notes,,Free-text notes recorded against the ultrasound scan,Finding,Text,,,
+26bcbe57-ac91-4763-a249-1e530acb237f,FALSE,SRH Ultrasound Referrals,,Service the patient was referred to following the ultrasound scan,Finding,Text,,,
+21eea22d-7aef-4238-8203-a987fbf08d35,FALSE,SRH Ultrasound Expected Date of Delivery,,"Expected date of delivery (EDD), calculated from the patient's last menstrual period as LMP + 9 months + 7 days",Finding,Date,,,
+ccb5e545-2c8e-4082-a9a0-fddc01a0f088,FALSE,SRH Ultrasound Number of Weeks Since LMP,,Completed weeks elapsed since the patient's last menstrual period on the date of the scan,Finding,Numeric,,weeks,FALSE
+9311d1f3-ec8b-41a7-9893-fe8f3071c792,FALSE,SRH Post Natal Care Timing,,How long after delivery the patient presented for post-natal care,Finding,Text,,,
+22199eac-e76a-47b5-81b3-75e969b01468,FALSE,SRH Sexually Transmitted Infection,,Whether the patient was seen for a sexually transmitted infection,Finding,Text,,,
+1d1b1ebe-fa60-4f17-8ba2-c75830944a82,FALSE,SRH Gynaecology,,Whether the patient was seen for a gynaecological complaint,Finding,Text,,,
+98018a2e-f03d-48ad-a002-a95f0e52f010,FALSE,SRH Pre Conception Care,,Whether the patient was seen for pre-conception care,Finding,Text,,,
+f0438e22-6224-4d50-8646-7b1845b122f8,FALSE,SRH STI and Gynaecology Notes,,Free-text notes recorded against the STI and gynaecology visit,Finding,Text,,,
+0ea3ad8b-1e24-461a-b421-093b078af199,FALSE,SRH Family Planning Visit Type,,Whether this is a new or a follow-up family planning visit,Finding,Text,,,
+11b4fb9c-97f1-4ca8-bfe6-63e769cee6fb,FALSE,SRH Family Planning Kind of Contraception,,Contraceptive method provided or discussed at the family planning visit,Finding,Text,,,
+b1285f61-04ac-40a2-903f-994d2e2151c9,FALSE,SRH Family Planning Notes,,Free-text notes recorded against the family planning visit,Finding,Text,,,

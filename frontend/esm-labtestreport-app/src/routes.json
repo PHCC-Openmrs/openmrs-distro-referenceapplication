@@ -111,6 +111,14 @@
     {
       "component": "ncdPatientCardReport",
       "route": "ncd-patient-card-report"
+    },
+    {
+      "component": "nursingReport",
+      "route": "nursing-report"
+    },
+    {
+      "component": "srhReport",
+      "route": "srh-report"
     }
   ]
 }
