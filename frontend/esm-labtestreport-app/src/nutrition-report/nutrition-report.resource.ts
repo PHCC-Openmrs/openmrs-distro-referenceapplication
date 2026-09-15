@@ -5,6 +5,7 @@ export interface NutritionSummaryRow {
   patientId: number;
   patientUuid: string;
   givenName: string;
+  middleName: string;
   familyName: string;
   category: string | null;
   age: number | null;

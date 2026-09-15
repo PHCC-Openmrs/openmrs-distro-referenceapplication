@@ -24,7 +24,7 @@ class NutritionReportSql {
 		}
 		String resolvedSql = baseSql.replace(HAVING_PLACEHOLDER, ageFilter);
 
-		return "SELECT givenName AS `Given Name`, familyName AS `Family Name`, category AS `Category`, "
+		return "SELECT givenName AS `Given Name`, middleName AS `Middle Name`, familyName AS `Family Name`, category AS `Category`, "
 		        + "age AS `Age`, location AS `Location`, visitDate AS `Visit Date`, "
 		        + "visitCount AS `Number of Visits`, currentMuac AS `Current MUAC`, lastMuac AS `Last MUAC`, "
 		        + "diagnosis AS `Diagnosis`, typeOfSupplement AS `Type of Supplement`, "

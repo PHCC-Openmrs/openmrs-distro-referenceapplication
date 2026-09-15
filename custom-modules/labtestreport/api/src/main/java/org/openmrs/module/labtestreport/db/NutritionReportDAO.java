@@ -17,7 +17,7 @@ public interface NutritionReportDAO {
 	 * @param endDate only consider encounters through the end of this date (inclusive), or null for no upper
 	 *            bound
 	 * @param underFive true for beneficiaries currently under 5, false for beneficiaries 5 and over
-	 * @return one row per beneficiary, each a 17-element array matching the column order of
+	 * @return one row per beneficiary, each an 18-element array matching the column order of
 	 *         queries/nutrition_summary_report.sql
 	 */
 	List<Object[]> getSummaryRows(Date startDate, Date endDate, boolean underFive) throws DAOException;

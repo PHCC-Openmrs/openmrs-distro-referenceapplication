@@ -45,7 +45,8 @@ public class ChildAbove5ReportController {
 		SimpleDateFormat dateFormat = new SimpleDateFormat(SummaryReportController.DATE_FORMAT);
 		List<NutritionReportRow> rows = new ArrayList<>();
 		for (NutritionSummaryRow r : summaryRows) {
-			String name = (r.getGivenName() + " " + r.getFamilyName()).trim();
+			String name = (r.getGivenName() + " " + r.getMiddleName() + " " + r.getFamilyName()).trim()
+			        .replaceAll(" {2,}", " ");
 			String visitDate = r.getVisitDate() == null ? "" : dateFormat.format(r.getVisitDate());
 			rows.add(new NutritionReportRow(r.getPatientUuid(), name, r.getCategory(), r.getAge(), r.getLocation(),
 			        visitDate, r.getVisitCount(), r.getCurrentMuac(), r.getLastMuac(), r.getDiagnosis(),
