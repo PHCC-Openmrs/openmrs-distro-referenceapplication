@@ -41,6 +41,7 @@ SELECT
   p.person_id AS patientId,
   p.uuid AS patientUuid,
   COALESCE(pn.given_name, '')  AS givenName,
+  COALESCE(pn.middle_name, '') AS middleName,
   COALESCE(pn.family_name, '') AS familyName,
   -- Beneficiary role (PW/BW/MH/FH) - recorded as free text in a mix of short codes and full
   -- labels ("PW" and "Pregnant Women (PW)" both occur), normalized down to the short code. Null

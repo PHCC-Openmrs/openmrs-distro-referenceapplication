@@ -106,7 +106,7 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
       return filteredRows;
     }
     return filteredRows.filter((row) =>
-      [row.givenName, row.familyName, row.nationalId, row.phoneNumber, row.location]
+      [row.givenName, row.middleName, row.familyName, row.nationalId, row.phoneNumber, row.location]
         .filter(Boolean)
         .some((field) => field!.toLowerCase().includes(term)),
     );
@@ -114,7 +114,8 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
 
   const sortAccessors = useMemo(
     () => ({
-      name: (row: NutritionSummaryRow) => `${row.familyName} ${row.givenName}`,
+      name: (row: NutritionSummaryRow) =>
+        `${row.familyName} ${row.givenName}${row.middleName ? ` ${row.middleName}` : ''}`,
       category: (row: NutritionSummaryRow) => row.category ?? '',
       age: (row: NutritionSummaryRow) => row.age,
       location: (row: NutritionSummaryRow) => row.location ?? '',
@@ -144,6 +145,7 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
       name: title,
       headers: [
         t('givenName', 'Given Name'),
+        t('middleName', 'Middle Name'),
         t('familyName', 'Family Name'),
         t('category', 'Category'),
         t('age', 'Age'),
@@ -162,6 +164,7 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
       ],
       rows: filteredRows.map((row) => [
         row.givenName,
+        row.middleName ?? '',
         row.familyName,
         row.category ?? '',
         row.age ?? '',
@@ -450,7 +453,8 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
                 {sortedRows.map((row) => (
                   <tr key={row.patientId} className={pageStyles.clickableRow} onClick={() => goToPatientChart(row.patientUuid)}>
                     <td className="left">
-                      {row.givenName} {row.familyName}
+                      {row.givenName} {row.middleName ? `${row.middleName} ` : ''}
+                      {row.familyName}
                     </td>
                     <td className="left">{row.category || '--'}</td>
                     <td>{row.age ?? '--'}</td>
