@@ -151,13 +151,19 @@ RUN git clone --branch ${LABORATORY_REF} --depth 1 ${LABORATORY_REPO} openmrs-es
     yarn build && \
     yarn pack --out /app/esm-laboratory-app.tgz
 
-# Build @openmrs/esm-login-app, @openmrs/esm-app-shell, AND @openmrs/esm-framework
-# (which re-exports esm-offline) from our fork instead of the published "next"
-# packages. Our fork's main removes the "Built with OpenMRS" footer, clears the
-# service worker cache on logout, and fixes stale-content caching bugs in the
-# app shell's service worker. esm-app-shell and esm-framework are pinned CLI
-# dependencies (not entries in spa-assemble-config.json), so their builds are
-# only packed here -- they get spliced into node_modules below.
+# Build @openmrs/esm-login-app, @openmrs/esm-primary-navigation-app,
+# @openmrs/esm-app-shell, AND @openmrs/esm-framework (which re-exports esm-offline)
+# from our fork instead of the published "next" packages. Our fork's main removes
+# the "Built with OpenMRS" footer, clears the service worker cache on logout, fixes
+# stale-content caching bugs in the app shell's service worker, and -- in
+# primary-navigation -- carries the CARE navbar logo and the guard that stops an
+# unusable entry in the locale.allowed.list global property from crashing the user
+# menu. esm-app-shell and esm-framework are pinned CLI dependencies (not entries in
+# spa-assemble-config.json), so their builds are only packed here -- they get
+# spliced into node_modules below. esm-login-app and esm-primary-navigation-app ARE
+# assemble-config entries, so spa-assemble-config.json must point each at its own
+# tarball or the published version is served instead and none of this has any
+# effect on what's actually served.
 COPY --from=esm-core-source /repo openmrs-esm-core
 # Also build @openmrs/esm-styleguide from this same checkout instead of the
 # published version, to fix the redundant/duplicate scrollbar that shows up
@@ -167,8 +173,9 @@ COPY --from=esm-core-source /repo openmrs-esm-core
 RUN corepack enable && \
     cd openmrs-esm-core && \
     yarn install && \
-    npx turbo run build --filter=...@openmrs/esm-login-app --filter=...@openmrs/esm-app-shell --filter=...@openmrs/esm-framework --filter=...@openmrs/esm-styleguide && \
-    (cd packages/apps/esm-login-app && npm pack --pack-destination /app)
+    npx turbo run build --filter=...@openmrs/esm-login-app --filter=...@openmrs/esm-primary-navigation-app --filter=...@openmrs/esm-app-shell --filter=...@openmrs/esm-framework --filter=...@openmrs/esm-styleguide && \
+    (cd packages/apps/esm-login-app && npm pack --pack-destination /app) && \
+    (cd packages/apps/esm-primary-navigation-app && npm pack --pack-destination /app)
 
 ARG CACHE_BUST
 # Install the openmrs CLI locally (instead of via npx) so we know exactly
