@@ -30,6 +30,16 @@ function expiryStatus(daysUntilExpiry: number): ExpiryStatus {
   return 'ok';
 }
 
+function formatDaysUntilExpiry(
+  daysUntilExpiry: number,
+  t: (key: string, defaultValue: string, options?: Record<string, unknown>) => string,
+): string {
+  if (daysUntilExpiry < 0) {
+    return t('daysOverdue', '{{count}} days overdue', { count: Math.abs(daysUntilExpiry) });
+  }
+  return String(daysUntilExpiry);
+}
+
 function urgencyTag(daysUntilExpiry: number, t: (key: string, defaultValue: string) => string) {
   const status = expiryStatus(daysUntilExpiry);
   if (status === 'expired') {
@@ -124,7 +134,7 @@ export default function StockExpiryRiskReport() {
               row.locationName ?? '',
               row.batchNo,
               formatDate(parseDate(row.expirationDate), { mode: 'standard', time: false }),
-              row.daysUntilExpiry,
+              formatDaysUntilExpiry(row.daysUntilExpiry, t),
               row.remainingQty,
               row.unitName ?? '',
               // The pack is carried as unit + factor rather than as a pre-divided figure, so the
@@ -135,7 +145,7 @@ export default function StockExpiryRiskReport() {
               row.itemName,
               row.batchNo,
               formatDate(parseDate(row.expirationDate), { mode: 'standard', time: false }),
-              row.daysUntilExpiry,
+              formatDaysUntilExpiry(row.daysUntilExpiry, t),
               row.remainingQty,
               row.unitName ?? '',
               ...bulkExportCells(row.bulkUnitName, row.bulkFactor),
@@ -291,7 +301,7 @@ export default function StockExpiryRiskReport() {
                     {showLocationColumn && <td className="left">{row.locationName ?? '—'}</td>}
                     <td className="left">{row.batchNo}</td>
                     <td className="left">{formatDate(parseDate(row.expirationDate), { mode: 'standard', time: false })}</td>
-                    <td>{row.daysUntilExpiry}</td>
+                    <td>{formatDaysUntilExpiry(row.daysUntilExpiry, t)}</td>
                     <td>{formatQuantity(row.remainingQty, row.unitName, row.bulkUnitName, row.bulkFactor)}</td>
                     <td className="left">{urgencyTag(row.daysUntilExpiry, t)}</td>
                   </tr>
