@@ -17,6 +17,8 @@ const SEARCHABLE_FIELDS: Array<keyof NursingReportRow> = [
   'middleName',
   'familyName',
   'location',
+  'nationalId',
+  'phoneNumber',
   'typeOfWound',
   'ointments',
   'imInjection',
@@ -65,6 +67,8 @@ export default function NursingReport() {
       location: (row: NursingReportRow) => row.location ?? '',
       age: (row: NursingReportRow) => row.age,
       gender: (row: NursingReportRow) => row.gender ?? '',
+      nationalId: (row: NursingReportRow) => row.nationalId ?? '',
+      phoneNumber: (row: NursingReportRow) => row.phoneNumber ?? '',
       typeOfWound: (row: NursingReportRow) => row.typeOfWound ?? '',
       ointments: (row: NursingReportRow) => row.ointments ?? '',
       spirometry: (row: NursingReportRow) => row.spirometry,
@@ -112,6 +116,8 @@ export default function NursingReport() {
         t('location', 'Location'),
         t('age', 'Age'),
         t('gender', 'Gender'),
+        t('nationalId', 'National ID'),
+        t('phoneNumber', 'Phone Number'),
         t('typeOfWound', 'Type of Wound'),
         t('ointment', 'Ointment'),
         t('dressingNotes', 'Dressing Notes'),
@@ -131,6 +137,8 @@ export default function NursingReport() {
         row.location ?? '',
         row.age ?? '',
         row.gender ?? '',
+        row.nationalId ?? '',
+        row.phoneNumber ?? '',
         row.typeOfWound ?? '',
         row.ointments ?? '',
         row.dressingGeneralNotes ?? '',
@@ -277,6 +285,22 @@ export default function NursingReport() {
                     onSort={toggleSort}
                   />
                   <SortableHeader
+                    label={t('nationalId', 'National ID')}
+                    sortKey="nationalId"
+                    activeSortKey={sortKey}
+                    direction={direction}
+                    onSort={toggleSort}
+                    className="left"
+                  />
+                  <SortableHeader
+                    label={t('phoneNumber', 'Phone Number')}
+                    sortKey="phoneNumber"
+                    activeSortKey={sortKey}
+                    direction={direction}
+                    onSort={toggleSort}
+                    className="left"
+                  />
+                  <SortableHeader
                     label={t('typeOfWound', 'Type of Wound')}
                     sortKey="typeOfWound"
                     activeSortKey={sortKey}
@@ -329,6 +353,8 @@ export default function NursingReport() {
                     <td className="left">{row.location || '--'}</td>
                     <td>{row.age ?? '--'}</td>
                     <td>{row.gender || '--'}</td>
+                    <td className="left">{row.nationalId || '--'}</td>
+                    <td className="left">{row.phoneNumber || '--'}</td>
                     <td className="left">{row.typeOfWound || '--'}</td>
                     <td className="left">{row.ointments || '--'}</td>
                     <td className="left">{row.dressingGeneralNotes || '--'}</td>
@@ -343,7 +369,7 @@ export default function NursingReport() {
                 ))}
                 {sortedRows.length === 0 && (
                   <tr>
-                    <td colSpan={15} className={pageStyles.emptyState}>
+                    <td colSpan={17} className={pageStyles.emptyState}>
                       {t('noNursingRecordsForSelection', 'No nursing records found for this selection.')}
                     </td>
                   </tr>

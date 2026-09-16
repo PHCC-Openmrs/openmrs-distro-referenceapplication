@@ -28,6 +28,10 @@ public class NursingReportRow {
 
 	private String gender;
 
+	private String nationalId;
+
+	private String phoneNumber;
+
 	private String typeOfWound;
 
 	/** Every ointment applied at this encounter, comma-separated -- the form allows more than one. */
@@ -128,6 +132,22 @@ public class NursingReportRow {
 
 	public void setGender(String gender) {
 		this.gender = gender;
+	}
+
+	public String getNationalId() {
+		return nationalId;
+	}
+
+	public void setNationalId(String nationalId) {
+		this.nationalId = nationalId;
+	}
+
+	public String getPhoneNumber() {
+		return phoneNumber;
+	}
+
+	public void setPhoneNumber(String phoneNumber) {
+		this.phoneNumber = phoneNumber;
 	}
 
 	public String getTypeOfWound() {

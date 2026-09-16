@@ -19,6 +19,8 @@ export interface SrhReportRow {
   location: string | null;
   age: number | null;
   gender: string | null;
+  nationalId: string | null;
+  phoneNumber: string | null;
   section: SrhSection;
   // Ultrasound
   fetuses: string | null;

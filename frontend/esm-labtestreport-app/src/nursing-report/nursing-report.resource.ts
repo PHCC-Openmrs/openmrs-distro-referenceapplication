@@ -12,6 +12,8 @@ export interface NursingReportRow {
   location: string | null;
   age: number | null;
   gender: string | null;
+  nationalId: string | null;
+  phoneNumber: string | null;
   typeOfWound: string | null;
   /** Every ointment applied at this encounter, comma-separated -- the form allows more than one. */
   ointments: string | null;

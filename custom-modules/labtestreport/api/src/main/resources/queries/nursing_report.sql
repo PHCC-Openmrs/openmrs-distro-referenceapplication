@@ -21,6 +21,20 @@ SELECT
     WHEN 'O' THEN 'Other'
     ELSE NULL
   END                              AS gender,
+  -- Scalar subqueries (rather than a plain join) so a patient with more than one non-voided
+  -- National ID/Phone Number doesn't fan this encounter out into duplicate rows.
+  (SELECT pi_nid.identifier
+     FROM patient_identifier pi_nid
+    WHERE pi_nid.patient_id = p.person_id AND pi_nid.voided = 0
+      AND pi_nid.identifier_type = (SELECT patient_identifier_type_id FROM patient_identifier_type WHERE name = 'National ID')
+    ORDER BY pi_nid.preferred DESC, pi_nid.patient_identifier_id
+    LIMIT 1)                        AS nationalId,
+  (SELECT pa_phone.value
+     FROM person_attribute pa_phone
+    WHERE pa_phone.person_id = p.person_id AND pa_phone.voided = 0
+      AND pa_phone.person_attribute_type_id = (SELECT person_attribute_type_id FROM person_attribute_type WHERE name = 'Phone Number')
+    ORDER BY pa_phone.person_attribute_id
+    LIMIT 1)                        AS phoneNumber,
   typeOfWoundObs.value_text        AS typeOfWound,
   -- The Ointment multi-select is stored as one coded obs per ointment, so it is collapsed here
   -- into a single comma-separated cell rather than multiplying the encounter into several rows.

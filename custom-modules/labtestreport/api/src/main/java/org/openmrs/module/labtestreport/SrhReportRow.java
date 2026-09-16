@@ -31,6 +31,10 @@ public class SrhReportRow {
 
 	private String gender;
 
+	private String nationalId;
+
+	private String phoneNumber;
+
 	/**
 	 * Which SRH section this encounter came from: "ultrasound", "stiGynaecology" or
 	 * "familyPlanning". The columns belonging to the other two sections are null on this row.
@@ -168,6 +172,22 @@ public class SrhReportRow {
 
 	public void setGender(String gender) {
 		this.gender = gender;
+	}
+
+	public String getNationalId() {
+		return nationalId;
+	}
+
+	public void setNationalId(String nationalId) {
+		this.nationalId = nationalId;
+	}
+
+	public String getPhoneNumber() {
+		return phoneNumber;
+	}
+
+	public void setPhoneNumber(String phoneNumber) {
+		this.phoneNumber = phoneNumber;
 	}
 
 	public String getSection() {

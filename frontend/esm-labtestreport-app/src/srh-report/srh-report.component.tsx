@@ -21,6 +21,8 @@ const SEARCHABLE_FIELDS: Array<keyof SrhReportRow> = [
   'middleName',
   'familyName',
   'location',
+  'nationalId',
+  'phoneNumber',
   'presentation',
   'fetalGender',
   'amnioticFluid',
@@ -101,6 +103,8 @@ export default function SrhReport() {
       { key: 'location', label: t('location', 'Location'), accessor: (row) => row.location, left: true },
       { key: 'age', label: t('age', 'Age'), accessor: (row) => row.age },
       { key: 'gender', label: t('gender', 'Gender'), accessor: (row) => row.gender },
+      { key: 'nationalId', label: t('nationalId', 'National ID'), accessor: (row) => row.nationalId, left: true },
+      { key: 'phoneNumber', label: t('phoneNumber', 'Phone Number'), accessor: (row) => row.phoneNumber, left: true },
     ],
     [t],
   );
