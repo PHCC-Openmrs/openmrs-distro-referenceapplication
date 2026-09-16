@@ -201,7 +201,7 @@ describe('Stock Operation form step 3 (stock submision)', () => {
     expect(screen.getAllByRole('radio', { name: /yes|no/i })).toHaveLength(2);
   });
 
-  it('should render submitForReview button when require aprroval radion button is checked yes', async () => {
+  it('should preselect yes and disable the no option for require approval', async () => {
     render(
       <StockOperationForm
         stockOperationType={receiptOperationTypeMock as any}
@@ -216,16 +216,13 @@ describe('Stock Operation form step 3 (stock submision)', () => {
     // MOVE TO STEP3
     await userEvent.click(screen.getByRole('button', { name: /next/i }));
 
-    const yesRadioButton = screen.getByRole('radio', { name: /yes/i });
-    expect(yesRadioButton).toBeInTheDocument();
-    // Submit for review shouldnt be in doc
-    expect(screen.queryByRole('button', { name: /submit for review/i })).not.toBeInTheDocument();
-    await userEvent.click(yesRadioButton);
-    // On require aprooval should now show
+    // Every operation requires approval, so yes is checked up front and no can't be picked
+    expect(screen.getByRole('radio', { name: /yes/i })).toBeChecked();
+    expect(screen.getByRole('radio', { name: /no/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /submit for review/i })).toBeInTheDocument();
   });
 
-  it('should render complete button when require aprroval radion button is checked no', async () => {
+  it('should never offer the complete button since approval cannot be skipped', async () => {
     render(
       <StockOperationForm
         stockOperationType={receiptOperationTypeMock as any}
@@ -241,13 +238,14 @@ describe('Stock Operation form step 3 (stock submision)', () => {
     await userEvent.click(screen.getByRole('button', { name: /next/i }));
 
     const noRadioButton = screen.getByRole('radio', { name: /no/i });
-    expect(noRadioButton).toBeInTheDocument();
+    expect(noRadioButton).toBeDisabled();
     await userEvent.click(noRadioButton);
-    // On require aprooval should now show complete btn
-    expect(screen.getByTestId('complete-button')).toBeInTheDocument();
+    expect(noRadioButton).not.toBeChecked();
+    expect(screen.queryByTestId('complete-button')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /submit for review/i })).toBeInTheDocument();
   });
 
-  it('should render dispatch btn for stock return operation and dont require aproval', async () => {
+  it('should never offer the dispatch btn for stock return operation', async () => {
     render(
       <StockOperationForm
         stockOperationType={returnOperationTypeMock as any}
@@ -263,13 +261,13 @@ describe('Stock Operation form step 3 (stock submision)', () => {
     await userEvent.click(screen.getByRole('button', { name: /next/i }));
 
     const noRadioButton = screen.getByRole('radio', { name: /no/i });
-    expect(noRadioButton).toBeInTheDocument();
+    expect(noRadioButton).toBeDisabled();
     await userEvent.click(noRadioButton);
-    // On require aprooval should now show complete btn
-    expect(screen.getByTestId('dipatch-button')).toBeInTheDocument();
+    expect(screen.queryByTestId('dipatch-button')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /submit for review/i })).toBeInTheDocument();
   });
 
-  it('should render dispatch btn for stock issue operation and dont require aproval', async () => {
+  it('should never offer the dispatch btn for stock issue operation', async () => {
     render(
       <StockOperationForm
         stockOperationType={stockIssueOperationtypeMock as any}
@@ -285,9 +283,9 @@ describe('Stock Operation form step 3 (stock submision)', () => {
     await userEvent.click(screen.getByRole('button', { name: /next/i }));
 
     const noRadioButton = screen.getByRole('radio', { name: /no/i });
-    expect(noRadioButton).toBeInTheDocument();
+    expect(noRadioButton).toBeDisabled();
     await userEvent.click(noRadioButton);
-    // On require approval should now show complete btn
-    expect(screen.getByTestId('dipatch-button')).toBeInTheDocument();
+    expect(screen.queryByTestId('dipatch-button')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /submit for review/i })).toBeInTheDocument();
   });
 });

@@ -7,11 +7,7 @@ import { restBaseUrl, showSnackbar, useSession } from '@openmrs/esm-framework';
 import { createStockOperation, deleteStockOperationItem, updateStockOperation } from '../../stock-operations.resource';
 import { extractErrorMessagesFromResponse } from '../../../constants';
 import { useHandleMutate } from '../../../utils';
-import {
-  OperationType,
-  StockOperationTypeRequiresApproval,
-  type StockOperationType,
-} from '../../../core/api/types/stockOperation/StockOperationType';
+import { OperationType, type StockOperationType } from '../../../core/api/types/stockOperation/StockOperationType';
 import { otherUser } from '../../../core/utils/utils';
 import { launchStockOperationsModal } from '../../stock-operation.utils';
 import { type StockOperationDTO } from '../../../core/api/types/stockOperation/StockOperationDTO';
@@ -21,10 +17,6 @@ import { buildExternalReference } from '../../external-reference.utils';
 import useOperationTypePermisions from '../hooks/useOperationTypePermisions';
 import styles from '../stock-operation-form.scss';
 
-// Users holding this role must never be able to complete/dispatch a stock operation
-// themselves, regardless of operation type - every operation they create has to go through
-// someone else's approval.
-const STOCK_ADD_ROLE_NAME = 'Stock Add';
 
 type StockOperationSubmissionFormStepProps = {
   onPrevious?: () => void;
@@ -42,43 +34,18 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
   dismissWorkspace,
 }) => {
   const { t } = useTranslation();
-  const { sessionLocation, user } = useSession();
+  const { sessionLocation } = useSession();
   const handleMutate = useHandleMutate();
   const operationTypePermision = useOperationTypePermisions(stockOperationType);
   const editable = useMemo(() => !stockOperation || stockOperation.status === 'NEW', [stockOperation]);
   const form = useFormContext<StockOperationItemDtoSchema>();
-  const isOpeningStockOperation = useMemo(
-    () => StockOperationTypeRequiresApproval(stockOperationType.operationType as OperationType),
-    [stockOperationType],
-  );
-  const isStockAddRoleUser = useMemo(
-    () =>
-      user?.roles?.some(
-        (role) => role.display?.toLowerCase() === STOCK_ADD_ROLE_NAME.toLowerCase() ||
-          role.name?.toLowerCase() === STOCK_ADD_ROLE_NAME.toLowerCase(),
-      ) ?? false,
-    [user],
-  );
-  // Whether the approval choice below is forced to "Yes" and locked - either because this
-  // operation type always requires approval (Opening Stock), or because the acting user's role
-  // never gets to skip approval.
-  const forcesApproval = isOpeningStockOperation || isStockAddRoleUser;
-  const [approvalRequired, setApprovalRequired] = useState<boolean | null>(
-    forcesApproval ? true : stockOperation?.approvalRequired,
-  );
+  // Every stock operation has to go through approval, whatever its type and whoever creates it,
+  // so the choice below is locked to "Yes" and the "No" option is disabled.
+  const [approvalRequired] = useState<boolean>(true);
   const isStockIssueOperation = useMemo(
     () => OperationType.STOCK_ISSUE_OPERATION_TYPE === stockOperationType.operationType,
     [stockOperationType],
   );
-  const handleRadioButtonChange = (selectedItem: boolean) => {
-    if (forcesApproval) {
-      // Opening Stock, and any operation from a Stock Add role user, always requires approval -
-      // the choice isn't editable.
-      return;
-    }
-    setApprovalRequired(selectedItem);
-  };
-
   const handleSave = useCallback(async () => {
     let result: StockOperationDTO; // To store the result for returning
     await form.handleSubmit(async (formData) => {
@@ -203,12 +170,11 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
         <RadioButtonGroup
           name="rbgApprovelRequired"
           legendText={t('doesThisTransactionRequireApproval', 'Does the transaction require approval ?')}
-          onChange={(value) => handleRadioButtonChange(value === 'true')}
-          readOnly={!editable || forcesApproval}
-          valueSelected={approvalRequired === true ? 'true' : approvalRequired === false ? 'false' : null}
+          readOnly={!editable}
+          valueSelected={approvalRequired ? 'true' : 'false'}
         >
           <RadioButton value="true" id="rbgApprovelRequired-true" labelText={t('yes', 'Yes')} />
-          <RadioButton value="false" id="rbgApprovelRequired-false" labelText={t('no', 'No')} />
+          <RadioButton value="false" id="rbgApprovelRequired-false" labelText={t('no', 'No')} disabled />
         </RadioButtonGroup>
       </Column>
       {editable && (
