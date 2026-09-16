@@ -15,7 +15,12 @@ import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { showSnackbar } from '@openmrs/esm-framework';
 import { type StockOperationDTO } from '../../../core/api/types/stockOperation/StockOperationDTO';
-import { type StockOperationType } from '../../../core/api/types/stockOperation/StockOperationType';
+import {
+  operationFromString,
+  type StockOperationType,
+  StockOperationTypeIsReceipt,
+  StockOperationTypeIsRequistion,
+} from '../../../core/api/types/stockOperation/StockOperationType';
 import { getStockOperationUniqueId } from '../../stock-operation.utils';
 import { type BaseStockOperationItemFormData, type StockOperationItemDtoSchema } from '../../validation-schema';
 import useOperationTypePermisions from '../hooks/useOperationTypePermisions';
@@ -48,6 +53,24 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
 
   const form = useFormContext<StockOperationItemDtoSchema>();
   const observableOperationItems = form.watch('stockOperationItems');
+
+  // The party whose on-hand quantity the "Item Details" column should report. Watched rather
+  // than read once, so editing the location on step 1 refreshes the figures here.
+  //
+  // sourceUuid for almost every type: it's the operation's only location when the type has no
+  // destination (Opening Stock, Stock Take, Adjustment, Disposal), and the side stock is drawn
+  // from when it does (Transfer Out, Stock Issue, Return) - either way it holds the stock the
+  // operation acts on. Receipt and Requisition are the exceptions: their source is an upstream
+  // party we hold nothing at, and the quantity worth showing is what the receiving location
+  // already has, so they use destinationUuid.
+  const sourceUuid = form.watch('sourceUuid');
+  const destinationUuid = form.watch('destinationUuid');
+  const availabilityPartyUuid = useMemo(() => {
+    const operationType = operationFromString(stockOperationType.operationType);
+    return StockOperationTypeIsReceipt(operationType) || StockOperationTypeIsRequistion(operationType)
+      ? destinationUuid
+      : sourceUuid;
+  }, [stockOperationType, sourceUuid, destinationUuid]);
 
   const handleRemoveItem = useCallback(
     (index: number) => {
@@ -134,7 +157,14 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
       return {
         id: uuid || `${uniqueId}-${index}`,
         item: stockItemUuid ? <StockOperationItemCell stockItemUuid={stockItemUuid} /> : '--',
-        itemDetails: stockItemUuid ? <StockAvailability stockItemUuid={stockItemUuid} /> : '--',
+        // Rendered only once the operation's location is known - StockAvailability without a
+        // party would total every facility's stock instead of this location's.
+        itemDetails:
+          stockItemUuid && availabilityPartyUuid ? (
+            <StockAvailability stockItemUuid={stockItemUuid} partyUuid={availabilityPartyUuid} />
+          ) : (
+            '--'
+          ),
         batch: (
           <StockOperationItemBatchNoCell
             operation={stockOperationType}
@@ -186,7 +216,15 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
         ),
       };
     });
-  }, [handleRemoveItem, observableOperationItems, onLaunchItemsForm, stockOperationType, t, uniqueId]);
+  }, [
+    availabilityPartyUuid,
+    handleRemoveItem,
+    observableOperationItems,
+    onLaunchItemsForm,
+    stockOperationType,
+    t,
+    uniqueId,
+  ]);
 
   const handleNext = async () => {
     const valid = await form.trigger(['stockOperationItems']);
