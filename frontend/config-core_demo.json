@@ -493,7 +493,13 @@
     }
   },
   "@openmrs/esm-dispensing-app": {
-    "enableStockDispense": true
+    "enableStockDispense": true,
+    "locationBehavior": {
+      "restrictToSessionLocation": true,
+      "locationColumn": {
+        "enabled": true
+      }
+    }
   },
   "translations": {
     "ar": {
