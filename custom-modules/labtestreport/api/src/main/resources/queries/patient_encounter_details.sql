@@ -34,7 +34,8 @@ LEFT JOIN program pr
     '2433ebba-8ffb-11f1-a103-1afee95a890c', -- Nutrition Registration
     'f73376c9-7bdf-44e5-ba97-ddf4db5bc9f9', -- Sexual Reproductive Health (SRH)
     'bd6b8c0a-49c9-4f98-afea-8b8fcd999688', -- Primary Health Care
-    '9138885e-f9f4-4981-b1fb-ef3d022228bd'  -- Pediatric Consultation
+    '9138885e-f9f4-4981-b1fb-ef3d022228bd', -- Pediatric Consultation
+    '481fd184-69e9-41af-b4b3-28d714c94343'  -- Health Promotion
   )
 WHERE v.voided = 0
   AND (:startDate IS NULL OR v.date_started >= :startDate)
