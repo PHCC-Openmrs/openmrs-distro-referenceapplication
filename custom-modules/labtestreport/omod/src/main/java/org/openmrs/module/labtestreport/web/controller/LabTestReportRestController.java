@@ -15,6 +15,8 @@ import org.openmrs.module.labtestreport.CmamPatientRow;
 import org.openmrs.module.labtestreport.CmamSummaryRow;
 import org.openmrs.module.labtestreport.DiseaseSummaryRow;
 import org.openmrs.module.labtestreport.DiseaseSummaryService;
+import org.openmrs.module.labtestreport.HealthPromotionReportService;
+import org.openmrs.module.labtestreport.HealthPromotionRow;
 import org.openmrs.module.labtestreport.LabTestReportService;
 import org.openmrs.module.labtestreport.NcdPatientCardReportService;
 import org.openmrs.module.labtestreport.NcdPatientCardRow;
@@ -130,6 +132,17 @@ public class LabTestReportRestController {
 	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
 		List<ReferralFormRow> rows = Context.getService(ReferralFormReportService.class)
 		        .getReferralFormReport(startDate, endDate, locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/health-promotion-report.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> healthPromotionReport(
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<HealthPromotionRow> rows = Context.getService(HealthPromotionReportService.class)
+		        .getHealthPromotionReport(startDate, endDate, locationUuid);
 		return jsonResponse(rows);
 	}
 

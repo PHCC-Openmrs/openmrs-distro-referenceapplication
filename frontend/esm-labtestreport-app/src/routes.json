@@ -117,6 +117,10 @@
       "route": "nursing-report"
     },
     {
+      "component": "healthPromotionReport",
+      "route": "health-promotion-report"
+    },
+    {
       "component": "srhReport",
       "route": "srh-report"
     }

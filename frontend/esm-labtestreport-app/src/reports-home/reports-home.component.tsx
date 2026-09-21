@@ -134,6 +134,15 @@ export default function ReportsHome() {
           ),
           route: 'srh-report',
         },
+        {
+          key: 'health-promotion-report',
+          title: t('healthPromotionReportTitle', 'Health Promotion Report'),
+          description: t(
+            'healthPromotionReportTileDesc',
+            'Every Health Promotion Session Form submission with the participant, session and CHW details recorded on the form. Click a row to open that patient\'s chart.',
+          ),
+          route: 'health-promotion-report',
+        },
       ],
     },
     {
