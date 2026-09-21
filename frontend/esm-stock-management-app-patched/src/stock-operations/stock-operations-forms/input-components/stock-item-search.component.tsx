@@ -11,6 +11,13 @@ type StockItemSearchProps = {
   onSelectedItem?: (stockItem: StockItemDTO) => void;
 };
 
+/**
+ * Results are ranked by how well they match what was typed (see `rankStockItemsByRelevance`), so
+ * this cap is only there to keep the dropdown a sensible size - it no longer hides the item the
+ * user asked for, and the list scrolls.
+ */
+const MAX_VISIBLE_RESULTS = 20;
+
 const StockItemSearch: React.FC<StockItemSearchProps> = ({ onSelectedItem }) => {
   const { t } = useTranslation();
   const { isLoading, stockItemsList, setSearchString } = useFilterableStockItems({});
@@ -60,7 +67,7 @@ const StockItemSearch: React.FC<StockItemSearchProps> = ({ onSelectedItem }) => 
       </div>
       {searchTerm && stockItemsList?.length > 0 && (
         <div className={styles.searchResults}>
-          {stockItemsList?.slice(0, 5).map((stockItem) => {
+          {stockItemsList?.slice(0, MAX_VISIBLE_RESULTS).map((stockItem) => {
             const commonName = getCommonName(stockItem);
             const drugName = getDrugName(stockItem);
             return (
