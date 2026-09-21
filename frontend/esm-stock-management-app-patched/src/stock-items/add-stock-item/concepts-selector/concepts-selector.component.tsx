@@ -7,8 +7,10 @@ import { useDebounce } from '../../../core/hooks/debounce-hook';
 
 // This selector is only ever used for Non Pharmaceuticals stock items (Pharmaceuticals use
 // DrugSelector, hitting /drug, instead). It hits the custom /non-drug resource, which mirrors
-// /drug's shape but lists the answers of the "Non-drug" bucket concept under "Stock item
-// category" (8ccf6066-9297-4d76-aaf3-00aa3714d198) - a curated non-drug item list.
+// /drug's shape but lists concepts of the classes configured in the
+// stockmanagement.nonDrugItemConceptClasses global property (default "Medical supply"), plus any
+// item curated as an answer of the "Non-drug" bucket concept under "Stock item category"
+// (8ccf6066-9297-4d76-aaf3-00aa3714d198).
 interface NonDrugItem {
   uuid: string;
   display: string;

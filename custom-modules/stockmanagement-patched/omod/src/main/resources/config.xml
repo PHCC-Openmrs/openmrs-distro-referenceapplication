@@ -157,6 +157,15 @@
     </globalProperty>
 
     <globalProperty>
+        <property>stockmanagement.nonDrugItemConceptClasses</property>
+        <defaultValue>Medical supply</defaultValue>
+        <description>
+            Comma separated concept class names whose concepts can be picked as non-pharmaceutical
+            (non-drug) stock items.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
         <property>stockmanagement.stockItemCategoryConceptId</property>
         <defaultValue>6d24eb6e-b42f-4706-ab2d-ae4472161f6a</defaultValue>
         <description>
