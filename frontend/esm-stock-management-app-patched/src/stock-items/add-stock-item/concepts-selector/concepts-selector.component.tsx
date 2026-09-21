@@ -31,7 +31,7 @@ interface ConceptsSelectorProps<T> {
 const ConceptsSelector = <T,>(props: ConceptsSelectorProps<T>) => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const url = `${restBaseUrl}/non-drug?v=default&limit=20${
+  const url = `${restBaseUrl}/non-drug?v=default&limit=500${
     searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''
   }`;
   const { data, isLoading } = useSWR<{ data: { results: Array<NonDrugItem> } }>(url, openmrsFetch);
