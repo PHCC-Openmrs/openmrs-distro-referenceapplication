@@ -8,15 +8,15 @@ services:
   frontend:
     build:
       context: ./frontend
-      # Build openmrs-esm-core from the local checkout (sibling to this repo)
-      # instead of cloning PHCC-Openmrs/openmrs-esm-core from GitHub, so local
-      # edits are picked up without needing to commit/push first. Remove
-      # these two lines (or set ESM_CORE_SOURCE back to "esm-core-remote") to
-      # go back to building against whatever's actually pushed to `main`.
-      additional_contexts:
-        - esm-core-local=../openmrs-esm-core
+      # Fork sources are cloned from the PHCC-Openmrs forks' `main` on GitHub
+      # (the Dockerfile's default), so a build reflects what's actually been
+      # pushed. To build openmrs-esm-core from a local checkout instead -- so
+      # uncommitted edits are picked up without committing/pushing first --
+      # add back:
+      #   additional_contexts:
+      #     - esm-core-local=../openmrs-esm-core
+      # and set ESM_CORE_SOURCE: esm-core-local-aliased below.
       args:
-        ESM_CORE_SOURCE: esm-core-local-aliased
         # The Dockerfile defaults to the floating `next` prerelease tag for the
         # openmrs CLI (app-shell builder), which republishes multiple times a
         # day and can ship breaking changes with no warning -- it's what broke
