@@ -9,13 +9,16 @@ services:
     build:
       context: ./frontend
       # Fork sources are cloned from the PHCC-Openmrs forks' `main` on GitHub
-      # (the Dockerfile's default), so a build reflects what's actually been
-      # pushed. To build openmrs-esm-core from a local checkout instead -- so
-      # uncommitted edits are picked up without committing/pushing first --
-      # add back:
-      #   additional_contexts:
-      #     - esm-core-local=../openmrs-esm-core
-      # and set ESM_CORE_SOURCE: esm-core-local-aliased below.
+      # (the Dockerfile's default). Building openmrs-esm-patient-management and
+      # openmrs-esm-patient-chart from local checkouts instead -- so uncommitted
+      # edits (e.g. the hiddenServicePrograms change) are picked up without
+      # committing/pushing first. To also build openmrs-esm-core from a local
+      # checkout, add:
+      #   - esm-core-local=../openmrs-esm-core
+      # below and set ESM_CORE_SOURCE: esm-core-local-aliased under args.
+      additional_contexts:
+        - patient-management-local=../openmrs-esm-patient-management
+        - patient-chart-local=../openmrs-esm-patient-chart
       args:
         # The Dockerfile defaults to the floating `next` prerelease tag for the
         # openmrs CLI (app-shell builder), which republishes multiple times a
@@ -25,6 +28,8 @@ services:
         # `next` prerelease started requiring). Pin to the stable release for
         # local dev builds instead.
         APP_SHELL_VERSION: latest
+        PATIENT_MANAGEMENT_SOURCE: patient-management-local-aliased
+        PATIENT_CHART_SOURCE: patient-chart-local-aliased
 
   backend:
     build:
