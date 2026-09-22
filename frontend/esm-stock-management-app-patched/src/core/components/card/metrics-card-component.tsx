@@ -18,7 +18,7 @@ interface MetricsCardProps {
   // No max-stock-level field exists anywhere in the stock item data model, so there's
   // no honest way to compute an "overstocked" count - only understocked is shown here.
   outOfStockCount?: { itemsBelowMin: Array<any> };
-  disposedCount?: { expired: Array<any>; poorQuality: Array<any> };
+  disposedCount?: { expired: Array<any>; spillage: Array<any> };
   onClick?: () => void;
   /** Change in `value` versus 7 days ago, when available. */
   trend?: number | null;
@@ -87,9 +87,9 @@ const MetricsCard: React.FC<MetricsCardProps> = ({
         {!isEmpty(disposedCount) && (
           <div className={styles.countGrid}>
             <span className={styles.expiredLabel}>{t('expired', 'Expired')}</span>
-            <span className={styles.poorQualityLabel}>{t('poorQuality', 'Poor Quality')}</span>
+            <span className={styles.spillageLabel}>{t('spillage', 'Spillage')}</span>
             <p className={styles.expiredValue}>{disposedCount.expired?.length}</p>
-            <p className={styles.poorQualityValue}>{disposedCount.poorQuality?.length}</p>
+            <p className={styles.spillageValue}>{disposedCount.spillage?.length}</p>
           </div>
         )}
       </div>

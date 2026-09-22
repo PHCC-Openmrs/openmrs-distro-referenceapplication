@@ -13,6 +13,18 @@ import useStockList from './useStockList';
 import MetricsCard from '../core/components/card/metrics-card-component';
 import styles from './stock-home.scss';
 
+// The disposal reasons are whatever answers the configured stockAdjustmentReasonUUID concept
+// carries, so match on lower-cased fragments of their display names rather than on exact names.
+// Reference data ships "Medication expired", "Medication spillage" and "Miscellaneous"; the card
+// only has room for two sub-counts, so miscellaneous disposals show in the headline total only.
+const EXPIRED_REASONS = ['expir'];
+const SPILLAGE_REASONS = ['spill'];
+
+function matchesDisposalReason(reasonName: string | null | undefined, fragments: Array<string>) {
+  const normalizedReason = reasonName?.toLowerCase() ?? '';
+  return normalizedReason !== '' && fragments.some((fragment) => normalizedReason.includes(fragment));
+}
+
 const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
   const { t } = useTranslation();
   const { sessionLocation } = useSession();
@@ -55,9 +67,29 @@ const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
     locationUuid: sessionLocation?.uuid,
   });
 
+  // One disposal operation can dispose of several stock items, and both the card's modal and
+  // the "disposed stock" idea itself are per stock item - counting operations made a single
+  // disposal of 2 items read as "1" on the card while the modal listed 2 rows. Flatten to line
+  // items, carrying down the operation-level reason/date the per-item rows don't hold.
+  const disposedStockItems = React.useMemo(
+    () =>
+      (items ?? []).flatMap((operation) =>
+        (operation?.stockOperationItems ?? []).map((stockItem) => ({
+          ...stockItem,
+          reasonName: operation?.reasonName,
+          sourceName: operation?.sourceName,
+          operationDate: operation?.operationDate,
+        })),
+      ),
+    [items],
+  );
+
   const { outOfStockTrend, outOfStockSparkline } = useStockLevelHistory(sessionLocation?.uuid, stockItems ?? []);
   const expiringStockHistory = React.useMemo(() => computeExpiringStockHistory(mergedArray), [mergedArray]);
-  const disposedStockHistory = React.useMemo(() => computeDisposedStockHistory(items ?? []), [items]);
+  const disposedStockHistory = React.useMemo(
+    () => computeDisposedStockHistory(disposedStockItems),
+    [disposedStockItems],
+  );
 
   if (error) {
     // openmrsFetch rejections carry the backend's actual message under responseBody.error.message;
@@ -68,13 +100,15 @@ const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
       error?.message ??
       t('unknownErrorStockMetric', 'An unknown error occurred while fetching stock metrics.');
     return (
-      <ErrorState headerTitle={t('errorStockMetric', 'Error fetching stock metrics')} error={{ message: errorMessage }} />
+      <ErrorState
+        headerTitle={t('errorStockMetric', 'Error fetching stock metrics')}
+        error={{ message: errorMessage }}
+      />
     );
   }
 
-  const filteredItems =
-    items && items.filter((item) => item.reasonName === 'Drug not available due to expired medication');
-  const poorQualityItems = items && items.filter((item) => item.reasonName === 'Poor Quality');
+  const expiredItems = disposedStockItems.filter((item) => matchesDisposalReason(item.reasonName, EXPIRED_REASONS));
+  const spillageItems = disposedStockItems.filter((item) => matchesDisposalReason(item.reasonName, SPILLAGE_REASONS));
 
   const launchOutOfStockModal = () => {
     const dispose = showModal('out-of-stock-modal', {
@@ -124,12 +158,12 @@ const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
       />
       <MetricsCard
         disposedCount={{
-          expired: filteredItems,
-          poorQuality: poorQualityItems,
+          expired: expiredItems,
+          spillage: spillageItems,
         }}
         headerLabel={t('disposedStock', 'Disposed stock')}
         label={t('disposedStock', 'Disposed stock')}
-        value={items?.length || 0}
+        value={disposedStockItems.length}
         onClick={launchDisposedStockModal}
         trend={disposedStockHistory.trend}
         sparklineValues={disposedStockHistory.sparkline}
