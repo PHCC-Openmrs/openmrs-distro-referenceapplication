@@ -37,25 +37,49 @@ SELECT
     ORDER BY pi_nid.preferred DESC, pi_nid.patient_identifier_id
     LIMIT 1)                       AS nationalId,
   phoneNumberObs.value_text        AS phoneNumber,
+  -- Full Address, Governorate and Neighbourhood are not form fields -- they come straight off the
+  -- patient's own demographic record (person_address), the same way nationalId does above, so they
+  -- stay populated even though the form itself no longer asks for them. Scalar subqueries (not a
+  -- join) so a patient with more than one non-voided address doesn't fan this encounter out into
+  -- duplicate rows.
+  (SELECT pa.address1
+     FROM person_address pa
+    WHERE pa.person_id = p.person_id AND pa.voided = 0
+    ORDER BY pa.preferred DESC, pa.person_address_id
+    LIMIT 1)                       AS fullAddress,
+  (SELECT pa.state_province
+     FROM person_address pa
+    WHERE pa.person_id = p.person_id AND pa.voided = 0
+    ORDER BY pa.preferred DESC, pa.person_address_id
+    LIMIT 1)                       AS governorate,
+  (SELECT pa.city_village
+     FROM person_address pa
+    WHERE pa.person_id = p.person_id AND pa.voided = 0
+    ORDER BY pa.preferred DESC, pa.person_address_id
+    LIMIT 1)                       AS neighborhood,
   sessionDateObs.value_datetime    AS sessionDate,
-  -- Session Type and Topic are coded, and Topic in particular is a list the form is expected to
-  -- grow. Resolving the answer through concept_name (rather than a CASE over today's answer uuids)
-  -- means a newly added answer shows up in the report without a change here. These are scalar
-  -- subqueries rather than joins so a concept carrying more than one English name cannot fan a
-  -- single encounter out into duplicate rows.
+  -- Session Type is coded, and resolving the answer through concept_name (rather than a CASE over
+  -- today's answer uuids) means a newly added answer shows up in the report without a change here.
+  -- A scalar subquery rather than a join so a concept carrying more than one English name cannot
+  -- fan a single encounter out into duplicate rows.
   (SELECT cn.name
      FROM concept_name cn
     WHERE cn.concept_id = sessionTypeObs.value_coded AND cn.voided = 0 AND cn.locale = 'en'
     ORDER BY cn.locale_preferred DESC, cn.concept_name_id
     LIMIT 1)                       AS sessionType,
-  (SELECT cn.name
-     FROM concept_name cn
-    WHERE cn.concept_id = topicObs.value_coded AND cn.voided = 0 AND cn.locale = 'en'
-    ORDER BY cn.locale_preferred DESC, cn.concept_name_id
-    LIMIT 1)                       AS topic,
-  -- The free-text "Location" the session was held at, as typed on the form. This is distinct from
-  -- the encounter's own location above, which is the facility the form was submitted from.
-  sessionLocationObs.value_text    AS sessionLocation,
+  -- Topic used to be a coded dropdown; it is now free text, backed by a new "Health Promotion
+  -- Topic" concept created per-environment (so its uuid isn't portable across servers -- matched by
+  -- name here, same reasoning as the form-name match above). Older encounters recorded before that
+  -- change still carry their answer under the original coded "Topic" concept (a stable, seeded
+  -- uuid), so this coalesces the new free-text value with the old coded one resolved by name.
+  COALESCE(
+    topicTextObs.value_text,
+    (SELECT cn.name
+       FROM concept_name cn
+      WHERE cn.concept_id = topicCodedObs.value_coded AND cn.voided = 0 AND cn.locale = 'en'
+      ORDER BY cn.locale_preferred DESC, cn.concept_name_id
+      LIMIT 1)
+  )                                 AS topic,
   chwNameObs.value_text            AS chwName,
   notesObs.value_text              AS notes
 FROM encounter e
@@ -76,10 +100,15 @@ LEFT JOIN obs sessionDateObs ON sessionDateObs.encounter_id = e.encounter_id AND
   AND sessionDateObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = 'ceaca505-6dff-4940-8a43-8c060a0924d7')
 LEFT JOIN obs sessionTypeObs ON sessionTypeObs.encounter_id = e.encounter_id AND sessionTypeObs.voided = 0
   AND sessionTypeObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = 'c271aba7-1feb-4215-afde-6e37f2ef1800')
-LEFT JOIN obs topicObs ON topicObs.encounter_id = e.encounter_id AND topicObs.voided = 0
-  AND topicObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '4442d405-4ff2-45d7-a272-1a4f3a134486')
-LEFT JOIN obs sessionLocationObs ON sessionLocationObs.encounter_id = e.encounter_id AND sessionLocationObs.voided = 0
-  AND sessionLocationObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '4372b99c-a9b2-4eef-b339-a2e9b69c5ba2')
+-- The old coded Topic concept has a stable, seeded uuid; the new free-text one is created
+-- per-environment (see the comment on the topic column above), so it is matched by name instead.
+LEFT JOIN obs topicCodedObs ON topicCodedObs.encounter_id = e.encounter_id AND topicCodedObs.voided = 0
+  AND topicCodedObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '4442d405-4ff2-45d7-a272-1a4f3a134486')
+LEFT JOIN obs topicTextObs ON topicTextObs.encounter_id = e.encounter_id AND topicTextObs.voided = 0
+  AND topicTextObs.concept_id = (SELECT cn.concept_id
+                                    FROM concept_name cn
+                                   WHERE cn.name = 'Health Promotion Topic' AND cn.voided = 0
+                                   LIMIT 1)
 LEFT JOIN obs chwNameObs ON chwNameObs.encounter_id = e.encounter_id AND chwNameObs.voided = 0
   AND chwNameObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '8f129f81-e078-4664-be97-649b66162a50')
 LEFT JOIN obs notesObs ON notesObs.encounter_id = e.encounter_id AND notesObs.voided = 0

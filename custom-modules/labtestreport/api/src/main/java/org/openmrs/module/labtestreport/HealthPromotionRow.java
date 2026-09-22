@@ -36,14 +36,18 @@ public class HealthPromotionRow {
 
 	private String phoneNumber;
 
+	/** The patient's own address, not a form field -- see the query for why. */
+	private String fullAddress;
+
+	private String governorate;
+
+	private String neighborhood;
+
 	private Date sessionDate;
 
 	private String sessionType;
 
 	private String topic;
-
-	/** The free-text location the session was held at, as typed on the form. */
-	private String sessionLocation;
 
 	private String chwName;
 
@@ -153,6 +157,30 @@ public class HealthPromotionRow {
 		this.phoneNumber = phoneNumber;
 	}
 
+	public String getFullAddress() {
+		return fullAddress;
+	}
+
+	public void setFullAddress(String fullAddress) {
+		this.fullAddress = fullAddress;
+	}
+
+	public String getGovernorate() {
+		return governorate;
+	}
+
+	public void setGovernorate(String governorate) {
+		this.governorate = governorate;
+	}
+
+	public String getNeighborhood() {
+		return neighborhood;
+	}
+
+	public void setNeighborhood(String neighborhood) {
+		this.neighborhood = neighborhood;
+	}
+
 	public Date getSessionDate() {
 		return sessionDate;
 	}
@@ -175,14 +203,6 @@ public class HealthPromotionRow {
 
 	public void setTopic(String topic) {
 		this.topic = topic;
-	}
-
-	public String getSessionLocation() {
-		return sessionLocation;
-	}
-
-	public void setSessionLocation(String sessionLocation) {
-		this.sessionLocation = sessionLocation;
 	}
 
 	public String getChwName() {
