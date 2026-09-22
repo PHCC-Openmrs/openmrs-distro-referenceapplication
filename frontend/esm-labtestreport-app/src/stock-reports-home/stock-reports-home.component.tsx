@@ -119,6 +119,15 @@ export default function StockReportsHome() {
       ),
       route: 'stock-wastage-report',
     },
+    {
+      key: 'adjustments',
+      title: t('adjustmentsReportTitle', 'Stock Adjustments Report'),
+      description: t(
+        'adjustmentsReportTileDesc',
+        'Every adjustment line with its reason and remarks, separating commodity consumption from error corrections.',
+      ),
+      route: 'stock-adjustments-report',
+    },
   ];
 
   return (

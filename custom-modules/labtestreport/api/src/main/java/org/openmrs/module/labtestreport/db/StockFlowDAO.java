@@ -53,4 +53,11 @@ public interface StockFlowDAO {
 	 */
 	List<Object[]> getDistributionDetailRows(Integer stockItemId, Integer locationId, String sourceLocationUuid,
 	        Date startDate, Date endDate) throws DAOException;
+
+	/**
+	 * @return one row per Adjustment line (not aggregated - remarks is per operation, so lines
+	 *         cannot be collapsed), each a 17-element array matching the column order of
+	 *         queries/stock_adjustments.sql
+	 */
+	List<Object[]> getAdjustmentRows(Date startDate, Date endDate, String locationUuid) throws DAOException;
 }

@@ -62,4 +62,19 @@ public interface StockFlowService extends OpenmrsService {
 	 */
 	List<StockMovementDetailRow> getDistributionDetails(Integer stockItemId, Integer locationId,
 	        String sourceLocationUuid, Date startDate, Date endDate);
+
+	/**
+	 * Every Adjustment line over a date range, with the reason and remarks from its operation
+	 * header and a {@link StockAdjustmentRow.Purpose} saying whether that reason means routine
+	 * consumption (the non-drug commodity workflow) or an error correction (the drug workflow).
+	 * <p>
+	 * Line level rather than aggregated: remarks is free text on the operation, so rows grouped by
+	 * item would carry a quantity no single remark accounts for.
+	 *
+	 * @param startDate only include activity on/after this date (inclusive), or null for no lower bound
+	 * @param endDate only include activity through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include this location's adjustments, or null for all locations
+	 * @return one row per adjusted stock item line, newest operation first
+	 */
+	List<StockAdjustmentRow> getAdjustments(Date startDate, Date endDate, String locationUuid);
 }

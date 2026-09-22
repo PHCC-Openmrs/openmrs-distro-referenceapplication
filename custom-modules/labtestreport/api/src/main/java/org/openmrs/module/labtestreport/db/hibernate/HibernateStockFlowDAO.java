@@ -23,6 +23,8 @@ public class HibernateStockFlowDAO implements StockFlowDAO {
 
 	private static final String DISTRIBUTION_DRILLDOWN_SQL = SqlResources.load("stock_distribution_drilldown.sql");
 
+	private static final String ADJUSTMENTS_SQL = SqlResources.load("stock_adjustments.sql");
+
 	private DbSessionFactory sessionFactory;
 
 	public void setSessionFactory(DbSessionFactory sessionFactory) {
@@ -94,6 +96,16 @@ public class HibernateStockFlowDAO implements StockFlowDAO {
 		query.setParameter("sourceLocationUuid", sourceLocationUuid);
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
+		return query.list();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Object[]> getAdjustmentRows(Date startDate, Date endDate, String locationUuid) throws DAOException {
+		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(ADJUSTMENTS_SQL);
+		query.setParameter("startDate", startDate);
+		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
 		return query.list();
 	}
 }

@@ -33,6 +33,7 @@ import org.openmrs.module.labtestreport.ReferralFormReportService;
 import org.openmrs.module.labtestreport.ReferralFormRow;
 import org.openmrs.module.labtestreport.SrhReportRow;
 import org.openmrs.module.labtestreport.SrhReportService;
+import org.openmrs.module.labtestreport.StockAdjustmentRow;
 import org.openmrs.module.labtestreport.StockBatchExpiryRow;
 import org.openmrs.module.labtestreport.StockDaysRemainingRow;
 import org.openmrs.module.labtestreport.StockFlowService;
@@ -238,6 +239,16 @@ public class LabTestReportRestController {
 	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
 		List<StockLocationQtyRow> rows = Context.getService(StockFlowService.class).getWastageByLocation(startDate,
 		    endDate, locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-adjustments.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockAdjustments(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<StockAdjustmentRow> rows = Context.getService(StockFlowService.class).getAdjustments(startDate, endDate,
+		    locationUuid);
 		return jsonResponse(rows);
 	}
 

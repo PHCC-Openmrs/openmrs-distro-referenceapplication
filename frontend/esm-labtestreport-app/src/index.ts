@@ -53,6 +53,11 @@ export const stockDistributionReport = getAsyncLifecycle(
 
 export const stockWastageReport = getAsyncLifecycle(() => import('./stock-wastage/stock-wastage.component'), options);
 
+export const stockAdjustmentsReport = getAsyncLifecycle(
+  () => import('./stock-adjustments/stock-adjustments.component'),
+  options,
+);
+
 export const stockExpiryRiskReport = getAsyncLifecycle(
   () => import('./stock-expiry-risk/stock-expiry-risk.component'),
   options,

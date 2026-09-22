@@ -29,4 +29,17 @@
 		<file>messages.properties</file>
 	</messages>
 
+	<globalProperty>
+		<property>labtestreport.adjustmentConsumptionReasonUuids</property>
+		<defaultValue></defaultValue>
+		<description>
+			Comma-separated concept uuids of the stock adjustment reasons that represent routine
+			consumption rather than an error correction. The Stock Adjustments report uses these to
+			tell the two uses of an Adjustment apart: drawing down a non-drug commodity that has no
+			dispensing workflow, versus correcting a miscount on a drug. Reasons not listed here
+			count as corrections. Leave empty to classify everything as a correction, in which case
+			no mismatch flags are raised.
+		</description>
+	</globalProperty>
+
 </module>

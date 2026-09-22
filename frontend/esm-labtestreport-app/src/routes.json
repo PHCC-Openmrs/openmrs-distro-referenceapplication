@@ -73,6 +73,10 @@
       "route": "stock-wastage-report"
     },
     {
+      "component": "stockAdjustmentsReport",
+      "route": "stock-adjustments-report"
+    },
+    {
       "component": "stockExpiryRiskReport",
       "route": "stock-expiry-risk-report"
     },
