@@ -18,6 +18,13 @@
 # declared here, before the first FROM, for FROM $ARG to see it at all.
 #--------------------------------------------
 ARG ESM_CORE_SOURCE=esm-core-remote
+# Same local-checkout override mechanism as ESM_CORE_SOURCE above, for
+# openmrs-esm-patient-management and openmrs-esm-patient-chart respectively --
+# pass --build-context patient-management-local=<path-to-checkout> /
+# patient-chart-local=<path-to-checkout> and set the matching *_SOURCE arg
+# below to its "-local-aliased" stage. See docker-compose.override.yml.
+ARG PATIENT_MANAGEMENT_SOURCE=patient-management-remote
+ARG PATIENT_CHART_SOURCE=patient-chart-remote
 
 FROM alpine/git:latest AS esm-core-remote
 ARG ESM_CORE_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-core.git
@@ -33,6 +40,39 @@ FROM scratch AS esm-core-local-aliased
 COPY --from=esm-core-local . /repo
 
 FROM ${ESM_CORE_SOURCE} AS esm-core-source
+
+FROM alpine/git:latest AS patient-management-remote
+ARG PATIENT_MANAGEMENT_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-patient-management.git
+ARG PATIENT_MANAGEMENT_REF=main
+# ADD from a URL is revalidated against its ETag/Last-Modified on every build,
+# so this layer (and every RUN after it) is invalidated automatically whenever
+# the branch moves -- no need to remember a manual cache-bust build-arg.
+ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-patient-management/commits/${PATIENT_MANAGEMENT_REF} /tmp/patient-management-commit.json
+WORKDIR /repo
+RUN git clone --branch ${PATIENT_MANAGEMENT_REF} --depth 1 ${PATIENT_MANAGEMENT_REPO} .
+
+# Aliases the "patient-management-local" additional build context to the same
+# /repo path patient-management-remote uses -- see the ESM_CORE_SOURCE comment
+# above for why this indirection is needed.
+FROM scratch AS patient-management-local-aliased
+COPY --from=patient-management-local . /repo
+
+FROM ${PATIENT_MANAGEMENT_SOURCE} AS patient-management-source
+
+FROM alpine/git:latest AS patient-chart-remote
+ARG PATIENT_CHART_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-patient-chart.git
+ARG PATIENT_CHART_REF=main
+ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-patient-chart/commits/${PATIENT_CHART_REF} /tmp/patient-chart-commit.json
+WORKDIR /repo
+RUN git clone --branch ${PATIENT_CHART_REF} --depth 1 ${PATIENT_CHART_REPO} .
+
+# Aliases the "patient-chart-local" additional build context to the same
+# /repo path patient-chart-remote uses -- see the ESM_CORE_SOURCE comment
+# above for why this indirection is needed.
+FROM scratch AS patient-chart-local-aliased
+COPY --from=patient-chart-local . /repo
+
+FROM ${PATIENT_CHART_SOURCE} AS patient-chart-source
 
 #--------------------------------------------
 # Dev Stage - Assembles and Builds Frontend
@@ -71,14 +111,8 @@ RUN corepack enable && \
 # @openmrs/esm-service-queues-app, @openmrs/esm-appointments-app AND
 # @openmrs/esm-bed-management-app from our fork instead of the published "next"
 # package, so fixes to any of them ship as soon as they land on main.
-ARG PATIENT_MANAGEMENT_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-patient-management.git
-ARG PATIENT_MANAGEMENT_REF=main
-# ADD from a URL is revalidated against its ETag/Last-Modified on every build,
-# so this layer (and every RUN after it) is invalidated automatically whenever
-# the branch moves -- no need to remember a manual cache-bust build-arg.
-ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-patient-management/commits/${PATIENT_MANAGEMENT_REF} /tmp/patient-management-commit.json
-RUN git clone --branch ${PATIENT_MANAGEMENT_REF} --depth 1 ${PATIENT_MANAGEMENT_REPO} openmrs-esm-patient-management && \
-    corepack enable && \
+COPY --from=patient-management-source /repo openmrs-esm-patient-management
+RUN corepack enable && \
     cd openmrs-esm-patient-management && \
     yarn install && \
     yarn workspace @openmrs/esm-patient-registration-app run build && \
@@ -99,11 +133,8 @@ RUN git clone --branch ${PATIENT_MANAGEMENT_REF} --depth 1 ${PATIENT_MANAGEMENT_
 # depend on the others, so each widget package must be built and packed separately,
 # and spa-assemble-config.json must point each at its own tarball (not "next") or
 # none of this has any effect on what's actually served.
-ARG PATIENT_CHART_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-patient-chart.git
-ARG PATIENT_CHART_REF=main
-ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-patient-chart/commits/${PATIENT_CHART_REF} /tmp/patient-chart-commit.json
-RUN git clone --branch ${PATIENT_CHART_REF} --depth 1 ${PATIENT_CHART_REPO} openmrs-esm-patient-chart && \
-    corepack enable && \
+COPY --from=patient-chart-source /repo openmrs-esm-patient-chart
+RUN corepack enable && \
     cd openmrs-esm-patient-chart && \
     yarn install && \
     yarn workspace @openmrs/esm-patient-chart-app run build && \
