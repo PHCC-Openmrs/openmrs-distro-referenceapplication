@@ -310,6 +310,8 @@
   "saveStockItemReferenceMessage": "Stock item reference saved successfully",
   "scope": "Scope",
   "search": "Search",
+  "searching": "Searching",
+  "searchingEllipsis": "Searching...",
   "searchStockItems": "Search stock items",
   "searchStockOperations": "Search stock operations",
   "searchThisList": "Search this list",

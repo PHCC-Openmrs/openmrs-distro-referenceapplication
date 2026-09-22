@@ -172,6 +172,11 @@
   "@openmrs/esm-service-queues-app": {
     "defaultInitialServiceQueue": "Front Desk",
     "pharmacyQueueName": "Pharmacy",
+    "priorityConfigs": [
+      { "conceptUuid": "f4620bfa-3625-4883-bd3f-84c2cce14470", "color": "green", "style": null },
+      { "conceptUuid": "dc3492ef-24a5-4fd9-b58d-4fd2acf7071f", "color": "orange", "style": null },
+      { "conceptUuid": "04f6f7e0-e3cb-4e13-a133-4479f759574e", "color": "red", "style": "bold" }
+    ],
     "queueTables": {
       "columnDefinitions": [
         {
@@ -187,7 +192,16 @@
       ],
       "tableDefinitions": [
         {
-          "columns": ["patient-name", "queue", "status", "location", "visit-duration", "programs", "actions"],
+          "columns": [
+            "patient-name",
+            "queue",
+            "status",
+            "priority",
+            "location",
+            "visit-duration",
+            "programs",
+            "actions"
+          ],
           "appliedTo": [{ "queue": "", "status": "" }]
         }
       ]
