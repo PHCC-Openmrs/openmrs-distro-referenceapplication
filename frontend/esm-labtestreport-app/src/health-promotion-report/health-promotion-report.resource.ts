@@ -16,11 +16,13 @@ export interface HealthPromotionRow {
   gender: string | null;
   nationalId: string | null;
   phoneNumber: string | null;
+  /** The patient's own address, not a form field. */
+  fullAddress: string | null;
+  governorate: string | null;
+  neighborhood: string | null;
   sessionDate: string | null;
   sessionType: string | null;
   topic: string | null;
-  /** The free-text location the session was held at, as typed on the form. */
-  sessionLocation: string | null;
   chwName: string | null;
   notes: string | null;
 }

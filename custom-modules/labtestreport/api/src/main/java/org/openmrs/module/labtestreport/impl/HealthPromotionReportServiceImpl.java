@@ -35,12 +35,14 @@ public class HealthPromotionReportServiceImpl extends BaseOpenmrsService impleme
 			row.setGender((String) r[10]);
 			row.setNationalId((String) r[11]);
 			row.setPhoneNumber((String) r[12]);
-			row.setSessionDate((Date) r[13]);
-			row.setSessionType((String) r[14]);
-			row.setTopic((String) r[15]);
-			row.setSessionLocation((String) r[16]);
-			row.setChwName((String) r[17]);
-			row.setNotes((String) r[18]);
+			row.setFullAddress((String) r[13]);
+			row.setGovernorate((String) r[14]);
+			row.setNeighborhood((String) r[15]);
+			row.setSessionDate((Date) r[16]);
+			row.setSessionType((String) r[17]);
+			row.setTopic((String) r[18]);
+			row.setChwName((String) r[19]);
+			row.setNotes((String) r[20]);
 			rows.add(row);
 		}
 		return rows;

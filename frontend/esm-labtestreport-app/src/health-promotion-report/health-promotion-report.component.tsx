@@ -19,8 +19,10 @@ const SEARCHABLE_FIELDS: Array<keyof HealthPromotionRow> = [
   'participantName',
   'nationalId',
   'phoneNumber',
+  'fullAddress',
+  'governorate',
+  'neighborhood',
   'topic',
-  'sessionLocation',
   'chwName',
 ];
 
@@ -62,6 +64,9 @@ export default function HealthPromotionReport() {
       participantName: (row: HealthPromotionRow) => row.participantName ?? '',
       age: (row: HealthPromotionRow) => row.age,
       gender: (row: HealthPromotionRow) => row.gender ?? '',
+      fullAddress: (row: HealthPromotionRow) => row.fullAddress ?? '',
+      governorate: (row: HealthPromotionRow) => row.governorate ?? '',
+      neighborhood: (row: HealthPromotionRow) => row.neighborhood ?? '',
       sessionDate: (row: HealthPromotionRow) => row.sessionDate ?? '',
       sessionType: (row: HealthPromotionRow) => row.sessionType ?? '',
       topic: (row: HealthPromotionRow) => row.topic ?? '',
@@ -108,10 +113,12 @@ export default function HealthPromotionReport() {
         t('gender', 'Gender'),
         t('nationalId', 'National ID'),
         t('phoneNumber', 'Phone Number'),
+        t('fullAddress', 'Full Address'),
+        t('governorate', 'Governorate'),
+        t('neighborhood', 'Neighborhood'),
         t('sessionDate', 'Session Date'),
         t('sessionType', 'Session Type'),
         t('topic', 'Topic'),
-        t('sessionLocation', 'Session Location'),
         t('chwName', 'CHW Name'),
         t('notes', 'Notes'),
       ],
@@ -126,10 +133,12 @@ export default function HealthPromotionReport() {
         row.gender ?? '',
         row.nationalId ?? '',
         row.phoneNumber ?? '',
+        row.fullAddress ?? '',
+        row.governorate ?? '',
+        row.neighborhood ?? '',
         row.sessionDate ?? '',
         row.sessionType ?? '',
         row.topic ?? '',
-        row.sessionLocation ?? '',
         row.chwName ?? '',
         row.notes ?? '',
       ]),
@@ -272,6 +281,30 @@ export default function HealthPromotionReport() {
                   <th>{t('nationalId', 'National ID')}</th>
                   <th>{t('phoneNumber', 'Phone Number')}</th>
                   <SortableHeader
+                    label={t('fullAddress', 'Full Address')}
+                    sortKey="fullAddress"
+                    activeSortKey={sortKey}
+                    direction={direction}
+                    onSort={toggleSort}
+                    className="left"
+                  />
+                  <SortableHeader
+                    label={t('governorate', 'Governorate')}
+                    sortKey="governorate"
+                    activeSortKey={sortKey}
+                    direction={direction}
+                    onSort={toggleSort}
+                    className="left"
+                  />
+                  <SortableHeader
+                    label={t('neighborhood', 'Neighborhood')}
+                    sortKey="neighborhood"
+                    activeSortKey={sortKey}
+                    direction={direction}
+                    onSort={toggleSort}
+                    className="left"
+                  />
+                  <SortableHeader
                     label={t('sessionDate', 'Session Date')}
                     sortKey="sessionDate"
                     activeSortKey={sortKey}
@@ -293,7 +326,6 @@ export default function HealthPromotionReport() {
                     onSort={toggleSort}
                     className="left"
                   />
-                  <th className="left">{t('sessionLocation', 'Session Location')}</th>
                   <SortableHeader
                     label={t('chwName', 'CHW Name')}
                     sortKey="chwName"
@@ -323,17 +355,19 @@ export default function HealthPromotionReport() {
                     <td>{row.gender || '--'}</td>
                     <td>{row.nationalId || '--'}</td>
                     <td>{row.phoneNumber || '--'}</td>
+                    <td className="left">{row.fullAddress || '--'}</td>
+                    <td className="left">{row.governorate || '--'}</td>
+                    <td className="left">{row.neighborhood || '--'}</td>
                     <td>{row.sessionDate || '--'}</td>
                     <td>{row.sessionType || '--'}</td>
                     <td className="left">{row.topic || '--'}</td>
-                    <td className="left">{row.sessionLocation || '--'}</td>
                     <td className="left">{row.chwName || '--'}</td>
                     <td className="left">{row.notes || '--'}</td>
                   </tr>
                 ))}
                 {sortedRows.length === 0 && (
                   <tr>
-                    <td colSpan={14} className={pageStyles.emptyState}>
+                    <td colSpan={16} className={pageStyles.emptyState}>
                       {t('noSessionsForSelection', 'No Health Promotion Session submissions found for this selection.')}
                     </td>
                   </tr>
