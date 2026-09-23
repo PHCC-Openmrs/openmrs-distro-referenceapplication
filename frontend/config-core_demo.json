@@ -170,6 +170,7 @@
     }
   },
   "@openmrs/esm-service-queues-app": {
+    "hiddenServicePrograms": ["481fd184-69e9-41af-b4b3-28d714c94343"],
     "defaultInitialServiceQueue": "Front Desk",
     "pharmacyQueueName": "Pharmacy",
     "priorityConfigs": [
