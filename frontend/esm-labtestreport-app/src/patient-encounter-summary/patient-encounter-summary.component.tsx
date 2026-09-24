@@ -281,13 +281,49 @@ export default function PatientEncounterSummaryReport() {
     }));
   }, [t, patientGroups, primary, compare.enabled, compareSummary, compare.comparison.label]);
 
-  const mainExportSheet = useMemo<ExportSheet>(() => {
-    // Visit-grained, one row per visible visit -- matches what's on screen, unlike the old
-    // per-patient sheet where a service/location filter kept a patient's unrelated visits mixed
-    // into the same row (see buildPatientGroups).
+  // Sheet 1 mirrors the on-screen table: one row per patient, summarising the visits that
+  // survived the current filters.
+  const mainExportSheet = useMemo<ExportSheet>(
+    () => ({
+      name: t('patientVisitSummary', 'Patient Visit Summary'),
+      headers: [
+        t('givenName', 'Given Name'),
+        t('middleName', 'Middle Name'),
+        t('familyName', 'Family Name'),
+        t('sex', 'Sex'),
+        t('nationalId', 'National ID'),
+        t('phoneNumber', 'Phone Number'),
+        t('age', 'Age'),
+        t('numberOfVisits', 'Number of Visits'),
+        t('mostRecentVisitDate', 'Most Recent Visit Date'),
+        t('serviceType', 'Service Type'),
+        t('location', 'Location'),
+      ],
+      rows: sortedRows.map((group) => {
+        const patient = patientById.get(group.patientId);
+        return [
+          patient?.givenName ?? '',
+          patient?.middleName ?? '',
+          patient?.familyName ?? '',
+          group.sex,
+          group.nationalId,
+          group.phoneNumber,
+          group.age ?? '',
+          group.visitCount,
+          group.mostRecentVisitDate,
+          group.services.join(', '),
+          uniqueSorted(group.visits.map((visit) => visit.locationName).filter(Boolean)).join(', '),
+        ];
+      }),
+    }),
+    [t, sortedRows, patientById],
+  );
+
+  // Sheet 2 is the raw data behind sheet 1: one row per filtered visit, in the same patient order.
+  const visitDetailExportSheet = useMemo<ExportSheet>(() => {
     const visitRows = sortedRows.flatMap((group) => group.visits.map((visit) => ({ group, visit })));
     return {
-      name: t('patientVisitSummary', 'Patient Visit Summary'),
+      name: t('visitDetails', 'Visit Details'),
       headers: [
         t('givenName', 'Given Name'),
         t('familyName', 'Family Name'),
@@ -319,8 +355,9 @@ export default function PatientEncounterSummaryReport() {
   }, [t, sortedRows, patientById]);
 
   const exportExtraSheets = useMemo<Array<ExportSheet>>(
-    () => (compare.enabled ? [buildKpiExportSheet(kpiItems, t)] : []),
-    [compare.enabled, kpiItems, t],
+    () =>
+      compare.enabled ? [visitDetailExportSheet, buildKpiExportSheet(kpiItems, t)] : [visitDetailExportSheet],
+    [compare.enabled, visitDetailExportSheet, kpiItems, t],
   );
 
   function applyFilter() {
