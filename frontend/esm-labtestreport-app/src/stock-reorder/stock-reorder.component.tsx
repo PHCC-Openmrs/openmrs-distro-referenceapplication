@@ -105,7 +105,7 @@ export default function StockReorderReport() {
         <p className={pageStyles.pageSubtitle}>
           {t(
             'stockReorderSubtitle',
-            'Items currently below the reorder threshold configured for them at a location (Stock Rules). Configure reorder rules in the Stock Management app to add items here.',
+            "Items currently below their reorder level - the stock item's Reorder level, or a location's Stock Rule where one is set. Set reorder levels in the Stock Management app to add items here.",
           )}
         </p>
 

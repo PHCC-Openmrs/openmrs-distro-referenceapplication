@@ -6,7 +6,8 @@ export interface StockReorderRow {
   itemName: string;
   locationId: number;
   locationName: string | null;
-  ruleName: string;
+  // Null when the threshold is the stock item's own reorder level rather than a Stock Rule.
+  ruleName: string | null;
   reorderLevel: number;
   // Usable stock only - an expired batch is not dispensable, so it is not what the reorder level
   // should be judged against. expiredQty is shown alongside to explain a row flagged while physical
