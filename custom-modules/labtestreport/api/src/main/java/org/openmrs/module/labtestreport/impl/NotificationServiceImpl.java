@@ -337,7 +337,7 @@ public class NotificationServiceImpl extends BaseOpenmrsService implements Notif
 	private List<Alert> alertsAtSessionLocation() {
 		Location sessionLocation = Context.getUserContext().getLocation();
 		List<Alert> alerts = new ArrayList<>();
-		for (Alert alert : Context.getAlertService().getAlertsByUser(null)) {
+		for (Alert alert : dao.getUnreadAlertsFor(Context.getAuthenticatedUser())) {
 			String text = alert.getText();
 			if (text == null) {
 				continue;
