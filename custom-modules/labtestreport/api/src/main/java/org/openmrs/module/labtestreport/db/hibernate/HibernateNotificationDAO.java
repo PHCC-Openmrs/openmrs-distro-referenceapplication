@@ -1,7 +1,9 @@
 package org.openmrs.module.labtestreport.db.hibernate;
 
+import java.util.Date;
 import java.util.List;
 
+import org.openmrs.User;
 import org.openmrs.api.db.DAOException;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.labtestreport.db.NotificationDAO;
@@ -21,6 +23,17 @@ public class HibernateNotificationDAO implements NotificationDAO {
 		return sessionFactory.getCurrentSession()
 		        .createQuery("from Alert a where a.text like :marker order by a.alertId desc")
 		        .setParameter("marker", "%" + marker + "%").list();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Alert> getUnreadAlertsFor(User user) throws DAOException {
+		// the alert's own alertRead is what core sets once a satisfiedByAny alert is read by anyone
+		return sessionFactory.getCurrentSession()
+		        .createQuery("select a from Alert a join a.recipients r where r.recipient = :user and r.alertRead = false"
+		                + " and a.alertRead = false and (a.dateToExpire is null or a.dateToExpire > :now)"
+		                + " order by a.alertId desc")
+		        .setParameter("user", user).setParameter("now", new Date()).list();
 	}
 
 	@Override

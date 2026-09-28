@@ -2,6 +2,7 @@ package org.openmrs.module.labtestreport.db;
 
 import java.util.List;
 
+import org.openmrs.User;
 import org.openmrs.api.db.DAOException;
 import org.openmrs.notification.Alert;
 
@@ -17,6 +18,15 @@ public interface NotificationDAO {
 	 * @return every alert (read, unread or expired) whose text contains the marker, newest first
 	 */
 	List<Alert> getAlertsContaining(String marker) throws DAOException;
+
+	/**
+	 * Core's AlertService.getAlertsByUser can't be used: in 2.8 it checks "unread" on a second join
+	 * of the recipients, so an alert comes back once per recipient who hasn't read it, and still
+	 * shows for a user who has read it while anyone else hasn't.
+	 *
+	 * @return the unexpired alerts the user is a recipient of and has not read, each once
+	 */
+	List<Alert> getUnreadAlertsFor(User user) throws DAOException;
 
 	/**
 	 * @return {patient uuid, queue name, queue location id, provider waiting for's person id,
