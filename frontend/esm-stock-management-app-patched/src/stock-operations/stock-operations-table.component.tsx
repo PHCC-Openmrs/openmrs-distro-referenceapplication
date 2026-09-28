@@ -57,20 +57,24 @@ const StockOperations: React.FC<StockOperationsTableProps> = () => {
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [selectedOperations, setSelectedOperations] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { items, tableHeaders, currentPage, pageSizes, totalItems, goTo, currentPageSize, setPageSize, isLoading } =
-    useStockOperationPages({
-      v: ResourceRepresentation.Full,
-      totalCount: true,
-      // Operations where the logged-in location is either the source or the destination --
-      // matches the same session-location scoping already applied to stock item quantities.
-      locationUuid: sessionLocation?.uuid,
-      operationDateMin: selectedFromDate?.toISOString(),
-      operationDateMax: selectedToDate?.toISOString(),
-      status: selectedStatus.join(','),
-      sourceTypeUuid: selectedSources.join(','),
-      operationTypeUuid: selectedOperations.join(','),
-    });
+    useStockOperationPages(
+      {
+        v: ResourceRepresentation.Full,
+        totalCount: true,
+        // Operations where the logged-in location is either the source or the destination --
+        // matches the same session-location scoping already applied to stock item quantities.
+        locationUuid: sessionLocation?.uuid,
+        operationDateMin: selectedFromDate?.toISOString(),
+        operationDateMax: selectedToDate?.toISOString(),
+        status: selectedStatus.join(','),
+        sourceTypeUuid: selectedSources.join(','),
+        operationTypeUuid: selectedOperations.join(','),
+      },
+      searchTerm,
+    );
 
   const filterApplied =
     selectedFromDate || selectedToDate || selectedSources.length || selectedStatus.length || selectedOperations.length;
@@ -160,16 +164,7 @@ const StockOperations: React.FC<StockOperationsTableProps> = () => {
         {t('stockOperationsTableHeader', 'Stock operations to track movement of stock.')}
       </h2>
       <DataTable headers={tableHeaders} isSortable rows={tableRows} useZebraStyles>
-        {({
-          expandRow,
-          getExpandedRowProps,
-          getHeaderProps,
-          getRowProps,
-          getTableProps,
-          headers,
-          onInputChange,
-          rows,
-        }) => (
+        {({ expandRow, getExpandedRowProps, getHeaderProps, getRowProps, getTableProps, headers, rows }) => (
           <TableContainer>
             <TableToolbar
               style={{
@@ -185,7 +180,10 @@ const StockOperations: React.FC<StockOperationsTableProps> = () => {
                   className={styles.search}
                   persistent
                   labelText={t('searchStockOperations', 'Search stock operations')}
-                  onChange={onInputChange}
+                  onChange={(event) => {
+                    setSearchTerm(typeof event === 'string' ? event : event?.target?.value ?? '');
+                    goTo(1);
+                  }}
                   placeholder={t('searchStockOperations', 'Search stock operations')}
                 />
                 <div className={styles.container}>
@@ -266,7 +264,7 @@ const StockOperations: React.FC<StockOperationsTableProps> = () => {
                       </TableExpandRow>
                       {row.isExpanded ? (
                         <TableExpandedRow colSpan={headers.length + 2}>
-                          <StockOperationExpandedRow model={items[index]} />
+                          <StockOperationExpandedRow model={items.find((item) => item.uuid === row.id)} />
                         </TableExpandedRow>
                       ) : (
                         <TableExpandedRow className={styles.hiddenRow} colSpan={headers.length + 2} />
