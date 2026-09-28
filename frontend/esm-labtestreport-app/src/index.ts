@@ -111,6 +111,11 @@ export const healthPromotionReport = getAsyncLifecycle(
 
 export const srhReport = getAsyncLifecycle(() => import('./srh-report/srh-report.component'), options);
 
+export const medicineDistributionReport = getAsyncLifecycle(
+  () => import('./medicine-distribution-report/medicine-distribution-report.component'),
+  options,
+);
+
 export const labTestSummaryLink = getAsyncLifecycle(() => import('./lab-test-summary-link.component'), options);
 
 export const patientEncounterSummaryLink = getAsyncLifecycle(
@@ -125,3 +130,13 @@ export const stockLedgerLink = getAsyncLifecycle(() => import('./stock-ledger-li
 export const cmamSummaryLink = getAsyncLifecycle(() => import('./cmam-summary-link.component'), options);
 
 export const reportsOverviewLink = getAsyncLifecycle(() => import('./reports-overview-link.component'), options);
+
+export const notificationsButton = getAsyncLifecycle(
+  () => import('./notifications/notifications-button.component'),
+  options,
+);
+
+export const notificationsPanel = getAsyncLifecycle(
+  () => import('./notifications/notifications-panel.component'),
+  options,
+);

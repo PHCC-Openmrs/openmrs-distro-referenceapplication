@@ -330,6 +330,35 @@
 		</property>
 	</bean>
 
+	<!-- Configure the Medicine Distribution Report Service -->
+	<bean parent="serviceContext">
+		<property name="moduleService">
+			<list>
+				<value>org.openmrs.module.labtestreport.MedicineDistributionService</value>
+				<ref bean="medicineDistributionService"/>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="medicineDistributionService" class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+		<property name="transactionManager"><ref bean="transactionManager"/></property>
+		<property name="target">
+			<bean class="org.openmrs.module.labtestreport.impl.MedicineDistributionServiceImpl">
+				<property name="dao">
+					<bean class="org.openmrs.module.labtestreport.db.hibernate.HibernateMedicineDistributionDAO">
+						<property name="sessionFactory"><ref bean="dbSessionFactory"/></property>
+					</bean>
+				</property>
+			</bean>
+		</property>
+		<property name="preInterceptors">
+			<ref bean="serviceInterceptors"/>
+		</property>
+		<property name="transactionAttributeSource">
+			<bean class="org.springframework.transaction.annotation.AnnotationTransactionAttributeSource"/>
+		</property>
+	</bean>
+
 	<!-- Configure the Nursing Report Service -->
 	<bean parent="serviceContext">
 		<property name="moduleService">
@@ -375,6 +404,35 @@
 			<bean class="org.openmrs.module.labtestreport.impl.SrhReportServiceImpl">
 				<property name="dao">
 					<bean class="org.openmrs.module.labtestreport.db.hibernate.HibernateSrhReportDAO">
+						<property name="sessionFactory"><ref bean="dbSessionFactory"/></property>
+					</bean>
+				</property>
+			</bean>
+		</property>
+		<property name="preInterceptors">
+			<ref bean="serviceInterceptors"/>
+		</property>
+		<property name="transactionAttributeSource">
+			<bean class="org.springframework.transaction.annotation.AnnotationTransactionAttributeSource"/>
+		</property>
+	</bean>
+
+	<!-- Configure the Notification Service -->
+	<bean parent="serviceContext">
+		<property name="moduleService">
+			<list>
+				<value>org.openmrs.module.labtestreport.NotificationService</value>
+				<ref bean="labtestreportNotificationService"/>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="labtestreportNotificationService" class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+		<property name="transactionManager"><ref bean="transactionManager"/></property>
+		<property name="target">
+			<bean class="org.openmrs.module.labtestreport.impl.NotificationServiceImpl">
+				<property name="dao">
+					<bean class="org.openmrs.module.labtestreport.db.hibernate.HibernateNotificationDAO">
 						<property name="sessionFactory"><ref bean="dbSessionFactory"/></property>
 					</bean>
 				</property>

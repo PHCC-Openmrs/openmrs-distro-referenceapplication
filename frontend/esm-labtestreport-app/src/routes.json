@@ -33,6 +33,20 @@
       "name": "reports-overview-admin-link",
       "slot": "system-admin-page-card-link-slot",
       "component": "reportsOverviewLink"
+    },
+    {
+      "name": "notifications-button",
+      "slot": "notifications-menu-button-slot",
+      "component": "notificationsButton",
+      "online": true,
+      "offline": false
+    },
+    {
+      "name": "notifications-panel",
+      "slot": "notifications-nav-menu-slot",
+      "component": "notificationsPanel",
+      "online": true,
+      "offline": false
     }
   ],
   "pages": [
@@ -127,6 +141,10 @@
     {
       "component": "srhReport",
       "route": "srh-report"
+    },
+    {
+      "component": "medicineDistributionReport",
+      "route": "medicine-distribution-report"
     }
   ]
 }

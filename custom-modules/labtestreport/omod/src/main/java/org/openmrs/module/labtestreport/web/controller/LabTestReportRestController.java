@@ -18,8 +18,11 @@ import org.openmrs.module.labtestreport.DiseaseSummaryService;
 import org.openmrs.module.labtestreport.HealthPromotionReportService;
 import org.openmrs.module.labtestreport.HealthPromotionRow;
 import org.openmrs.module.labtestreport.LabTestReportService;
+import org.openmrs.module.labtestreport.MedicineDistributionRow;
+import org.openmrs.module.labtestreport.MedicineDistributionService;
 import org.openmrs.module.labtestreport.NcdPatientCardReportService;
 import org.openmrs.module.labtestreport.NcdPatientCardRow;
+import org.openmrs.module.labtestreport.NotificationService;
 import org.openmrs.module.labtestreport.NursingReportRow;
 import org.openmrs.module.labtestreport.NursingReportService;
 import org.openmrs.module.labtestreport.NutritionFilterOptions;
@@ -79,6 +82,9 @@ public class LabTestReportRestController {
 		OBJECT_MAPPER.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 		OBJECT_MAPPER.setDateFormat(new SimpleDateFormat(SummaryReportController.DATE_FORMAT));
 	}
+
+	/** Notifications need the time of day, which the reports' date-only format would drop, so they go out as epoch millis. */
+	private static final ObjectMapper NOTIFICATION_MAPPER = new ObjectMapper();
 
 	@InitBinder
 	public void initBinder(HttpServletRequest request, ServletRequestDataBinder binder) {
@@ -154,6 +160,17 @@ public class LabTestReportRestController {
 	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
 		List<NursingReportRow> rows = Context.getService(NursingReportService.class).getNursingReport(startDate, endDate,
 		    locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/medicine-distribution-report.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> medicineDistributionReport(
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<MedicineDistributionRow> rows = Context.getService(MedicineDistributionService.class)
+		        .getMedicineDistributionReport(startDate, endDate, locationUuid);
 		return jsonResponse(rows);
 	}
 
@@ -394,6 +411,18 @@ public class LabTestReportRestController {
 	public ResponseEntity<String> nutritionFilterOptions() throws JsonProcessingException {
 		NutritionFilterOptions options = Context.getService(NutritionReportService.class).getFilterOptions();
 		return jsonResponse(options);
+	}
+
+	@RequestMapping(value = "/notifications.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> notifications() throws JsonProcessingException {
+		if (!Context.isAuthenticated()) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		return new ResponseEntity<>(NOTIFICATION_MAPPER.writeValueAsString(
+		    Context.getService(NotificationService.class).getUnreadNotificationsForCurrentUser()), headers, HttpStatus.OK);
 	}
 
 	private static <T> ResponseEntity<String> jsonResponse(T body) throws JsonProcessingException {
