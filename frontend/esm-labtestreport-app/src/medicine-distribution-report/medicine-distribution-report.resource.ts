@@ -13,6 +13,7 @@ export interface MedicineDistributionRow {
   age: number | null;
   gender: string | null;
   nationalId: string | null;
+  phoneNumber: string | null;
   drugId: number | null;
   drugName: string | null;
   dose: number | null;

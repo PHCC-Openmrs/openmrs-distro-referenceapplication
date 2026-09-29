@@ -57,7 +57,18 @@ SELECT
     WHERE md.drug_order_id = o.order_id AND md.voided = 0
     ORDER BY COALESCE(md.date_handed_over, md.date_created) DESC, md.medication_dispense_id DESC
     LIMIT 1)                        AS dispenseStatus,
-  TRIM(CONCAT(COALESCE(prescriberName.given_name, ''), ' ', COALESCE(prescriberName.family_name, ''))) AS prescriber
+  TRIM(CONCAT(COALESCE(prescriberName.given_name, ''), ' ', COALESCE(prescriberName.family_name, ''))) AS prescriber,
+  -- Scalar subquery for the same reason as nationalId: one row per order even if the patient has
+  -- more than one non-voided phone attribute. Matched by the UUID the registration form writes to
+  -- (named "Telephone Number" in the reference dictionary) as well as by the "Phone Number" name
+  -- the other reports use.
+  (SELECT pa_phone.value
+     FROM person_attribute pa_phone
+    WHERE pa_phone.person_id = p.person_id AND pa_phone.voided = 0
+      AND pa_phone.person_attribute_type_id IN (SELECT person_attribute_type_id FROM person_attribute_type
+                                                 WHERE uuid = '14d4f066-15f5-102d-96e4-000c29c2a5d7' OR name = 'Phone Number')
+    ORDER BY pa_phone.person_attribute_id DESC
+    LIMIT 1)                        AS phoneNumber
 FROM drug_order do
 JOIN orders o ON o.order_id = do.order_id
 JOIN person p ON p.person_id = o.patient_id

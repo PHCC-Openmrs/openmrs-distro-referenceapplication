@@ -30,6 +30,8 @@ public class MedicineDistributionRow {
 
 	private String nationalId;
 
+	private String phoneNumber;
+
 	private Integer drugId;
 
 	private String drugName;
@@ -148,6 +150,14 @@ public class MedicineDistributionRow {
 
 	public void setNationalId(String nationalId) {
 		this.nationalId = nationalId;
+	}
+
+	public String getPhoneNumber() {
+		return phoneNumber;
+	}
+
+	public void setPhoneNumber(String phoneNumber) {
+		this.phoneNumber = phoneNumber;
 	}
 
 	public Integer getDrugId() {

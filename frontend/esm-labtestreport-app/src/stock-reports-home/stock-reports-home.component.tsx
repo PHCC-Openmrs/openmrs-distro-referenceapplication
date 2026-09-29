@@ -73,6 +73,15 @@ export default function StockReportsHome() {
       route: 'stock-distribution-report',
     },
     {
+      key: 'medicine-distribution',
+      title: t('medicineDistributionReportTitle', 'Medicine Distribution Report'),
+      description: t(
+        'medicineDistributionReportTileDesc',
+        'Medicine-wise prescriptions: which patients were given each medicine, with dose, frequency, duration and quantity dispensed.',
+      ),
+      route: 'medicine-distribution-report',
+    },
+    {
       key: 'days-of-stock',
       title: t('daysOfStockReportTitle', 'Days of Stock Remaining'),
       description: t(

@@ -17,6 +17,7 @@ const SEARCHABLE_FIELDS: Array<keyof MedicineDistributionRow> = [
   'middleName',
   'familyName',
   'nationalId',
+  'phoneNumber',
   'drugName',
   'location',
   'prescriber',
@@ -150,6 +151,7 @@ export default function MedicineDistributionReport() {
       age: (row: MedicineDistributionRow) => row.age,
       gender: (row: MedicineDistributionRow) => row.gender ?? '',
       nationalId: (row: MedicineDistributionRow) => row.nationalId ?? '',
+      phoneNumber: (row: MedicineDistributionRow) => row.phoneNumber ?? '',
       dose: (row: MedicineDistributionRow) => row.dose,
       frequency: (row: MedicineDistributionRow) => row.frequency ?? '',
       duration: (row: MedicineDistributionRow) => row.duration,
@@ -200,6 +202,7 @@ export default function MedicineDistributionReport() {
         t('middleName', 'Middle Name'),
         t('familyName', 'Family Name'),
         t('nationalId', 'National ID'),
+        t('phoneNumber', 'Phone Number'),
         t('age', 'Age'),
         t('gender', 'Gender'),
         t('dateOrdered', 'Date Ordered'),
@@ -224,6 +227,7 @@ export default function MedicineDistributionReport() {
         row.middleName ?? '',
         row.familyName,
         row.nationalId ?? '',
+        row.phoneNumber ?? '',
         row.age ?? '',
         row.gender ?? '',
         row.dateActivated,
@@ -300,7 +304,7 @@ export default function MedicineDistributionReport() {
 
   return (
     <div>
-      <BackToReportsLink />
+      <BackToReportsLink to="stock-reports-home" label={t('stockReports', 'Stock Reports')} />
       <div className={pageStyles.pageBody}>
         <h2 className={pageStyles.pageHeading}>{t('medicineDistributionReportTitle', 'Medicine Distribution Report')}</h2>
         <p className={pageStyles.pageSubtitle}>
@@ -394,7 +398,7 @@ export default function MedicineDistributionReport() {
             <Search
               size="md"
               labelText={t('search', 'Search')}
-              placeholder={t('searchMedicineDistributionPlaceholder', 'Search patient, ID, medicine, prescriber...')}
+              placeholder={t('searchMedicineDistributionPlaceholder', 'Search patient, ID, phone, medicine, prescriber...')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onClear={() => setSearchTerm('')}
@@ -513,6 +517,14 @@ export default function MedicineDistributionReport() {
                     className="left"
                   />
                   <SortableHeader
+                    label={t('phoneNumber', 'Phone Number')}
+                    sortKey="phoneNumber"
+                    activeSortKey={detailSort.sortKey}
+                    direction={detailSort.direction}
+                    onSort={detailSort.toggleSort}
+                    className="left"
+                  />
+                  <SortableHeader
                     label={t('age', 'Age')}
                     sortKey="age"
                     activeSortKey={detailSort.sortKey}
@@ -613,6 +625,7 @@ export default function MedicineDistributionReport() {
                   >
                     <td className="left">{patientName(row)}</td>
                     <td className="left">{row.nationalId || '--'}</td>
+                    <td className="left">{row.phoneNumber || '--'}</td>
                     <td>{row.age ?? '--'}</td>
                     <td>{row.gender || '--'}</td>
                     <td>{row.dateActivated}</td>
@@ -630,7 +643,7 @@ export default function MedicineDistributionReport() {
                 ))}
                 {detailSort.sortedRows.length === 0 && (
                   <tr>
-                    <td colSpan={15} className={pageStyles.emptyState}>
+                    <td colSpan={16} className={pageStyles.emptyState}>
                       {t('noPrescriptionsForSelection', 'No prescriptions found for this selection.')}
                     </td>
                   </tr>

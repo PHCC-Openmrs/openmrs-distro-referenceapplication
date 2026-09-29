@@ -347,7 +347,7 @@
   "searchByItemOrLocation": "Search by item or location",
   "searchByItemOrLocationPlaceholder": "Search by item or location...",
   "searchHealthPromotionPlaceholder": "Search name, ID, phone, topic, CHW...",
-  "searchMedicineDistributionPlaceholder": "Search patient, ID, medicine, prescriber...",
+  "searchMedicineDistributionPlaceholder": "Search patient, ID, phone, medicine, prescriber...",
   "searchNamesIdsPlaceholder": "Search name, ID, phone, location...",
   "searchNcdPlaceholder": "Search name, national ID, phone, condition...",
   "searchNursingPlaceholder": "Search name, wound, ointment, medication...",

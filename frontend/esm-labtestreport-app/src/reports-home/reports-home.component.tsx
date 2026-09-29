@@ -83,15 +83,6 @@ export default function ReportsHome() {
           ),
           route: 'disease-summary-report',
         },
-        {
-          key: 'medicine-distribution-report',
-          title: t('medicineDistributionReportTitle', 'Medicine Distribution Report'),
-          description: t(
-            'medicineDistributionReportTileDesc',
-            'Medicine-wise prescriptions: which patients were given each medicine, with dose, frequency, duration and quantity dispensed.',
-          ),
-          route: 'medicine-distribution-report',
-        },
       ],
     },
     {
