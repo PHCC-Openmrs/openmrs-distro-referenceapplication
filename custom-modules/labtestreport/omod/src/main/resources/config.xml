@@ -25,6 +25,11 @@
 		<class>@MODULE_PACKAGE@.extension.html.LabTestReportAdminExt</class>
 	</extension>
 
+	<extension>
+		<point>org.openmrs.headerFullIncludeExt</point>
+		<class>@MODULE_PACKAGE@.extension.html.HideLegacyAlertsExt</class>
+	</extension>
+
 	<messages>
 		<lang>en</lang>
 		<file>messages.properties</file>

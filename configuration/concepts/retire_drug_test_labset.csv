@@ -172,32 +172,32 @@ be6a18fc-18fa-43e7-8861-75d975535715,TRUE,Cerebrospinal fluid white blood cells,
 166397AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum magnesium measurement (mg/dL),Test,Numeric
 165852AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Respiratory specimen severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) antigen rapid diagnostic test,Test,Coded
 1297AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Direct bilirubin,Test,Numeric
-163695AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Crystals type in urine sediment by light microscopy test,Test,Coded
-161153AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Partial thromboplastin time,Test,Numeric
+163695AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Crystals type in urine sediment by light microscopy test,Test,Coded
+161153AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Partial thromboplastin time,Test,Numeric
 159647AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Cerebrospinal fluid glucose,Test,Numeric
 163001AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Indirect bilirubin in serum or plasma,Test,Numeric
 1038AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"Neisseria gonorrhoeae polymerase chain reaction, qualitative",Test,Coded
-953AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Liver function tests,LabSet,N/A
-887AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum glucose,Test,Numeric
-857AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Blood urea nitrogen,Test,Numeric
+953AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Liver function tests,LabSet,N/A
+887AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Serum glucose,Test,Numeric
+857AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Blood urea nitrogen,Test,Numeric
 856AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,HIV viral load,Test,Numeric
-855AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Erythrocyte sedimentation rate,Test,Numeric
+855AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Erythrocyte sedimentation rate,Test,Numeric
 854AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,CD4/CD8,Test,Numeric
 851AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Mean corpuscular volume,Test,Numeric
 849AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urinary albumin,Test,Numeric
-848AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum albumin,Test,Numeric
+848AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Serum albumin,Test,Numeric
 844AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,HIV DNA polymerase chain reaction,Test,Coded
 790AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum creatinine (umol/L),Test,Numeric
-785AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Alkaline phosphatase,Test,Numeric
+785AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Alkaline phosphatase,Test,Numeric
 730AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,CD4%,Test,Numeric
-729AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Platelets,Test,Numeric
+729AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Platelets,Test,Numeric
 717AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Total protein,Test,Numeric
 679AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Red blood cells,Test,Numeric
 678AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,White blood cells,Test,Numeric
 657AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,CD4 panel,LabSet,N/A
 655AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Total bilirubin,Test,Numeric
-654AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum glutamic-pyruvic transaminase,Test,Numeric
-653AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum glutamic-oxaloacetic transaminase,Test,Numeric
+654AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Serum glutamic-pyruvic transaminase,Test,Numeric
+653AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Serum glutamic-oxaloacetic transaminase,Test,Numeric
 56AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine microscopy,Test,Text
 5497AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,CD4 count,Test,Numeric
 5475AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Tuberculin skin test (mm),Test,Numeric
@@ -213,7 +213,7 @@ be6a18fc-18fa-43e7-8861-75d975535715,TRUE,Cerebrospinal fluid white blood cells,
 1458AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum glucose (mmol),Test,Numeric
 21AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Haemoglobin,Test,Numeric
 1945AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"Serum pregnancy test, qualitative",Test,Coded
-1875AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine protein (dipstick),Test,Coded
+1875AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Urine protein (dipstick),Test,Coded
 82021b16-36b4-4bf4-ad7b-2a21f0b0fb1d,TRUE,Body fluid bicarbonate measurement after secretin administration (mmol/L),Test,Numeric
 57b8863c-c83d-45d7-8b9d-b9e8ba990a64,TRUE,Body fluid pH,Test,Numeric
 1247d033-8d7f-44d6-9417-58832a08af1f,TRUE,Body fluid bicarbonate panel after secretin stimulation,Test,Coded
@@ -247,7 +247,7 @@ ec2bb920-5f49-4f82-a91e-c1bafd7c60c7,TRUE,Mpox virus clade typing by sequencing,
 e8c1f71b-392a-4695-8c66-7686c5fee7a1,TRUE,"Cryptococcal antigen, serum titer",Test,Numeric
 885499fa-ba0f-43bf-9fdb-6f1a07f5b8bc,TRUE,Urine macroscopy panel (dipstick),LabSet,N/A
 184de8cc-7bcd-488d-8d07-6cbcc5551339,TRUE,Urine specific gravity by test strip,Test,Numeric
-f0a05386-c094-4971-a434-53bc8dbbeee7,TRUE,Urine appearance,Test,Coded
+f0a05386-c094-4971-a434-53bc8dbbeee7,FALSE,Urine appearance,Test,Coded
 c6ab13c2-ffac-4802-b9ca-047e8673d6be,TRUE,Count of acid-fast bacillus (AFB) in sputum,Test,Numeric
 09b4f7a6-d6b7-4d7e-a09d-47e2be77c150,TRUE,Malaria smear impression,Test,Text
 830b4f60-4911-41c4-ad22-f23bac2127cc,TRUE,"Salmonella typhi H antibody titer by agglutination, serum",Test,Numeric
@@ -270,7 +270,7 @@ ca247755-2a2e-4fcf-b1ea-fa4cdd5e4395,TRUE,Rotavirus antigen presence in stool,Te
 166550AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Antibiotic susceptibility test,Test,N/A
 166423AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Presence of prostate specific antigen (qualitative),Test,Coded
 166396AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum iron measurement (umol/L),Test,Numeric
-166377AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Fibrinogen assay,Test,Numeric
+166377AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Fibrinogen assay,Test,Numeric
 166374AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Comprehensive metabolic panel,LabSet,N/A
 165899AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum or plasma severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) IgM antibody detection by rapid immunoassay,Test,Coded
 165898AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum or plasma severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) IgG antibody detection by rapid immunoassay,Test,Coded
@@ -292,7 +292,7 @@ ca247755-2a2e-4fcf-b1ea-fa4cdd5e4395,TRUE,Rotavirus antigen presence in stool,Te
 164921AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Zika virus real time RT-PCR in cerebrospinal fluid,Test,Coded
 164920AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Zika virus real time RT-PCR in serum or plasma,Test,Coded
 164917AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Trioplex real-time RT-PCR,Test,Coded
-164364AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum creatinine (mg/dL),Test,Numeric
+164364AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Serum creatinine (mg/dL),Test,Numeric
 1643AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Rapid test for malaria,Test,Coded
 1369AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urobilinogen,Test,Coded
 1367AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Sputum gram stain,Test,Coded
@@ -304,9 +304,9 @@ ca247755-2a2e-4fcf-b1ea-fa4cdd5e4395,TRUE,Rotavirus antigen presence in stool,Te
 163704AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"Glucose, serum 1 hr post 75g oral glucose (mg/dL)",Test,Numeric
 163703AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"Glucose, serum 1/2 hr post 75g oral glucose (mg/dL)",Test,Numeric
 163701AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Complete blood count with manual count and manual differential,LabSet,N/A
-163699AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urea measurement (calculated),Test,Numeric
+163699AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Urea measurement (calculated),Test,Numeric
 163697AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine microscopy panel,LabSet,N/A
-163696AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Casts presence in urine sediment by light microscopy test,Test,Coded
+163696AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Casts presence in urine sediment by light microscopy test,Test,Coded
 163694AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Waxy casts presence in urine sediment by light microscopy test,Test,Coded
 163693AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,WBC casts presence in urine sediment by light microscopy test,Test,Coded
 163692AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Epithelial casts presence in urine sediment by light microscopy test,Test,Coded
@@ -315,11 +315,11 @@ ca247755-2a2e-4fcf-b1ea-fa4cdd5e4395,TRUE,Rotavirus antigen presence in stool,Te
 163689AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Trichomonas vaginalis presence in urine sediment by light microscopy,Test,Coded
 163688AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Spore presence in urine test,Test,Coded
 163687AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Yeast hyphae presence in urine sediment by light microscopy test,Test,Coded
-163686AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Yeast presence in urine sediment by light microscopy,Test,Coded
+163686AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Yeast presence in urine sediment by light microscopy,Test,Coded
 163684AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Leukocytes presence in urine sediment by light microscopy,Test,Coded
 163683AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Erythrocytes presence in urine sediment by light microscopy test,Test,Coded
-163682AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urobilinogen presence in urine test,Test,Coded
-163680AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Bilirubin total presence in urine by test strip,Test,Coded
+163682AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Urobilinogen presence in urine test,Test,Coded
+163680AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Bilirubin total presence in urine by test strip,Test,Coded
 163679AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Bacterial culture panel,LabSet,N/A
 163678AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Microscopic observation in unspecified specimen by acridine orange stain,Test,Text
 163677AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Microscopic observation in unspecified specimen by rhodamine-auramine fluorochrome stain,Test,Text
@@ -349,7 +349,7 @@ ca247755-2a2e-4fcf-b1ea-fa4cdd5e4395,TRUE,Rotavirus antigen presence in stool,Te
 163594AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Glucose tolerance test pre-glucose administration,Test,Numeric
 163443AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Acid phosphatase blood test in blood (units/L),Test,Numeric
 163426AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"Combined % of monocytes, eosinophils and basophils",Test,Numeric
-163348AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Helicobacter pylori antigen test in stool,Test,Coded
+163348AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Helicobacter pylori Antigen Test in Stool,Test,Coded
 162827AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Ebola L gene PCR cycle threshold value,Test,Numeric
 162826AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Ebola Nucleoprotein gene PCR cyclic threshold value,Test,Numeric
 162630AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Basic metabolic panel,LabSet,N/A
@@ -361,9 +361,9 @@ ca247755-2a2e-4fcf-b1ea-fa4cdd5e4395,TRUE,Rotavirus antigen presence in stool,Te
 162202AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Tuberculosis polymerase chain reaction with rifampin resistance checking,Test,Coded
 1339AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Monocytes (%) - microscopic exam,Test,Numeric
 1338AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Lymphocytes (%) - microscopic exam,Test,Numeric
-162106AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine color,Test,Coded
+162106AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Urine color,Test,Coded
 162101AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine turbidity,Test,Coded
-162096AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine dipstick for blood,Test,Coded
+162096AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Urine dipstick for blood,Test,Coded
 1336AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Neutrophils (%) - microscopic exam,Test,Numeric
 161525AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Rubella IgM,Test,Coded
 161524AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Rubella IgG,Test,Coded
@@ -376,15 +376,15 @@ ca247755-2a2e-4fcf-b1ea-fa4cdd5e4395,TRUE,Rotavirus antigen presence in stool,Te
 161511AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum ferritin,Test,Numeric
 161505AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Thyroid stimulating hormone test,Test,Numeric
 1327AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Reticulocytes (%),Test,Numeric
-161501AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,C-reactive protein test,LabSet,N/A
-161500AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,C-reactive protein,Test,Numeric
+161501AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,C-reactive protein test,LabSet,N/A
+161500AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,C-reactive protein,Test,Numeric
 161488AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Renal function panel,LabSet,N/A
 161486AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Culture panel,LabSet,N/A
 161485AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Body fluid culture and sensitivity,Test,Text
 161484AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Pus culture and sensitivity,Test,Text
 161483AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum chemistry panel,LabSet,N/A
-161482AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,International normalized ratio,Test,Numeric
-161481AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Prothrombin time,Test,Numeric
+161482AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,International normalized ratio,Test,Numeric
+161481AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Prothrombin time,Test,Numeric
 161480AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Human immunodeficiency virus serological test,LabSet,N/A
 161477AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Typhoid serological test,LabSet,N/A
 161475AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Hepatitis B serological test,LabSet,N/A
@@ -392,7 +392,7 @@ ca247755-2a2e-4fcf-b1ea-fa4cdd5e4395,TRUE,Rotavirus antigen presence in stool,Te
 161473AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Blood grouping test,LabSet,N/A
 161472AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Hepatitis B surface antigen spot test,Test,Coded
 161471AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Hepatitis C antibody spot test,Test,Coded
-161469AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Anti-streptolysin O titer,Test,Numeric
+161469AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Anti-streptolysin O titer,Test,Numeric
 161461AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Acid fast bacilli test,LabSet,N/A
 161460AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Sputum induction and concentration for acid fast bacilli,Test,Coded
 161459AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Sputum concentration for acid fast bacilli,Test,Coded
@@ -407,10 +407,10 @@ ca247755-2a2e-4fcf-b1ea-fa4cdd5e4395,TRUE,Rotavirus antigen presence in stool,Te
 161445AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine routine and microscopy,Test,Text
 161444AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine bile salt test,Test,Coded
 161443AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine bile pigment test,Test,Coded
-161442AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine ketone test,Test,Coded
-161441AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine leukocyte esterase test,Test,Coded
-161440AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine nitrite test,Test,Coded
-161439AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine specific gravity,Test,Numeric
+161442AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Urine ketone test,Test,Coded
+161441AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Urine leukocyte esterase test,Test,Coded
+161440AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Urine nitrite test,Test,Coded
+161439AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Urine specific gravity,Test,Numeric
 1326AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"HIV rapide test 2, qualitative",Test,Coded
 161435AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Clotting time (min),Test,Numeric
 161433AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Bleeding time (min),Test,Numeric
@@ -452,15 +452,15 @@ ca247755-2a2e-4fcf-b1ea-fa4cdd5e4395,TRUE,Rotavirus antigen presence in stool,Te
 1298AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Very low density lipoprotein measurement (mmol/L),Test,Numeric
 159829AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"Gamma glutamyl transpeptidase, serum",Test,Numeric
 159828AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum iron measurement (ug/dL),Test,Numeric
-159825AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"Uric acid, serum",Test,Numeric
-159734AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"Glucose measurement, qualitative, urine",Test,Coded
+159825AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,"Uric acid, serum",Test,Numeric
+159734AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,"Glucose measurement, qualitative, urine",Test,Coded
 159733AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"Glucose measurement, quantitative, urine",Test,Numeric
 159655AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Troponin T measurement,Test,Numeric
 159654AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Troponin I measurement,Test,Numeric
 159653AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,"Creatine kinase, isoenzyme MB fraction",Test,Numeric
 159648AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Cerebrospinal fluid bacterial culture,Test,Text
-159644AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Glycosylated hemoglobin A measurement,Test,Numeric
-159497AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum calcium,Test,Numeric
+159644AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Glycosylated hemoglobin A measurement,Test,Numeric
+159497AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Serum calcium,Test,Numeric
 159430AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Hepatitis B Surface Antigen Test,Test,Coded
 159362AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Fecal occult blood test,Test,Coded
 1135AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum carbon dioxide,Test,Numeric
@@ -6964,8 +6964,8 @@ e87911cc-75b3-42b5-9d7a-aa90e480241e,TRUE,Eculizumab,Drug,N/A
 167258AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Biological E Limited Corbevax COVID-19 vaccine,Drug,N/A
 167256AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Anhui Zhifei Longcom Zifivax COVID-19 vaccine,Drug,N/A
 167212AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Renal epithelial cells presence in urine sediment by light microscopy,Test,Coded
-167210AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Erythrocytes in urine sediment by light microscopy (count/HPF),Test,Numeric
-167209AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Leukocytes in urine sediment by light microscopy (count/HPF),Test,Numeric
+167210AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Erythrocytes in urine sediment by light microscopy (count/HPF),Test,Numeric
+167209AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Leukocytes in urine sediment by light microscopy (count/HPF),Test,Numeric
 167206AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Bictegravir / emtricitabine / tenofovir alafenamide,Drug,N/A
 167205AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Bictegravir,Drug,N/A
 167204AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Sabizabulin,Drug,N/A
@@ -7017,7 +7017,7 @@ e87911cc-75b3-42b5-9d7a-aa90e480241e,TRUE,Eculizumab,Drug,N/A
 166384AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Vector institute EpivacCorona COVID-19 vaccine,Drug,N/A
 166379AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Sinopharm-Wuhan COVID-19 vaccine,Drug,N/A
 166378AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Cansino Biologics Convidecia COVID-19 vaccine,Drug,N/A
-166376AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Plasma thrombin time (seconds),Test,Numeric
+166376AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Plasma thrombin time (seconds),Test,Numeric
 166375AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Disseminated intravascular coagulation (DIC) screening panel,LabSet,N/A
 166369AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Dimethicone / pinaverium,Drug,N/A
 166367AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Dimethicone / magaldrate,Drug,N/A
@@ -7055,8 +7055,8 @@ e87911cc-75b3-42b5-9d7a-aa90e480241e,TRUE,Eculizumab,Drug,N/A
 166047AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Very low density lipoprotein measurement (mg/dL),Test,Numeric
 166046AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,High-density lipoprotein cholesterol measurement (mg/dL),Test,Numeric
 166045AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum or plasma low-density lipoprotein cholesterol measurement (mg/dL),Test,Numeric
-166040AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum or plasma total cholesterol measurement (mg/dL),Test,Numeric
-166039AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum or plasma triglyceride measurement (mg/dL),Test,Numeric
+166040AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Serum or plasma total cholesterol measurement (mg/dL),Test,Numeric
+166039AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Serum or plasma triglyceride measurement (mg/dL),Test,Numeric
 166038AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Serum calcium (mmol/L),Test,Numeric
 166023AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Calculation of model for end-stage liver disease (MELD) score,Test,Numeric
 166022AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Activated clotting time (min),Test,Numeric
@@ -7108,7 +7108,7 @@ e87911cc-75b3-42b5-9d7a-aa90e480241e,TRUE,Eculizumab,Drug,N/A
 165573AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Cardioplegia solution,Drug,N/A
 165572AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Potassium nitrate / silver nitrate,Drug,N/A
 165571AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Ferric subsulfate solution,Drug,N/A
-165561AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Bacteria in urine sediment by light microscopy,Test,Coded
+165561AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Bacteria in urine sediment by light microscopy,Test,Coded
 165560AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Poikilocytosis in blood by light microscopy,Test,Coded
 165559AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Microcytes in blood by light microscopy,Test,Coded
 165558AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Lymphocyte count in blood (10^3/ul),Test,Numeric
@@ -7157,7 +7157,7 @@ e87911cc-75b3-42b5-9d7a-aa90e480241e,TRUE,Eculizumab,Drug,N/A
 163702AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Clotting panel,LabSet,N/A
 163700AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Complete blood count (auto),LabSet,N/A
 163698AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urethral fluid pH test,Test,Numeric
-163685AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Epithelial cells presence in urine sediment by light microscopy test,Test,Coded
+163685AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Epithelial cells presence in urine sediment by light microscopy test,Test,Coded
 163681AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Ascorbate presence in urine test,Test,Coded
 163663AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Spermatozoa motility,Test,Numeric
 163662AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Percentage of normal spermatozoa in semen,Test,Numeric
@@ -7203,7 +7203,7 @@ e87911cc-75b3-42b5-9d7a-aa90e480241e,TRUE,Eculizumab,Drug,N/A
 163439AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Beta globulin level,Test,Numeric
 163438AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Alpha 2 globulin level,Test,Numeric
 163437AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Alpha 1 globulin level,Test,Numeric
-163436AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Coagulation profile,LabSet,N/A
+163436AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Coagulation profile,LabSet,N/A
 163435AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Vitamin B12 level test,Test,Numeric
 163432AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Functional Antithrombin III (active),Test,Numeric
 163431AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Functional Antithrombin III (antigen),Test,Numeric
@@ -7285,7 +7285,7 @@ e87911cc-75b3-42b5-9d7a-aa90e480241e,TRUE,Eculizumab,Drug,N/A
 161489AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Follicle stimulating hormone test,Test,Numeric
 161487AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Diabetes panel,LabSet,N/A
 161479AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Rheumatoid factor test,LabSet,N/A
-161478AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Anti-streptolysin O test,LabSet,N/A
+161478AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Anti-streptolysin O test,LabSet,N/A
 161476AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Syphilis serological panel,LabSet,N/A
 161470AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Rheumatoid factor,Test,Coded
 161468AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Semen analysis test,LabSet,N/A
@@ -9631,5 +9631,5 @@ d24ee2b3-8306-4b4b-9858-8160e8806cc0,TRUE,VITAMIN E 400 MG,Drug,N/A
 8bbb334b-2700-4775-a109-95aff3d12f4e,TRUE,ZINC SULPHATE 20 MG,Drug,N/A
 75785AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Equine diphtheria antitoxin,Drug,N/A
 1422AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Polio vaccination; inactivated,Drug,N/A
-161438AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,Urine pH,Test,N/A
+161438AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,FALSE,Urine pH,Test,Numeric
 161157AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA,TRUE,12-lead electrocardiogram,Test,N/A
