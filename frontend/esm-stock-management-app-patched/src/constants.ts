@@ -74,6 +74,12 @@ export const TASK_STOCKMANAGEMENT_PARTY_READ = 'Task: stockmanagement.party.read
 /** @type {string}: App: stockmanagement.reports, Able to view stock reports*/
 export const APP_STOCKMANAGEMENT_REPORTS_VIEW = 'App: stockmanagement.reports';
 
+/** @type {string}: App: stockmanagement.reportsMenu, Able to see the Reports item in the Stock management left-hand navigation menu*/
+export const APP_STOCKMANAGEMENT_REPORTS_MENU = 'App: stockmanagement.reportsMenu';
+
+/** @type {string}: App: stockmanagement.settings, Able to see the Settings item in the Stock management left-hand navigation menu, and access the Settings page*/
+export const APP_STOCKMANAGEMENT_SETTINGS = 'App: stockmanagement.settings';
+
 /** @type {string}: Task: stockmanagement.reports.mutate, Able to create stock reports*/
 export const TASK_STOCKMANAGEMENT_REPORTS_MUTATE = 'Task: stockmanagement.reports.mutate';
 
