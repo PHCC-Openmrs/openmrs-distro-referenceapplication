@@ -20,6 +20,17 @@ function formatDelta(delta: number): string {
   return delta > 0 ? `+${delta}` : String(delta);
 }
 
+function formatPercent(delta: number, compare: number): string {
+  if (compare !== 0) {
+    const percent = (delta / Math.abs(compare)) * 100;
+    return `${percent > 0 ? '+' : ''}${percent.toFixed(1)}%`;
+  }
+  if (delta > 0) {
+    return 'New';
+  }
+  return '—';
+}
+
 export default function ComparisonSummaryTable({
   rows,
   rowLabel,
@@ -48,14 +59,13 @@ export default function ComparisonSummaryTable({
         <tbody>
           {rows.map((row) => {
             const delta = row.current - row.compare;
-            const percent = row.compare !== 0 ? (delta / Math.abs(row.compare)) * 100 : null;
             return (
               <tr key={row.label}>
                 <td className="left">{row.label}</td>
                 <td>{row.current}</td>
                 <td>{row.compare}</td>
                 <td>{formatDelta(delta)}</td>
-                <td>{percent === null ? '—' : `${percent > 0 ? '+' : ''}${percent.toFixed(1)}%`}</td>
+                <td>{formatPercent(delta, row.compare)}</td>
               </tr>
             );
           })}
@@ -82,7 +92,9 @@ export default function ComparisonSummaryTable({
               <td>
                 <strong>{formatDelta(totalDelta)}</strong>
               </td>
-              <td />
+              <td>
+                <strong>{formatPercent(totalDelta, totalCompare)}</strong>
+              </td>
             </tr>
           </tfoot>
         )}

@@ -1,58 +1,37 @@
-import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { usePagination } from '@openmrs/esm-framework';
-import { type StockItemFilter, useStockItems } from './stock-items.resource';
+import { useMemo, useState } from 'react';
+import { type StockItemFilter } from './stock-items.resource';
 import { ResourceRepresentation } from '../core/api/api';
+import { useFetchAllPages } from '../core/api/useFetchAllPages';
+import { rankStockItemsByRelevance } from '../core/utils/stockItemSearchRelevance';
+import { type StockItemDTO } from '../core/api/types/stockItem/StockItem';
 
 export function useStockItemsPages(v?: ResourceRepresentation) {
-  const { t } = useTranslation();
-
-  const pageSizes = [10, 20, 30, 40, 50];
-  const [currentPage, setCurrentPage] = useState(1);
-  const [currentPageSize, setPageSize] = useState(10);
   const [searchString, setSearchString] = useState(null);
 
   // Drug filter type
   const [isDrug, setDrug] = useState('');
 
-  const [stockItemFilter, setStockItemFilter] = useState<StockItemFilter>({
-    startIndex: currentPage - 1,
+  const filter: StockItemFilter = {
     v: v || ResourceRepresentation.Default,
-    limit: currentPageSize,
-    q: null,
-    totalCount: true,
-  });
+    q: searchString,
+    isDrug,
+  };
 
-  const { items, isLoading, error } = useStockItems(stockItemFilter);
-  const pagination = usePagination(items.results, currentPageSize);
+  const { items, isLoading, error } = useFetchAllPages<StockItemDTO, StockItemFilter>(
+    '/stockmanagement/stockitem',
+    filter,
+  );
 
-  useEffect(() => {
-    setStockItemFilter({
-      startIndex: currentPage - 1,
-      v: ResourceRepresentation.Default,
-      limit: currentPageSize,
-      q: searchString,
-      totalCount: true,
-      isDrug: isDrug,
-    });
-  }, [searchString, currentPage, currentPageSize, isDrug]);
+  // The server returns its (deliberately fuzzy) matches ordered by stock item id, so the item the
+  // user typed can sit below unrelated hits. Re-order by how well each row matches the search text.
+  const rankedItems = useMemo(() => rankStockItemsByRelevance(items, searchString), [items, searchString]);
 
   return {
-    items: pagination.results,
-    pagination,
-    totalCount: items.totalCount,
-    currentPageSize,
-    currentPage,
-    setCurrentPage,
-    setPageSize,
-    pageSizes,
+    items: rankedItems,
     isLoading,
     error,
     isDrug,
-    setDrug: (drug: string) => {
-      setCurrentPage(1);
-      setDrug(drug);
-    },
+    setDrug,
     setSearchString,
   };
 }

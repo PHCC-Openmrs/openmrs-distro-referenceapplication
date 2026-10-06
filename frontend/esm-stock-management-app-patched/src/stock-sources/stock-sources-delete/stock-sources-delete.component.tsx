@@ -3,8 +3,8 @@ import { Button, InlineLoading } from '@carbon/react';
 import { useTranslation } from 'react-i18next';
 import { TrashCan } from '@carbon/react/icons';
 import { deleteStockSource } from '../stock-sources.resource';
-import { restBaseUrl, showModal, showSnackbar } from '@openmrs/esm-framework';
-import { handleMutate } from '../../utils';
+import { restBaseUrl, showModal, showSnackbar, useSession, userHasAccess } from '@openmrs/esm-framework';
+import { useHandleMutate } from '../../utils';
 
 interface StockSourcesDeleteActionMenuProps {
   uuid: string;
@@ -12,6 +12,8 @@ interface StockSourcesDeleteActionMenuProps {
 
 const StockSourcesDeleteActionMenu: React.FC<StockSourcesDeleteActionMenuProps> = ({ uuid }) => {
   const { t } = useTranslation();
+  const handleMutate = useHandleMutate();
+  const session = useSession();
 
   const [deletingSource, setDeletingSource] = useState(false);
 
@@ -50,6 +52,10 @@ const StockSourcesDeleteActionMenu: React.FC<StockSourcesDeleteActionMenuProps> 
       },
     });
   }, [t, uuid]);
+
+  if (!userHasAccess('Task: stockmanagement.stockSources.mutate', session?.user)) {
+    return null;
+  }
 
   const deleteButton = (
     <Button kind="ghost" size="md" onClick={handleDeleteStockSource} aria-label={t('deleteSource', 'Delete Source')}>

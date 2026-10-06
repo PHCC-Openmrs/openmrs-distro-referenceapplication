@@ -2,22 +2,51 @@ package org.openmrs.module.labtestreport.web.controller;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.openmrs.api.context.Context;
+import org.openmrs.module.labtestreport.CmamAgeGroup;
+import org.openmrs.module.labtestreport.CmamFollowUpService;
+import org.openmrs.module.labtestreport.CmamPatientRow;
+import org.openmrs.module.labtestreport.CmamSummaryRow;
 import org.openmrs.module.labtestreport.DiseaseSummaryRow;
 import org.openmrs.module.labtestreport.DiseaseSummaryService;
+import org.openmrs.module.labtestreport.HealthPromotionReportService;
+import org.openmrs.module.labtestreport.HealthPromotionRow;
 import org.openmrs.module.labtestreport.LabTestReportService;
+import org.openmrs.module.labtestreport.MedicineDistributionRow;
+import org.openmrs.module.labtestreport.MedicineDistributionService;
+import org.openmrs.module.labtestreport.NcdPatientCardReportService;
+import org.openmrs.module.labtestreport.NcdPatientCardRow;
+import org.openmrs.module.labtestreport.NotificationService;
+import org.openmrs.module.labtestreport.NursingReportRow;
+import org.openmrs.module.labtestreport.NursingReportService;
+import org.openmrs.module.labtestreport.NutritionFilterOptions;
+import org.openmrs.module.labtestreport.NutritionReportService;
+import org.openmrs.module.labtestreport.NutritionSummaryRow;
 import org.openmrs.module.labtestreport.PatientEncounterDetailRow;
 import org.openmrs.module.labtestreport.PatientEncounterReportService;
 import org.openmrs.module.labtestreport.PatientEncounterSummaryRow;
 import org.openmrs.module.labtestreport.PatientRow;
-import org.openmrs.module.labtestreport.SessionAttendanceRow;
-import org.openmrs.module.labtestreport.SessionAttendanceService;
+import org.openmrs.module.labtestreport.ReferralFormReportService;
+import org.openmrs.module.labtestreport.ReferralFormRow;
+import org.openmrs.module.labtestreport.SrhReportRow;
+import org.openmrs.module.labtestreport.SrhReportService;
+import org.openmrs.module.labtestreport.StockAdjustmentRow;
+import org.openmrs.module.labtestreport.StockBatchExpiryRow;
+import org.openmrs.module.labtestreport.StockDaysRemainingRow;
+import org.openmrs.module.labtestreport.StockFlowService;
 import org.openmrs.module.labtestreport.StockLedgerRow;
 import org.openmrs.module.labtestreport.StockLedgerService;
+import org.openmrs.module.labtestreport.StockLocationQtyRow;
+import org.openmrs.module.labtestreport.StockMovementDetailRow;
+import org.openmrs.module.labtestreport.StockReorderRow;
+import org.openmrs.module.labtestreport.StockStatusService;
+import org.openmrs.module.labtestreport.StockoutFrequencyRow;
 import org.openmrs.module.labtestreport.SummaryRow;
 import org.openmrs.module.labtestreport.web.SummaryRowGrouping;
 import org.springframework.beans.propertyeditors.CustomDateEditor;
@@ -53,6 +82,9 @@ public class LabTestReportRestController {
 		OBJECT_MAPPER.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 		OBJECT_MAPPER.setDateFormat(new SimpleDateFormat(SummaryReportController.DATE_FORMAT));
 	}
+
+	/** Notifications need the time of day, which the reports' date-only format would drop, so they go out as epoch millis. */
+	private static final ObjectMapper NOTIFICATION_MAPPER = new ObjectMapper();
 
 	@InitBinder
 	public void initBinder(HttpServletRequest request, ServletRequestDataBinder binder) {
@@ -99,6 +131,71 @@ public class LabTestReportRestController {
 		return jsonResponse(rows);
 	}
 
+	@RequestMapping(value = "/referral-form-report.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> referralFormReport(
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<ReferralFormRow> rows = Context.getService(ReferralFormReportService.class)
+		        .getReferralFormReport(startDate, endDate, locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/health-promotion-report.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> healthPromotionReport(
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<HealthPromotionRow> rows = Context.getService(HealthPromotionReportService.class)
+		        .getHealthPromotionReport(startDate, endDate, locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/nursing-report.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> nursingReport(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<NursingReportRow> rows = Context.getService(NursingReportService.class).getNursingReport(startDate, endDate,
+		    locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/medicine-distribution-report.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> medicineDistributionReport(
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<MedicineDistributionRow> rows = Context.getService(MedicineDistributionService.class)
+		        .getMedicineDistributionReport(startDate, endDate, locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/srh-report.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> srhReport(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid,
+	        @RequestParam(value = "section", required = false) String section) throws JsonProcessingException {
+		List<SrhReportRow> rows = Context.getService(SrhReportService.class).getSrhReport(startDate, endDate,
+		    locationUuid, section);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/ncd-patient-card-report.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> ncdPatientCardReport(
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<NcdPatientCardRow> rows = Context.getService(NcdPatientCardReportService.class)
+		        .getNcdPatientCardReport(startDate, endDate, locationUuid);
+		return jsonResponse(rows);
+	}
+
 	@RequestMapping(value = "/disease-summary.json", method = RequestMethod.GET)
 	@ResponseBody
 	public ResponseEntity<String> diseaseSummary(@RequestParam(value = "startDate", required = false) Date startDate,
@@ -121,32 +218,211 @@ public class LabTestReportRestController {
 		return jsonResponse(rows);
 	}
 
-	@RequestMapping(value = "/session-attendance.json", method = RequestMethod.GET)
-	@ResponseBody
-	public ResponseEntity<String> sessionAttendance(@RequestParam(value = "startDate", required = false) Date startDate,
-	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
-		List<SessionAttendanceRow> rows = Context.getService(SessionAttendanceService.class).getSummaryReport(startDate,
-		    endDate);
-		return jsonResponse(rows);
-	}
-
-	@RequestMapping(value = "/session-attendance-drilldown.json", method = RequestMethod.GET)
-	@ResponseBody
-	public ResponseEntity<String> sessionAttendanceDrilldown(@RequestParam("sessionDate") Date sessionDate,
-	        @RequestParam("sessionType") String sessionType,
-	        @RequestParam(value = "gender", required = false) String gender,
-	        @RequestParam(value = "ageGroup", required = false) String ageGroup) throws JsonProcessingException {
-		List<PatientRow> rows = Context.getService(SessionAttendanceService.class).getPatientsForCell(sessionDate,
-		    sessionType, gender, ageGroup);
-		return jsonResponse(rows);
-	}
-
 	@RequestMapping(value = "/stock-ledger.json", method = RequestMethod.GET)
 	@ResponseBody
 	public ResponseEntity<String> stockLedger(@RequestParam(value = "startDate", required = false) Date startDate,
-	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
-		List<StockLedgerRow> rows = Context.getService(StockLedgerService.class).getLedgerReport(startDate, endDate);
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<StockLedgerRow> rows = Context.getService(StockLedgerService.class).getLedgerReport(startDate, endDate,
+		    locationUuid);
 		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-consumption.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockConsumption(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<StockLocationQtyRow> rows = Context.getService(StockFlowService.class).getConsumptionByLocation(startDate,
+		    endDate, locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-distribution.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockDistribution(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "sourceLocationUuid", required = false) String sourceLocationUuid)
+	        throws JsonProcessingException {
+		List<StockLocationQtyRow> rows = Context.getService(StockFlowService.class).getDistributionFromSource(startDate,
+		    endDate, sourceLocationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-wastage.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockWastage(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<StockLocationQtyRow> rows = Context.getService(StockFlowService.class).getWastageByLocation(startDate,
+		    endDate, locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-adjustments.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockAdjustments(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<StockAdjustmentRow> rows = Context.getService(StockFlowService.class).getAdjustments(startDate, endDate,
+		    locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-consumption-drilldown.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockConsumptionDrilldown(@RequestParam("stockItemId") Integer stockItemId,
+	        @RequestParam("locationId") Integer locationId,
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		List<StockMovementDetailRow> rows = Context.getService(StockFlowService.class).getConsumptionDetails(
+		    stockItemId, locationId, startDate, endDate);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-wastage-drilldown.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockWastageDrilldown(@RequestParam("stockItemId") Integer stockItemId,
+	        @RequestParam("locationId") Integer locationId,
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		List<StockMovementDetailRow> rows = Context.getService(StockFlowService.class).getWastageDetails(stockItemId,
+		    locationId, startDate, endDate);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-distribution-drilldown.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockDistributionDrilldown(@RequestParam("stockItemId") Integer stockItemId,
+	        @RequestParam("locationId") Integer locationId,
+	        @RequestParam(value = "sourceLocationUuid", required = false) String sourceLocationUuid,
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		List<StockMovementDetailRow> rows = Context.getService(StockFlowService.class).getDistributionDetails(
+		    stockItemId, locationId, sourceLocationUuid, startDate, endDate);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-expiry-risk.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockExpiryRisk(@RequestParam(value = "daysAhead", required = false) Integer daysAhead,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<StockBatchExpiryRow> rows = Context.getService(StockStatusService.class).getExpiryRisk(daysAhead,
+		    locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-days-remaining.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockDaysRemaining(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<StockDaysRemainingRow> rows = Context.getService(StockStatusService.class).getDaysOfStockRemaining(startDate,
+		    endDate, locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-reorder.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockReorder(@RequestParam(value = "locationUuid", required = false) String locationUuid)
+	        throws JsonProcessingException {
+		List<StockReorderRow> rows = Context.getService(StockStatusService.class).getReorderStatus(locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-stockout-frequency.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockStockoutFrequency(
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<StockoutFrequencyRow> rows = Context.getService(StockStatusService.class).getStockoutFrequency(startDate,
+		    endDate, locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/cmam-summary.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> cmamSummary(@RequestParam(value = "ageGroup", required = false) String ageGroup,
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		List<CmamSummaryRow> rows = Context.getService(CmamFollowUpService.class)
+		        .getSummaryReport(parseCmamAgeGroup(ageGroup), startDate, endDate);
+		return jsonResponse(rows);
+	}
+
+	/**
+	 * Maps the CMAM summary's three dimension keys to their (environment-stable) question concept
+	 * UUID, so the frontend never has to know a concept_id -- those are auto-increment integers
+	 * that differ between servers.
+	 */
+	private static final Map<String, String> CMAM_DIMENSION_CONCEPT_UUIDS = new HashMap<>();
+	static {
+		CMAM_DIMENSION_CONCEPT_UUIDS.put("currentDiagnosis", "51d873b5-3394-4780-87d3-5bfaf5cf0eb8");
+		CMAM_DIMENSION_CONCEPT_UUIDS.put("childLastStatus", "524fea02-d6e8-47c0-84ee-e7b889f08d4c");
+		CMAM_DIMENSION_CONCEPT_UUIDS.put("alertStatus", "47266119-f616-4e8a-b094-518b4c2d660b");
+	}
+
+	/**
+	 * The CMAM form is used for both young children and older patients; "under5" (the default, for
+	 * backwards compatibility with any caller that omits it) and "above5" pick which population's
+	 * report to run - see {@link CmamAgeGroup}.
+	 */
+	private static CmamAgeGroup parseCmamAgeGroup(String ageGroup) {
+		return "above5".equals(ageGroup) ? CmamAgeGroup.ABOVE_5 : CmamAgeGroup.UNDER_5;
+	}
+
+	@RequestMapping(value = "/cmam-drilldown.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> cmamDrilldown(@RequestParam(value = "ageGroup", required = false) String ageGroup,
+	        @RequestParam("dimension") String dimension, @RequestParam("categoryConceptId") Integer categoryConceptId,
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		String dimensionConceptUuid = CMAM_DIMENSION_CONCEPT_UUIDS.get(dimension);
+		if (dimensionConceptUuid == null) {
+			throw new IllegalArgumentException("Unknown CMAM dimension: " + dimension);
+		}
+		List<CmamPatientRow> rows = Context.getService(CmamFollowUpService.class)
+		        .getPatientsForCategory(parseCmamAgeGroup(ageGroup), dimensionConceptUuid, categoryConceptId, startDate,
+		            endDate);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/child-under-5-summary.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> childUnder5Summary(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		List<NutritionSummaryRow> rows = Context.getService(NutritionReportService.class).getSummaryReport(startDate,
+		    endDate, true);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/child-above-5-summary.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> childAbove5Summary(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		List<NutritionSummaryRow> rows = Context.getService(NutritionReportService.class).getSummaryReport(startDate,
+		    endDate, false);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/nutrition-filter-options.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> nutritionFilterOptions() throws JsonProcessingException {
+		NutritionFilterOptions options = Context.getService(NutritionReportService.class).getFilterOptions();
+		return jsonResponse(options);
+	}
+
+	@RequestMapping(value = "/notifications.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> notifications() throws JsonProcessingException {
+		if (!Context.isAuthenticated()) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		return new ResponseEntity<>(NOTIFICATION_MAPPER.writeValueAsString(
+		    Context.getService(NotificationService.class).getUnreadNotificationsForCurrentUser()), headers, HttpStatus.OK);
 	}
 
 	private static <T> ResponseEntity<String> jsonResponse(T body) throws JsonProcessingException {

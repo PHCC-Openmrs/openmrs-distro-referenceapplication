@@ -1,0 +1,63 @@
+-- Backs the Stock Distribution summary's drill-down: for the (stockItemId, destination
+-- locationId) cell the user clicked, list every transfer-out transaction with the batch it moved
+-- and, via batch_vendor, the vendor that originally supplied that batch (found from that batch's
+-- most recent receipt/initial transaction - a batch itself carries no vendor field, only its
+-- receiving transaction does).
+WITH batch_vendor AS (
+  -- An Opening Stock transaction's source is a location, not a vendor (it has no
+  -- stock_source_id to join against) - leave those NULL here so the outer query's COALESCE
+  -- falls back to the stock item's own configured Preferred Vendor instead of a batch vendor.
+  SELECT rt.stock_batch_id,
+    CASE WHEN rsot.operation_type = 'initial' THEN NULL ELSE ss.name END AS vendorName,
+    rso.external_reference AS externalReference,
+    ROW_NUMBER() OVER (PARTITION BY rt.stock_batch_id ORDER BY rt.date_created DESC) AS rn
+  FROM stockmgmt_stock_item_transaction rt
+  JOIN stockmgmt_stock_operation rso ON rso.stock_operation_id = rt.stock_operation_id
+  JOIN stockmgmt_stock_operation_type rsot ON rsot.stock_operation_type_id = rso.operation_type_id
+  -- LEFT, not INNER: an Opening Stock operation's source_id can be a location-only party with
+  -- no matching row at all, and an INNER join here would silently drop that transaction out of
+  -- the rn=1 ranking below, letting an older transaction's vendor win instead.
+  LEFT JOIN stockmgmt_party rsp ON rsp.party_id = rso.source_id
+  LEFT JOIN stockmgmt_stock_source ss ON ss.stock_source_id = rsp.stock_source_id
+  WHERE rsot.operation_type IN ('receipt', 'initial') AND rt.quantity > 0
+)
+SELECT
+  sb.batch_no             AS batchNo,
+  sb.expiration           AS expirationDate,
+  COALESCE(bv.vendorName, pv.name) AS vendorName,
+  SUM(sit.quantity * puom.factor) AS quantity,
+  un.name                 AS unitName,
+  bv.externalReference    AS externalReference,
+  bun.name                AS bulkUnitName,
+  bulk.factor             AS bulkFactor
+FROM stockmgmt_stock_item_transaction sit
+JOIN stockmgmt_stock_item si ON si.stock_item_id = sit.stock_item_id
+JOIN stockmgmt_stock_item_packaging_uom puom ON puom.stock_item_packaging_uom_id = sit.stock_item_packaging_uom_id
+JOIN stockmgmt_stock_operation so ON so.stock_operation_id = sit.stock_operation_id
+JOIN stockmgmt_stock_operation_type sot ON sot.stock_operation_type_id = so.operation_type_id
+JOIN stockmgmt_party srcP ON srcP.party_id = so.source_id
+LEFT JOIN location srcL ON srcL.location_id = srcP.location_id
+LEFT JOIN stockmgmt_stock_batch sb ON sb.stock_batch_id = sit.stock_batch_id
+LEFT JOIN batch_vendor bv ON bv.stock_batch_id = sb.stock_batch_id AND bv.rn = 1
+-- Falls back to the item's own Preferred Vendor when the batch's receiving transaction
+-- didn't carry a real vendor (Opening Stock) or no receiving transaction was found at all.
+LEFT JOIN stockmgmt_stock_source pv ON pv.stock_source_id = si.preferred_vendor_id
+LEFT JOIN concept_name un ON un.concept_id = si.dispensing_unit_id AND un.locale = 'en' AND un.locale_preferred = 1
+-- Bulk/procurement pack, for the "92 Box (2,760 Tablet)" rendering - see stock_current_onhand.sql.
+LEFT JOIN stockmgmt_stock_item_packaging_uom bulk ON bulk.stock_item_packaging_uom_id = si.default_stock_operations_uom_id AND bulk.voided = 0
+LEFT JOIN concept_name bun ON bun.concept_id = bulk.packaging_uom_id AND bun.locale = 'en' AND bun.locale_preferred = 1
+WHERE si.voided = 0
+  AND sot.operation_type = 'transferout'
+  AND sit.quantity > 0
+  AND sit.party_id != so.source_id
+  -- Must stay identical to stock_distribution_from_source.sql's filter, or the batches listed here
+  -- will not add up to the summary cell the user clicked.
+  AND so.status = 'COMPLETED'
+  AND COALESCE(so.voided, 0) = 0
+  AND si.stock_item_id = :stockItemId
+  AND sit.party_id = :locationId
+  AND (:sourceLocationUuid IS NULL OR srcL.uuid = :sourceLocationUuid)
+  AND (:startDate IS NULL OR DATE(so.operation_date) >= :startDate)
+  AND (:endDate IS NULL OR DATE(so.operation_date) < DATE_ADD(:endDate, INTERVAL 1 DAY))
+GROUP BY sb.batch_no, sb.expiration, bv.vendorName, pv.name, un.name, bv.externalReference, bun.name, bulk.factor
+ORDER BY quantity DESC

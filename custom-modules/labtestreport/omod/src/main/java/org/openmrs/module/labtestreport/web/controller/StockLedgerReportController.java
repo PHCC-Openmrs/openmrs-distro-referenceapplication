@@ -40,7 +40,7 @@ public class StockLedgerReportController {
 	@RequestMapping(method = RequestMethod.GET)
 	public ModelAndView showReport(@RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate) {
-		List<StockLedgerRow> rows = Context.getService(StockLedgerService.class).getLedgerReport(startDate, endDate);
+		List<StockLedgerRow> rows = Context.getService(StockLedgerService.class).getLedgerReport(startDate, endDate, null);
 		List<StockLedgerItem> items = StockLedgerGrouping.buildItemList(rows);
 		List<StockLedgerDayBlock> dayBlocks = StockLedgerGrouping.buildDayBlocks(rows, items);
 
@@ -48,7 +48,7 @@ public class StockLedgerReportController {
 		ModelMap model = new ModelMap();
 		model.addAttribute("items", items);
 		model.addAttribute("dayBlocks", dayBlocks);
-		model.addAttribute("totalColumns", 1 + items.size() * 4);
+		model.addAttribute("totalColumns", 1 + items.size() * 7);
 		model.addAttribute("startDate", startDate == null ? "" : dateFormat.format(startDate));
 		model.addAttribute("endDate", endDate == null ? "" : dateFormat.format(endDate));
 		return new ModelAndView("/module/labtestreport/stockLedgerReport", model);

@@ -293,6 +293,10 @@ public class StockOperationType extends BaseChangeableOpenmrsData implements Ser
 	public boolean shouldVerifyNegativeStockAmountsAtSource() {
 		return getStockOperationTypeProcessor().shouldVerifyNegativeStockAmountsAtSource();
 	}
+
+	public boolean appliesStockAtCompletion() {
+		return getStockOperationTypeProcessor().appliesStockAtCompletion();
+	}
 	
 	public BigDecimal getQuantityToApplyAtSource(BigDecimal quantity) {
 		return getStockOperationTypeProcessor().getQuantityToApplyAtSource(quantity);

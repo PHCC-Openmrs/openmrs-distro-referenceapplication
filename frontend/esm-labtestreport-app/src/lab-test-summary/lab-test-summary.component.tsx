@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal, InlineLoading, Button, Search, Select, SelectItem, ContentSwitcher, Switch } from '@carbon/react';
 import { ChevronDown, ChevronRight } from '@carbon/react/icons';
 import { navigate } from '@openmrs/esm-framework';
-import ReportsTabs from '../reports-shell/reports-tabs.component';
+import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import SimpleBarChart from '../reports-shell/simple-bar-chart.component';
 import KpiTiles from '../reports-shell/kpi-tiles.component';
 import MonthCompareControls from '../reports-shell/month-compare-controls.component';
@@ -11,6 +11,7 @@ import ComparisonSummaryTable from '../reports-shell/comparison-summary-table.co
 import ExportButtons from '../reports-shell/export-buttons.component';
 import { buildKpiExportSheet, buildComparisonExportSheet, type ExportSheet } from '../reports-shell/export-utils';
 import { useMonthComparison } from '../reports-shell/month-compare';
+import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
 import pageStyles from '../reports-shell/reports-page.scss';
 import { useSummaryReport, useDrilldown, type DrilldownParams, type SummaryRow } from './lab-test-summary.resource';
 
@@ -47,6 +48,9 @@ interface CategoryGroup {
 function summarize(rows: SummaryRow[], searchText: string, categoryFilter: string) {
   const search = searchText.trim().toLowerCase();
   const filteredRows = rows.filter((row) => {
+    if (row.total === 0) {
+      return false;
+    }
     if (categoryFilter && row.category !== categoryFilter) {
       return false;
     }
@@ -141,7 +145,7 @@ export default function LabTestSummaryReport() {
 
   const chartData = useMemo(() => {
     const compareByCategory = new Map(
-      (compareSummary?.groupedRows ?? []).map((group) => [group.category, group.totalTests]),
+      (compareSummary?.groupedRows ?? []).map((group): [string, number] => [group.category, group.totalTests]),
     );
     return groupedRows.map((group) => ({
       label: group.category,
@@ -177,7 +181,9 @@ export default function LabTestSummaryReport() {
     if (!compare.enabled || !compareSummary) {
       return [];
     }
-    const compareByCategory = new Map(compareSummary.groupedRows.map((group) => [group.category, group.totalTests]));
+    const compareByCategory = new Map(
+      compareSummary.groupedRows.map((group): [string, number] => [group.category, group.totalTests]),
+    );
     const categoryUnion = new Set([
       ...groupedRows.map((group) => group.category),
       ...compareSummary.groupedRows.map((group) => group.category),
@@ -270,7 +276,7 @@ export default function LabTestSummaryReport() {
 
   return (
     <div>
-      <ReportsTabs activeKey="lab-test-summary" />
+      <BackToReportsLink />
       <div className={pageStyles.pageBody}>
         <h2 className={pageStyles.pageHeading}>{t('labTestSummaryReportTitle', 'Lab Test Summary Report')}</h2>
 
@@ -304,7 +310,8 @@ export default function LabTestSummaryReport() {
                 id="startDate"
                 type="date"
                 value={startDateInput}
-                onChange={(e) => setStartDateInput(e.target.value)}
+                max={getTodayDateString()}
+                onChange={(e) => setStartDateInput(clampToToday(e.target.value))}
               />
             </div>
             <div className={pageStyles.filterField}>
@@ -313,7 +320,8 @@ export default function LabTestSummaryReport() {
                 id="endDate"
                 type="date"
                 value={endDateInput}
-                onChange={(e) => setEndDateInput(e.target.value)}
+                max={getTodayDateString()}
+                onChange={(e) => setEndDateInput(clampToToday(e.target.value))}
               />
             </div>
             <Button size="md" onClick={applyFilter}>
@@ -537,6 +545,9 @@ export default function LabTestSummaryReport() {
                   <tr>
                     <th className="left">{t('name', 'Name')}</th>
                     <th className="left">{t('identifier', 'Identifier')}</th>
+                    <th className="left">{t('sex', 'Sex')}</th>
+                    <th className="left">{t('nationalId', 'National ID')}</th>
+                    <th className="left">{t('phoneNumber', 'Phone Number')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -550,6 +561,9 @@ export default function LabTestSummaryReport() {
                         {patient.givenName} {patient.familyName}
                       </td>
                       <td className="left">{patient.identifier}</td>
+                      <td className="left">{patient.sex}</td>
+                      <td className="left">{patient.nationalId}</td>
+                      <td className="left">{patient.phoneNumber}</td>
                     </tr>
                   ))}
                 </tbody>

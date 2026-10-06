@@ -5,6 +5,7 @@ import {
   StockOperationTypeHasPrint,
   StockOperationTypeIsNegativeQtyAllowed,
   StockOperationTypeIsQuantityOptional,
+  StockOperationTypeReducesStockAtSource,
   StockOperationTypeRequiresActualBatchInformation,
   StockOperationTypeRequiresBatchUuid,
   StockOperationTypeRequiresDispatchAcknowledgement,
@@ -23,6 +24,7 @@ const useOperationTypePermisions = (stockoperationType: StockOperationType) => {
     requiresDispatchAcknowledgement: StockOperationTypeRequiresDispatchAcknowledgement(opType),
     allowExpiredBatchNumbers: stockoperationType?.allowExpiredBatchNumbers ?? false,
     allowPrinting: StockOperationTypeHasPrint(opType),
+    reducesStockAtSource: StockOperationTypeReducesStockAtSource(opType),
   };
 };
 

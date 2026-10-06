@@ -40,7 +40,7 @@ const ExpiredStockModal = ({ closeModal, expiredStock }: ExpiredStockModalProps)
 
   return (
     <>
-      <ModalHeader closeModal={closeModal} title={t('expiredStock', 'Expired stock')} />
+      <ModalHeader closeModal={closeModal} title={t('expiringStock', 'Expiring stock')} />
       <ModalBody>
         {expiredStock.length > 0 ? (
           <TableContainer>
@@ -66,7 +66,7 @@ const ExpiredStockModal = ({ closeModal, expiredStock }: ExpiredStockModalProps)
             </Table>
           </TableContainer>
         ) : (
-          <p>{t('noExpiredStockDataAvailable', 'No expired stock data available.')}</p>
+          <p>{t('noExpiringStockDataAvailable', 'No expiring stock data available.')}</p>
         )}
       </ModalBody>
     </>

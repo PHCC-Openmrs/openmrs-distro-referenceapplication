@@ -15,6 +15,8 @@ public class PatientEncounterSummaryRow {
 
 	private String givenName;
 
+	private String middleName;
+
 	private String familyName;
 
 	private Integer age;
@@ -22,6 +24,16 @@ public class PatientEncounterSummaryRow {
 	private long visitCount;
 
 	private Date mostRecentVisitDate;
+
+	private String sex;
+
+	private String nationalId;
+
+	private String phoneNumber;
+
+	private String location;
+
+	private String serviceType;
 
 	public Integer getPatientId() {
 		return patientId;
@@ -45,6 +57,14 @@ public class PatientEncounterSummaryRow {
 
 	public void setGivenName(String givenName) {
 		this.givenName = givenName;
+	}
+
+	public String getMiddleName() {
+		return middleName;
+	}
+
+	public void setMiddleName(String middleName) {
+		this.middleName = middleName;
 	}
 
 	public String getFamilyName() {
@@ -77,5 +97,45 @@ public class PatientEncounterSummaryRow {
 
 	public void setMostRecentVisitDate(Date mostRecentVisitDate) {
 		this.mostRecentVisitDate = mostRecentVisitDate;
+	}
+
+	public String getSex() {
+		return sex;
+	}
+
+	public void setSex(String sex) {
+		this.sex = sex;
+	}
+
+	public String getNationalId() {
+		return nationalId;
+	}
+
+	public void setNationalId(String nationalId) {
+		this.nationalId = nationalId;
+	}
+
+	public String getPhoneNumber() {
+		return phoneNumber;
+	}
+
+	public void setPhoneNumber(String phoneNumber) {
+		this.phoneNumber = phoneNumber;
+	}
+
+	public String getLocation() {
+		return location;
+	}
+
+	public void setLocation(String location) {
+		this.location = location;
+	}
+
+	public String getServiceType() {
+		return serviceType;
+	}
+
+	public void setServiceType(String serviceType) {
+		this.serviceType = serviceType;
 	}
 }

@@ -2,14 +2,22 @@ import React, { useCallback, useEffect } from 'react';
 import { ButtonSkeleton, OverflowMenu, OverflowMenuItem } from '@carbon/react';
 import { OverflowMenuVertical } from '@carbon/react/icons';
 import { useTranslation } from 'react-i18next';
-import { showSnackbar } from '@openmrs/esm-framework';
+import { showSnackbar, useSession, userHasAccess } from '@openmrs/esm-framework';
 import { OperationType, type StockOperationType } from '../../core/api/types/stockOperation/StockOperationType';
 import { launchStockoperationAddOrEditWorkSpace } from '../stock-operation.utils';
 import useFilteredOperationTypesByRoles from '../stock-operations-forms/hooks/useFilteredOperationTypesByRoles';
+import { TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE } from '../../constants';
 
 const StockOperationTypesSelector = () => {
   const { t } = useTranslation();
   const { error, isLoading, operationTypes } = useFilteredOperationTypesByRoles();
+  const session = useSession();
+  // The location-scope's operationTypes list (userRoles.operationTypes, consumed above)
+  // also doubles as what makes stock quantities visible at all for a given location, so a
+  // view-only scope still carries at least one operation type. Without this check, anyone
+  // with read access to stock would see a "Start New" button even though the backend's
+  // saveStockOperation() ultimately rejects the submission for lacking this privilege.
+  const canCreateStockOperations = userHasAccess(TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE, session?.user);
 
   const handleSelect = useCallback(
     (stockOperationType: StockOperationType) => {
@@ -33,6 +41,8 @@ const StockOperationTypesSelector = () => {
   if (isLoading) return <ButtonSkeleton />;
 
   if (error) return null;
+
+  if (!canCreateStockOperations) return null;
 
   return operationTypes && operationTypes.length ? (
     <OverflowMenu

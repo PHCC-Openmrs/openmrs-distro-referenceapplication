@@ -161,7 +161,19 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
         }
 
         if (searchConcepts) {
-            List<Locale> locales = new ArrayList<Locale>(LocaleUtility.getLocalesInOrder());
+            // LocaleUtility.getLocalesInOrder() drops Context.getLocale(), the default locale and the
+            // allowed-list locales into a LinkedHashSet without null-guarding any of them, and the
+            // platform's default-locale cache reads back null for the moment it takes to (re)populate
+            // after a global property change or context refresh. Core's concept search dereferences
+            // every locale it is handed (HibernateConceptDAO.newConceptNameQuery -> locale.getLanguage()),
+            // with no null check of its own since the Hibernate Search 6 rewrite in platform 2.8, so a
+            // single null in this list takes the whole stock item search down with an NPE. Drop nulls
+            // here rather than hand them over.
+            List<Locale> locales = LocaleUtility.getLocalesInOrder().stream().filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            if (locales.isEmpty()) {
+                locales.add(Locale.ENGLISH);
+            }
             List<Concept> searchResults = service.getConcepts(searchToken, locales, true, null, null, null, null, null, 0, maxIntermediateResult + (searchDrugs ? 0 : maxIntermediateResult))
                     .stream()
                     .map(p -> p.getConcept())

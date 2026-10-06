@@ -4717,4 +4717,111 @@ CREATE TRIGGER stockmgmt_location_after_delete
       </column>
     </addColumn>
   </changeSet>
+  <changeSet author="claude" id="stockmanagement-2026-08-24-0900">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="stockmgmt_stock_item_reference" />
+      <not>
+        <columnExists columnName="stock_item_packaging_uom_id" tableName="stockmgmt_stock_item_reference"/>
+      </not>
+    </preConditions>
+    <comment>
+      Adding column stock_item_packaging_uom_id on table stockmgmt_stock_item_reference, so each
+      vendor reference can record the pack size that vendor supplies the item in.
+    </comment>
+    <addColumn tableName="stockmgmt_stock_item_reference">
+      <column name="stock_item_packaging_uom_id" type="int">
+        <constraints nullable="true" />
+      </column>
+    </addColumn>
+    <addForeignKeyConstraint baseTableName="stockmgmt_stock_item_reference"
+                             baseColumnNames="stock_item_packaging_uom_id"
+                             referencedTableName="stockmgmt_stock_item_packaging_uom"
+                             referencedColumnNames="stock_item_packaging_uom_id"
+                             constraintName="stock_item_reference_packaging_uom_id_fk"/>
+  </changeSet>
+  <changeSet author="claude" id="stockmanagement-2026-08-31-0900">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="stockmgmt_stock_item_packaging_uom" />
+      <columnExists columnName="dispensing_unit_id" tableName="stockmgmt_stock_item" />
+      <columnExists columnName="dispensing_unit_packaging_uom_id" tableName="stockmgmt_stock_item" />
+    </preConditions>
+    <comment>
+      Every stock item so far has only ever been given one packaging UOM - its bulk/procurement
+      pack (e.g. Box) - so dispensing_unit_packaging_uom_id was left pointing at that same bulk
+      entry for lack of any alternative. StockManagementServiceImpl's dispensing lookup
+      (postProcessInventoryResult, the filter.dispensing() branch) treats whichever packaging UOM
+      that column points at as "the dispensing unit": a dispense recorded in the drug's actual
+      dispensing unit (e.g. Tablet) was therefore tagged and scaled as if it were that many whole
+      bulk packs instead, hugely over-deducting stock and showing the wrong unit on the stock
+      ledger report. Give every item a proper factor=1 packaging UOM for its own dispensing unit
+      and point dispensing_unit_packaging_uom_id at that instead, leaving
+      default_stock_operations_uom_id (bulk receiving/issuing operations) untouched.
+    </comment>
+    <sql>
+      INSERT INTO stockmgmt_stock_item_packaging_uom (stock_item_id, packaging_uom_id, factor, creator, date_created, voided, uuid)
+      SELECT si.stock_item_id, si.dispensing_unit_id, 1, 1, NOW(), 0, UUID()
+      FROM stockmgmt_stock_item si
+      WHERE si.voided = 0
+        AND si.dispensing_unit_id IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM stockmgmt_stock_item_packaging_uom p
+          WHERE p.stock_item_id = si.stock_item_id
+            AND p.packaging_uom_id = si.dispensing_unit_id
+            AND p.voided = 0
+        )
+    </sql>
+    <sql>
+      UPDATE stockmgmt_stock_item si
+      JOIN stockmgmt_stock_item_packaging_uom p
+        ON p.stock_item_id = si.stock_item_id
+        AND p.packaging_uom_id = si.dispensing_unit_id
+        AND p.factor = 1
+        AND p.voided = 0
+      SET si.dispensing_unit_packaging_uom_id = p.stock_item_packaging_uom_id
+      WHERE si.voided = 0
+        AND si.dispensing_unit_id IS NOT NULL
+        AND (si.dispensing_unit_packaging_uom_id IS NULL OR si.dispensing_unit_packaging_uom_id != p.stock_item_packaging_uom_id)
+    </sql>
+  </changeSet>
+  <changeSet author="claude" id="stockmanagement-2026-09-01-1000">
+    <preConditions onFail="MARK_RAN">
+      <sqlCheck expectedResult="1">
+        SELECT COUNT(*) FROM stockmgmt_operation_type_location_scope
+        WHERE uuid = '5b341a26-28a2-11ed-bdcb-507b9dea1806'
+      </sqlCheck>
+    </preConditions>
+    <comment>
+      The stockmanagement-1758855877841-249 changeset above restricted Transfer Out's source
+      location to locations tagged 'Main Store' only. That meant a user logged in anywhere
+      else always had the source field forced to whichever Main Store location the API
+      returned first (base-operation-details-form-step.tsx's shouldLockSource branch), instead
+      of their own login location. Removing this scope row lifts the tag restriction so any
+      location can be a Transfer Out source, letting the frontend's existing session-location
+      fallback auto-populate the field from wherever the user is actually logged in.
+    </comment>
+    <delete tableName="stockmgmt_operation_type_location_scope">
+      <where>uuid = '5b341a26-28a2-11ed-bdcb-507b9dea1806'</where>
+    </delete>
+  </changeSet>
+  <changeSet author="claude" id="stockmanagement-2026-09-09-1000">
+    <preConditions onFail="MARK_RAN">
+      <sqlCheck expectedResult="1">
+        SELECT COUNT(*) FROM stockmgmt_stock_operation_type WHERE operation_type = 'transferout'
+      </sqlCheck>
+    </preConditions>
+    <comment>
+      Transfer Out moves stock between internal locations here, so its destination is a Location,
+      not an external stock source. The stockmanagement-1758855877841-248 changeset above seeds
+      destination_type as 'Other', and because that changeset's precondition skips the insert on
+      any database where the transferout row already exists, editing the seed would not correct a
+      running system - hence a separate update. Without this the destination of a transfer is an
+      external source rather than a location, so the receiving location is never credited and
+      location-to-location transfers stop working; the live database only has 'Location' because
+      it was set by hand, which a rebuilt database would silently lose.
+    </comment>
+    <update tableName="stockmgmt_stock_operation_type">
+      <column name="destination_type">Location</column>
+      <where>operation_type = 'transferout'</where>
+    </update>
+  </changeSet>
 </databaseChangeLog>

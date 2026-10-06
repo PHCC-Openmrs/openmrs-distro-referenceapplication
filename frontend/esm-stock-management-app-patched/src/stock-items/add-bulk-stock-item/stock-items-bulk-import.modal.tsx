@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, ModalBody, ModalFooter, ModalHeader, FileUploader } from '@carbon/react';
-import { getCoreTranslation, showSnackbar } from '@openmrs/esm-framework';
+import { getCoreTranslation, restBaseUrl, showSnackbar } from '@openmrs/esm-framework';
 import { uploadStockItems } from './stock-items-bulk-import.resource';
+import { useHandleMutate } from '../../utils';
 
 export interface ImportBulkStockItemsModalProps {
   closeModal: () => void;
@@ -10,6 +11,7 @@ export interface ImportBulkStockItemsModalProps {
 
 const ImportBulkStockItemsModal: React.FC<ImportBulkStockItemsModalProps> = ({ closeModal }) => {
   const { t } = useTranslation();
+  const handleMutate = useHandleMutate();
   const [selectedFile, setSelectedFile] = useState<any>();
 
   const onConfirmUpload = () => {
@@ -26,6 +28,8 @@ const ImportBulkStockItemsModal: React.FC<ImportBulkStockItemsModalProps> = ({ c
 
     uploadStockItems(formData).then(
       () => {
+        handleMutate(`${restBaseUrl}/stockmanagement/stockitem`);
+        handleMutate(`${restBaseUrl}/stockmanagement/stockiteminventory`);
         showSnackbar({
           kind: 'success',
           title: t('stockItemsUploadedSuccessfully', 'Stock items uploaded successfully'),

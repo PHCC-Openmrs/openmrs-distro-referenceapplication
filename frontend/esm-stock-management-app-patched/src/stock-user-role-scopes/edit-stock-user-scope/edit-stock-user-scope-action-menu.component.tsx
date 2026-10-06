@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconButton } from '@carbon/react';
 import { Edit } from '@carbon/react/icons';
-import { launchWorkspace } from '@openmrs/esm-framework';
+import { launchWorkspace, useSession, userHasAccess } from '@openmrs/esm-framework';
 import { type UserRoleScope } from '../../core/api/types/identity/UserRoleScope';
 
 interface EditStockUserRoleActionsMenuProps {
@@ -11,6 +11,7 @@ interface EditStockUserRoleActionsMenuProps {
 
 const EditStockUserRoleActionsMenu: React.FC<EditStockUserRoleActionsMenuProps> = ({ data }) => {
   const { t } = useTranslation();
+  const session = useSession();
 
   const handleLaunchWorkspace = useCallback(() => {
     launchWorkspace('stock-user-role-scopes-form-workspace', {
@@ -18,6 +19,10 @@ const EditStockUserRoleActionsMenu: React.FC<EditStockUserRoleActionsMenuProps> 
       model: data,
     });
   }, [data, t]);
+
+  if (!userHasAccess('Task: stockmanagement.userRoleScopes.mutate', session?.user)) {
+    return null;
+  }
 
   return (
     <IconButton

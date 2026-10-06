@@ -20,14 +20,33 @@
       "component": "diseaseSummaryLink"
     },
     {
-      "name": "session-attendance-admin-link",
-      "slot": "system-admin-page-card-link-slot",
-      "component": "sessionAttendanceLink"
-    },
-    {
       "name": "stock-ledger-admin-link",
       "slot": "system-admin-page-card-link-slot",
       "component": "stockLedgerLink"
+    },
+    {
+      "name": "cmam-summary-admin-link",
+      "slot": "system-admin-page-card-link-slot",
+      "component": "cmamSummaryLink"
+    },
+    {
+      "name": "reports-overview-admin-link",
+      "slot": "system-admin-page-card-link-slot",
+      "component": "reportsOverviewLink"
+    },
+    {
+      "name": "notifications-button",
+      "slot": "notifications-menu-button-slot",
+      "component": "notificationsButton",
+      "online": true,
+      "offline": false
+    },
+    {
+      "name": "notifications-panel",
+      "slot": "notifications-nav-menu-slot",
+      "component": "notificationsPanel",
+      "online": true,
+      "offline": false
     }
   ],
   "pages": [
@@ -48,12 +67,84 @@
       "route": "disease-summary-report"
     },
     {
-      "component": "sessionAttendanceReport",
-      "route": "session-attendance-report"
+      "component": "stockReportsHome",
+      "route": "stock-reports-home"
     },
     {
       "component": "stockLedgerReport",
       "route": "stock-ledger-report"
+    },
+    {
+      "component": "stockConsumptionReport",
+      "route": "stock-consumption-report"
+    },
+    {
+      "component": "stockDistributionReport",
+      "route": "stock-distribution-report"
+    },
+    {
+      "component": "stockWastageReport",
+      "route": "stock-wastage-report"
+    },
+    {
+      "component": "stockAdjustmentsReport",
+      "route": "stock-adjustments-report"
+    },
+    {
+      "component": "stockExpiryRiskReport",
+      "route": "stock-expiry-risk-report"
+    },
+    {
+      "component": "stockDaysRemainingReport",
+      "route": "stock-days-remaining-report"
+    },
+    {
+      "component": "stockReorderReport",
+      "route": "stock-reorder-report"
+    },
+    {
+      "component": "stockStockoutFrequencyReport",
+      "route": "stock-stockout-frequency-report"
+    },
+    {
+      "component": "cmamSummaryReport",
+      "route": "cmam-follow-up-report"
+    },
+    {
+      "component": "cmamAbove5SummaryReport",
+      "route": "cmam-above5-follow-up-report"
+    },
+    {
+      "component": "childUnder5Report",
+      "route": "child-under-5-report"
+    },
+    {
+      "component": "childAbove5Report",
+      "route": "child-above-5-report"
+    },
+    {
+      "component": "referralFormReport",
+      "route": "referral-form-report"
+    },
+    {
+      "component": "ncdPatientCardReport",
+      "route": "ncd-patient-card-report"
+    },
+    {
+      "component": "nursingReport",
+      "route": "nursing-report"
+    },
+    {
+      "component": "healthPromotionReport",
+      "route": "health-promotion-report"
+    },
+    {
+      "component": "srhReport",
+      "route": "srh-report"
+    },
+    {
+      "component": "medicineDistributionReport",
+      "route": "medicine-distribution-report"
     }
   ]
 }

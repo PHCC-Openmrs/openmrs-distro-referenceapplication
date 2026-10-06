@@ -8,6 +8,28 @@ services:
   frontend:
     build:
       context: ./frontend
+      # Fork sources are cloned from the PHCC-Openmrs forks' `main` on GitHub
+      # (the Dockerfile's default). Building openmrs-esm-patient-management and
+      # openmrs-esm-patient-chart from local checkouts instead -- so uncommitted
+      # edits (e.g. the hiddenServicePrograms change) are picked up without
+      # committing/pushing first. To also build openmrs-esm-core from a local
+      # checkout, add:
+      #   - esm-core-local=../openmrs-esm-core
+      # below and set ESM_CORE_SOURCE: esm-core-local-aliased under args.
+      additional_contexts:
+        - patient-management-local=../openmrs-esm-patient-management
+        - patient-chart-local=../openmrs-esm-patient-chart
+      args:
+        # The Dockerfile defaults to the floating `next` prerelease tag for the
+        # openmrs CLI (app-shell builder), which republishes multiple times a
+        # day and can ship breaking changes with no warning -- it's what broke
+        # the Module Federation runtime here (esm-core's rspack.config.js
+        # didn't set `experiments.provideExternalRuntime`, which some recent
+        # `next` prerelease started requiring). Pin to the stable release for
+        # local dev builds instead.
+        APP_SHELL_VERSION: latest
+        PATIENT_MANAGEMENT_SOURCE: patient-management-local-aliased
+        PATIENT_CHART_SOURCE: patient-chart-local-aliased
 
   backend:
     build:

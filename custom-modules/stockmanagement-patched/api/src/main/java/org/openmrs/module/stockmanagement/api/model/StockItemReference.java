@@ -36,7 +36,15 @@ public class StockItemReference extends org.openmrs.BaseChangeableOpenmrsData im
 	@GenericField
 	@Column(name = "stock_reference_code", length = 255)
 	private String stockReferenceCode;
-	
+
+	// The pack size this vendor supplies the item in (e.g. "Box - 30" vs. another vendor's
+	// "Box - 60"), picked from the item's own packaging units rather than duplicating a
+	// concept+factor here, so both stay in sync with the Packaging Units tab. Nullable since a
+	// vendor reference can be recorded before its pack size is known.
+	@JoinColumn(name = "stock_item_packaging_uom_id")
+	@ManyToOne(fetch = FetchType.LAZY)
+	private StockItemPackagingUOM packagingUnit;
+
 	@Override
 	public Integer getId() {
 		return id;
@@ -70,5 +78,13 @@ public class StockItemReference extends org.openmrs.BaseChangeableOpenmrsData im
 	public void setStockReferenceCode(String stockReferenceCode) {
 		this.stockReferenceCode = stockReferenceCode;
 	}
-	
+
+	public StockItemPackagingUOM getPackagingUnit() {
+		return packagingUnit;
+	}
+
+	public void setPackagingUnit(StockItemPackagingUOM packagingUnit) {
+		this.packagingUnit = packagingUnit;
+	}
+
 }

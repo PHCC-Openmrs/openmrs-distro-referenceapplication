@@ -6,15 +6,17 @@ import { useTranslation } from 'react-i18next';
 import { restBaseUrl, showSnackbar, useSession } from '@openmrs/esm-framework';
 import { createStockOperation, deleteStockOperationItem, updateStockOperation } from '../../stock-operations.resource';
 import { extractErrorMessagesFromResponse } from '../../../constants';
-import { handleMutate } from '../../../utils';
+import { useHandleMutate } from '../../../utils';
 import { OperationType, type StockOperationType } from '../../../core/api/types/stockOperation/StockOperationType';
 import { otherUser } from '../../../core/utils/utils';
 import { launchStockOperationsModal } from '../../stock-operation.utils';
 import { type StockOperationDTO } from '../../../core/api/types/stockOperation/StockOperationDTO';
 import { type StockOperationItemDTO } from '../../../core/api/types/stockOperation/StockOperationItemDTO';
 import { type StockOperationItemDtoSchema } from '../../validation-schema';
+import { buildExternalReference } from '../../external-reference.utils';
 import useOperationTypePermisions from '../hooks/useOperationTypePermisions';
 import styles from '../stock-operation-form.scss';
+
 
 type StockOperationSubmissionFormStepProps = {
   onPrevious?: () => void;
@@ -33,18 +35,17 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
 }) => {
   const { t } = useTranslation();
   const { sessionLocation } = useSession();
+  const handleMutate = useHandleMutate();
   const operationTypePermision = useOperationTypePermisions(stockOperationType);
   const editable = useMemo(() => !stockOperation || stockOperation.status === 'NEW', [stockOperation]);
   const form = useFormContext<StockOperationItemDtoSchema>();
-  const [approvalRequired, setApprovalRequired] = useState<boolean | null>(stockOperation?.approvalRequired);
+  // Every stock operation has to go through approval, whatever its type and whoever creates it,
+  // so the choice below is locked to "Yes" and the "No" option is disabled.
+  const [approvalRequired] = useState<boolean>(true);
   const isStockIssueOperation = useMemo(
     () => OperationType.STOCK_ISSUE_OPERATION_TYPE === stockOperationType.operationType,
     [stockOperationType],
   );
-  const handleRadioButtonChange = (selectedItem: boolean) => {
-    setApprovalRequired(selectedItem);
-  };
-
   const handleSave = useCallback(async () => {
     let result: StockOperationDTO; // To store the result for returning
     await form.handleSubmit(async (formData) => {
@@ -88,6 +89,16 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
           // This form never collects a location itself; always send the current UI session's location
           atLocationUuid: sessionLocation?.uuid,
           approvalRequired: approvalRequired ? true : false,
+          // The backend has no dedicated columns for these three - pack them into the one
+          // free-text field it does have (externalReference) instead of sending them raw.
+          externalReference: buildExternalReference({
+            purchaseOrderNo: formData.purchaseOrderNo,
+            purchaseRequestNo: formData.purchaseRequestNo,
+            projectFundCode: formData.projectFundCode,
+          }),
+          purchaseOrderNo: undefined,
+          purchaseRequestNo: undefined,
+          projectFundCode: undefined,
           stockOperationItems: [
             ...formData.stockOperationItems.map((item) => ({
               ...item,
@@ -124,20 +135,23 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
       }
     })(); // Call handleSubmit to trigger validation and submission
     return result; // Return the result after handleSubmit completes
-  }, [form, stockOperation, t, approvalRequired, isStockIssueOperation, dismissWorkspace]);
+  }, [form, stockOperation, t, approvalRequired, isStockIssueOperation, dismissWorkspace, handleMutate, sessionLocation]);
 
   const handleComplete = useCallback(() => {
     handleSave().then((operation) => {
+      if (!operation) return;
       launchStockOperationsModal('Complete', false, { ...operation, status: 'COMPLETED' });
     });
   }, [handleSave]);
   const handleSubmitForReview = useCallback(() => {
     handleSave().then((operation) => {
+      if (!operation) return;
       launchStockOperationsModal('Submit', false, { ...operation, status: 'SUBMITTED' });
     });
   }, [handleSave]);
   const handleDispatch = useCallback(() => {
     handleSave().then((operation) => {
+      if (!operation) return;
       launchStockOperationsModal('Dispatch', false, { ...operation, status: 'DISPATCHED' });
     });
   }, [handleSave]);
@@ -156,12 +170,11 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
         <RadioButtonGroup
           name="rbgApprovelRequired"
           legendText={t('doesThisTransactionRequireApproval', 'Does the transaction require approval ?')}
-          onChange={(value) => handleRadioButtonChange(value === 'true')}
           readOnly={!editable}
-          valueSelected={approvalRequired === true ? 'true' : approvalRequired === false ? 'false' : null}
+          valueSelected={approvalRequired ? 'true' : 'false'}
         >
           <RadioButton value="true" id="rbgApprovelRequired-true" labelText={t('yes', 'Yes')} />
-          <RadioButton value="false" id="rbgApprovelRequired-false" labelText={t('no', 'No')} />
+          <RadioButton value="false" id="rbgApprovelRequired-false" labelText={t('no', 'No')} disabled />
         </RadioButtonGroup>
       </Column>
       {editable && (

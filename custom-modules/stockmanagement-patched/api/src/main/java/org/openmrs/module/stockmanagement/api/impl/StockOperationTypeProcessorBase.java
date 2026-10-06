@@ -50,6 +50,11 @@ public abstract class StockOperationTypeProcessorBase implements StockOperationT
 	public boolean requiresDispatchAcknowledgement() {
 		return false;
 	}
+
+	@Override
+	public boolean appliesStockAtCompletion() {
+		return false;
+	}
 	
 	@Override
 	public boolean isQuantityOptional() {

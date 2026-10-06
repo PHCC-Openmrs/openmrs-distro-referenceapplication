@@ -12,6 +12,10 @@ type SomeFunction = (...args: any[]) => void;
 
 export function useDebounce<Func extends SomeFunction>(func: Func, delay = 1000) {
   const timer = useRef<Timer>();
+  const funcRef = useRef(func);
+  const delayRef = useRef(delay);
+  funcRef.current = func;
+  delayRef.current = delay;
 
   useEffect(() => {
     return () => {
@@ -20,13 +24,14 @@ export function useDebounce<Func extends SomeFunction>(func: Func, delay = 1000)
     };
   }, []);
 
-  const debouncedFunction = ((...args) => {
-    const newTimer = setTimeout(() => {
-      func(...args);
-    }, delay);
+  // Keep the returned function's identity stable across renders (only the ref
+  // contents change), so effects that depend on it don't re-fire on every render.
+  const debouncedFunctionRef = useRef((...args: Parameters<Func>) => {
     clearTimeout(timer.current);
-    timer.current = newTimer;
-  }) as Func;
+    timer.current = setTimeout(() => {
+      funcRef.current(...args);
+    }, delayRef.current);
+  });
 
-  return debouncedFunction;
+  return debouncedFunctionRef.current as Func;
 }

@@ -17,9 +17,17 @@ public class StockItemReferenceDTO {
 	private String stockSourceName;
 	
 	private int stockItemId;
-	
+
 	private String stockItemUuid;
-	
+
+	private Integer packagingUnitId;
+
+	private String packagingUnitUuid;
+
+	private String packagingUnitName;
+
+	private java.math.BigDecimal packagingUnitFactor;
+
 	public Integer getId() {
 		return id;
 	}
@@ -91,5 +99,37 @@ public class StockItemReferenceDTO {
 	public void setStockItemUuid(String stockItemUuid) {
 		this.stockItemUuid = stockItemUuid;
 	}
-	
+
+	public Integer getPackagingUnitId() {
+		return packagingUnitId;
+	}
+
+	public void setPackagingUnitId(Integer packagingUnitId) {
+		this.packagingUnitId = packagingUnitId;
+	}
+
+	public String getPackagingUnitUuid() {
+		return packagingUnitUuid;
+	}
+
+	public void setPackagingUnitUuid(String packagingUnitUuid) {
+		this.packagingUnitUuid = packagingUnitUuid;
+	}
+
+	public String getPackagingUnitName() {
+		return packagingUnitName;
+	}
+
+	public void setPackagingUnitName(String packagingUnitName) {
+		this.packagingUnitName = packagingUnitName;
+	}
+
+	public java.math.BigDecimal getPackagingUnitFactor() {
+		return packagingUnitFactor;
+	}
+
+	public void setPackagingUnitFactor(java.math.BigDecimal packagingUnitFactor) {
+		this.packagingUnitFactor = packagingUnitFactor;
+	}
+
 }

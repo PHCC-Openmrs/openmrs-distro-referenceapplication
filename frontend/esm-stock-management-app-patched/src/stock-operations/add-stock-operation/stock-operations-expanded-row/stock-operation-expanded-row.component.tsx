@@ -82,6 +82,14 @@ const StockOperationExpandedRow: React.FC<StockOperationExpandedRowProps> = (pro
               extraStatusinfo={<span>{props.model?.rejectionReason}</span>}
             />
           )}
+          {props.model?.reasonName && (
+            <div>
+              <span className={styles.textHeading}>{t('reason', 'Reason')}:</span>
+              <div className={styles.statusDescriptions}>
+                <span className={styles.text}>{props.model.reasonName}</span>
+              </div>
+            </div>
+          )}
         </Row>
         <Row className={styles.statusContainerRow}>
           {isLoading && (

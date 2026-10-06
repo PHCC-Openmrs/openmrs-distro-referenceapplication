@@ -1,19 +1,20 @@
 import React, { useMemo } from 'react';
 import classNames from 'classnames';
-import { Button, ButtonSet, FormGroup, InlineLoading, Stack } from '@carbon/react';
+import { Button, ButtonSet, DatePicker, DatePickerInput, FormGroup, InlineLoading, Stack } from '@carbon/react';
 import { Save } from '@carbon/react/icons';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { type SubmitHandler, useForm } from 'react-hook-form';
+import { Controller, type SubmitHandler, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { getCoreTranslation, restBaseUrl, showSnackbar, useLayoutType } from '@openmrs/esm-framework';
+import dayjs from 'dayjs';
 import { createStockItem, updateStockItem } from '../../stock-items.resource';
 import { expirationOptions, radioOptions, StockItemType } from './stock-item-details.resource';
-import { handleMutate } from '../../../utils';
-import { launchAddOrEditStockItemWorkspace } from '../../stock-item.utils';
+import { useHandleMutate } from '../../../utils';
 import { createStockItemDetailsSchema, type StockItemFormData } from '../../validationSchema';
 import { type StockItemDTO } from '../../../core/api/types/stockItem/StockItem';
+import { type Drug } from '../../../core/api/types/concept/Drug';
+import { DATE_PICKER_CONTROL_FORMAT, DATE_PICKER_FORMAT, formatForDatePicker, today } from '../../../constants';
 import ConceptsSelector from '../concepts-selector/concepts-selector.component';
-import ControlledNumberInput from '../../../core/components/carbon/controlled-number-input.component';
 import ControlledRadioButtonGroup from '../../../core/components/carbon/controlled-radio-button-group.component';
 import ControlledTextInput from '../../../core/components/carbon/controlled-text-input.component';
 import DispensingUnitSelector from '../dispensing-unit-selector/dispensing-unit-selector.component';
@@ -27,17 +28,34 @@ interface StockItemDetailsProps {
   stockItem?: StockItemDTO;
   handleTabChange: (index) => void;
   onCloseWorkspace?: () => void;
+  /** Called with the newly-created item once a brand-new stock item is saved. */
+  onItemCreated?: (stockItem: StockItemDTO) => void;
 }
 
-const StockItemDetails = ({ stockItem, handleTabChange, onCloseWorkspace }: StockItemDetailsProps) => {
+const StockItemDetails = ({ stockItem, handleTabChange, onCloseWorkspace, onItemCreated }: StockItemDetailsProps) => {
   const { t } = useTranslation();
   const isTablet = useLayoutType() === 'tablet';
+  const handleMutate = useHandleMutate();
 
-  const { handleSubmit, control, formState, watch } = useForm<StockItemFormData>({
+  const { handleSubmit, control, formState, watch, setValue } = useForm<StockItemFormData>({
     defaultValues: stockItem ?? {},
     mode: 'all',
     resolver: zodResolver(createStockItemDetailsSchema(t)),
   });
+
+  // Common name / Abbreviation are derived from the selected drug or item, not typed by the
+  // user, so they always stay in sync with whatever was actually picked above.
+  const handleDrugChanged = (drug?: Drug | null) => {
+    if (!drug) return;
+    setValue('commonName', drug.name, { shouldValidate: true });
+    setValue('acronym', drug.concept?.shortName?.name ?? drug.name, { shouldValidate: true });
+  };
+
+  const handleConceptChanged = (item?: { display: string } | null) => {
+    if (!item) return;
+    setValue('commonName', item.display, { shouldValidate: true });
+    setValue('acronym', item.display, { shouldValidate: true });
+  };
 
   const { errors } = formState;
   const handleSave: SubmitHandler<StockItemFormData> = async (formValues) => {
@@ -55,15 +73,13 @@ const StockItemDetails = ({ stockItem, handleTabChange, onCloseWorkspace }: Stoc
             : `${t('stockItemAdded', 'Stock item added successfully')}`,
         });
         if (!stockItem) {
-          onCloseWorkspace?.();
-          // launch edit stock item workspace
-          const item = response.data;
-          item.isDrug = !!item.drugUuid;
-          launchAddOrEditStockItemWorkspace(t, item);
+          // A brand-new item still needs at least one packaging unit before it's
+          // usable, so send the user to that tab instead of closing the workspace.
+          onItemCreated?.(response.data);
         }
+        handleTabChange(1);
       }
 
-      handleTabChange(1);
       handleMutate(`${restBaseUrl}/stockmanagement/stockitem`);
     } catch (e) {
       // Show notification
@@ -113,6 +129,7 @@ const StockItemDetails = ({ stockItem, handleTabChange, onCloseWorkspace }: Stoc
             placeholder={t('chooseADrug', 'Choose a drug')}
             initialDrugName={stockItem?.drugName ?? stockItem?.conceptName ?? undefined}
             readOnly={!!stockItem}
+            onDrugChanged={handleDrugChanged}
             invalid={!!errors.drugUuid}
             invalidText={errors.drugUuid && errors?.drugUuid?.message}
           />
@@ -123,6 +140,7 @@ const StockItemDetails = ({ stockItem, handleTabChange, onCloseWorkspace }: Stoc
             control={control}
             title={t('pleaseSpecify', 'Please specify')}
             placeholder={t('chooseAnItem', 'Choose an item')}
+            onConceptUuidChange={handleConceptChanged}
             invalid={!!errors.drugUuid}
             invalidText={errors.drugUuid && errors?.drugUuid?.message}
           />
@@ -136,6 +154,7 @@ const StockItemDetails = ({ stockItem, handleTabChange, onCloseWorkspace }: Stoc
           size={'md'}
           value={`${stockItem?.commonName ?? ''}`}
           labelText={t('commonName', 'Common name') + ':'}
+          disabled
           invalid={!!errors.commonName}
           invalidText={errors.commonName && errors?.commonName?.message}
         />
@@ -147,6 +166,7 @@ const StockItemDetails = ({ stockItem, handleTabChange, onCloseWorkspace }: Stoc
           controllerName="acronym"
           size={'md'}
           labelText={t('abbreviation', 'Abbreviation') + ':'}
+          disabled
           invalid={!!errors.acronym}
           invalidText={errors.acronym && errors?.acronym?.message}
         />
@@ -174,19 +194,36 @@ const StockItemDetails = ({ stockItem, handleTabChange, onCloseWorkspace }: Stoc
           </FormGroup>
 
           {observableHasExpiration && (
-            <FormGroup className="clear-margin-bottom" legendText={t('expirationNotice', 'Expiration Notice (days)')}>
-              <ControlledNumberInput
-                id="expiryNotice"
+            <FormGroup className="clear-margin-bottom" legendText={t('expirationDate', 'Expiration date')}>
+              <Controller
                 name="expiryNotice"
                 control={control}
-                controllerName="expiryNotice"
-                min={0}
-                hideSteppers
-                size="md"
-                allowEmpty
-                label=""
-                invalid={!!errors.expiryNotice}
-                invalidText={errors.expiryNotice && errors?.expiryNotice?.message}
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <DatePicker
+                    datePickerType="single"
+                    minDate={formatForDatePicker(today())}
+                    locale="en"
+                    dateFormat={DATE_PICKER_CONTROL_FORMAT}
+                    value={typeof value === 'number' ? dayjs(today()).add(value, 'day').toDate() : null}
+                    onChange={([selectedDate]) => {
+                      if (!selectedDate) {
+                        onChange(null);
+                        return;
+                      }
+                      const daysUntilExpiry = dayjs(selectedDate).startOf('day').diff(dayjs(today()), 'day');
+                      onChange(daysUntilExpiry);
+                    }}
+                  >
+                    <DatePickerInput
+                      id="expiryNotice"
+                      placeholder={DATE_PICKER_FORMAT}
+                      labelText=""
+                      onBlur={onBlur}
+                      invalid={!!errors.expiryNotice}
+                      invalidText={errors.expiryNotice && errors?.expiryNotice?.message}
+                    />
+                  </DatePicker>
+                )}
               />
             </FormGroup>
           )}
@@ -247,6 +284,7 @@ const StockItemDetails = ({ stockItem, handleTabChange, onCloseWorkspace }: Stoc
           onClick={handleSubmit(handleSave)}
           renderIcon={Save}
           type="button"
+          disabled={!formState.isValid || formState.isSubmitting}
         >
           {formState.isSubmitting ? <InlineLoading /> : getCoreTranslation('save')}
         </Button>

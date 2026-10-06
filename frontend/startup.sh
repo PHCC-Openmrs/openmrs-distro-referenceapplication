@@ -58,6 +58,31 @@ if [ -f "/usr/share/nginx/html/service-worker.js" ]; then
   envsubst '${IMPORTMAP_URL} ${SPA_PATH} ${API_URL}' < "/usr/share/nginx/html/service-worker.js" | sponge "/usr/share/nginx/html/service-worker.js"
 fi
 
+# This build doesn't ship a real service worker (see spa-build-config.json's
+# "supportOffline": false), but a browser that still has one registered
+# from a past deployment will keep serving stale cached responses
+# regardless of the nginx cache headers above. Serve a stub whose only job
+# is to unregister itself and reload any tab it controls. Skipped if a real
+# service-worker.js was produced by the build, so this never clobbers
+# genuine offline support.
+if [ ! -f "/usr/share/nginx/html/service-worker.js" ]; then
+  cat > "/usr/share/nginx/html/service-worker.js" <<'SW_EOF'
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      await self.registration.unregister();
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach((client) => client.navigate(client.url));
+    })(),
+  );
+});
+SW_EOF
+fi
+
 for manifest in /usr/share/nginx/html/manifest.*.json; do
   break;
 done

@@ -162,6 +162,10 @@
       "component": "deleteStockModal"
     },
     {
+      "name": "delete-stock-item-modal",
+      "component": "deleteStockItemModal"
+    },
+    {
       "name": "delete-stock-user-scope-modal",
       "component": "deleteUserScopeModal"
     },
@@ -176,6 +180,14 @@
     {
       "name": "expired-stock-modal",
       "component": "expiredStockModal"
+    },
+    {
+      "name": "out-of-stock-modal",
+      "component": "outOfStockModal"
+    },
+    {
+      "name": "disposed-stock-modal",
+      "component": "disposedStockModal"
     },
     {
       "name": "import-bulk-stock-items",

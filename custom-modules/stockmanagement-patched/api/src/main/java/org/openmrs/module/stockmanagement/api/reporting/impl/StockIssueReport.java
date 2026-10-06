@@ -54,7 +54,9 @@ public class StockIssueReport extends StockOperationLineItemReport {
 		            .toPlainString(), row.getQuantity().toPlainString(), row.getStockItemPackagingUOMName(), row
 		            .getStockItemPackagingUOMFactor().toPlainString(), row.getStockItemDrugId() == null ? "" : row
 		            .getStockItemDrugId().toString(), row.getStockItemConceptId() == null ? "" : row.getStockItemConceptId()
-		            .toString());
+		            .toString(),
+		    emptyIfNull(row.getPurchaseOrderNo()), emptyIfNull(row.getPurchaseRequestNo()),
+		    emptyIfNull(row.getProjectFundCode()));
 	}
 	
 	@Override
@@ -86,7 +88,10 @@ public class StockIssueReport extends StockOperationLineItemReport {
 		    messageSourceService.getMessage("stockmanagement.report.qtyunit"),
 		    messageSourceService.getMessage("stockmanagement.report.packsize"),
 		    messageSourceService.getMessage("stockmanagement.report.drugid"),
-		    messageSourceService.getMessage("stockmanagement.report.conceptid"));
+		    messageSourceService.getMessage("stockmanagement.report.conceptid"),
+		    messageSourceService.getMessage("stockmanagement.report.purchaseorderno"),
+		    messageSourceService.getMessage("stockmanagement.report.purchaserequestno"),
+		    messageSourceService.getMessage("stockmanagement.report.projectfundcode"));
 	}
 	
 }

@@ -965,9 +965,32 @@ public class StockManagementDao extends DaoBase {
                 .setParameterList("ids", ids)
                 .setParameter("cnt", ConceptNameType.FULLY_SPECIFIED);
         query = query.setResultTransformer(new AliasToBeanResultTransformer(ConceptNameDTO.class));
-        return query.list();
+        List<ConceptNameDTO> allLocaleNames = query.list();
+        return resolveToSingleNamePerConcept(allLocaleNames);
     }
-	
+
+	/**
+	 * The query above returns a concept's fully specified name in every locale it has one,
+	 * with no defined order. Every caller of getConceptNamesByConceptIds only ever wants a
+	 * single display name per concept (via list.get(0) or stream().findFirst()), so without
+	 * this step whichever locale the DB happened to return first would be shown - e.g. a
+	 * French name on an English screen. Collapsing to one entry per concept here, preferring
+	 * the current session locale and falling back to any available name, fixes every caller
+	 * at once instead of requiring each call site to filter by locale itself.
+	 */
+	private List<ConceptNameDTO> resolveToSingleNamePerConcept(List<ConceptNameDTO> allLocaleNames) {
+        Locale currentLocale = Context.getLocale();
+        return allLocaleNames.stream()
+                .collect(Collectors.groupingBy(ConceptNameDTO::getConceptId))
+                .values()
+                .stream()
+                .map(namesForConcept -> namesForConcept.stream()
+                        .filter(p -> p.getLocale() != null && p.getLocale().getDisplayName().equals(currentLocale.getDisplayName()))
+                        .findFirst()
+                        .orElse(namesForConcept.get(0)))
+                .collect(Collectors.toList());
+    }
+
 	public List<ConceptNameDTO> getDrugNamesByDrugIds(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) return new ArrayList<>();
         Query query = getSession().createQuery("select d.drugId as conceptId, d.name as name from Drug d where d.drugId in (:ids)")
@@ -2375,7 +2398,12 @@ public class StockManagementDao extends DaoBase {
             monthQuantityConsumedIndex++;
         } while (!startDate.isAfter(endDate));
 
-        hqlQuery.append("sum(case when (sb.expiration is null or sb.expiration > :today) then (sit.quantity * sipu.factor) else 0 end) as quantity");
+        // Bounded to :enddate (not left unrestricted / "as of today") so this reflects the
+        // balance as of the end of the filtered period, matching the historical consumption
+        // columns above - otherwise stock added after the report's date range (or an item with
+        // no activity at all until after it) would still show its present-day quantity even
+        // when every month in range had zero consumption and zero stock on hand.
+        hqlQuery.append("sum(case when (sit.dateCreated <= :enddate) and (sb.expiration is null or sb.expiration > :today) then (sit.quantity * sipu.factor) else 0 end) as quantity");
         hqlQuery.append(" from stockmanagement.StockItemTransaction sit join\n" +
                 "\t sit.stockItemPackagingUOM sipu join\n" +
                 " sit.stockBatch sb\n" +
@@ -4252,6 +4280,7 @@ public class StockManagementDao extends DaoBase {
                 "so.responsiblePerson.userId as responsiblePerson,\n" +
                 "so.responsiblePersonOther as responsiblePersonOther,\n" +
                 "so.remarks as remarks,\n" +
+                "so.externalReference as externalReference,\n" +
                 "so.status as stockOperationStatus,\n" +
                 "so.creator.userId as creator,\n" +
                 "so.dateCreated as dateCreated,\n" +

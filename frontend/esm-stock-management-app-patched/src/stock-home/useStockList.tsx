@@ -1,5 +1,7 @@
-import useSWR from 'swr';
-import { openmrsFetch, restBaseUrl, useSession } from '@openmrs/esm-framework';
+import { useSession } from '@openmrs/esm-framework';
+import { ResourceRepresentation } from '../core/api/api';
+import { useFetchAllPages } from '../core/api/useFetchAllPages';
+import { type StockItemFilter } from '../stock-items/stock-items.resource';
 import { useStockItemQuantities } from '../stock-items/stock-item-quantities.resource';
 
 interface StockListItem {
@@ -7,19 +9,22 @@ interface StockListItem {
   hasExpiration: boolean;
   expiryNotice: number;
   reorderLevel: number | null | undefined;
+  commonName?: string | null;
+  drugName?: string | null;
+  conceptName?: string | null;
 }
 
 const useStockList = () => {
   const { sessionLocation } = useSession();
 
-  const stockItemsUrl = `${restBaseUrl}/stockmanagement/stockitem?v=default&totalCount=true`;
   const {
-    data: stockItemsData,
+    items: stockItems,
     error: stockItemsError,
     isLoading: stockItemsLoading,
-  } = useSWR<{ data: { results: Array<StockListItem> } }>(stockItemsUrl, openmrsFetch);
+  } = useFetchAllPages<StockListItem, StockItemFilter>('/stockmanagement/stockitem', {
+    v: ResourceRepresentation.Default,
+  });
 
-  const stockItems = stockItemsData?.data.results ?? [];
   const stockItemUuids = stockItems.map((item) => item.uuid);
 
   const {
@@ -28,12 +33,18 @@ const useStockList = () => {
     isLoading: quantityLoading,
   } = useStockItemQuantities(stockItemUuids, sessionLocation?.uuid);
 
-  const outOfStockItems = stockItems.filter((item) => (quantityByItem?.get(item.uuid) ?? 0) <= 0);
+  const itemDisplayName = (item: StockListItem) => item.commonName || item.drugName || item.conceptName || item.uuid;
 
-  const understockedItems = stockItems.filter((item) => {
-    const quantity = quantityByItem?.get(item.uuid) ?? 0;
-    return quantity > 0 && !!item.reorderLevel && quantity < item.reorderLevel;
-  });
+  const outOfStockItems = stockItems
+    .filter((item) => (quantityByItem?.get(item.uuid) ?? 0) <= 0)
+    .map((item) => ({ ...item, displayName: itemDisplayName(item), quantity: quantityByItem?.get(item.uuid) ?? 0 }));
+
+  const understockedItems = stockItems
+    .filter((item) => {
+      const quantity = quantityByItem?.get(item.uuid) ?? 0;
+      return quantity > 0 && !!item.reorderLevel && quantity < item.reorderLevel;
+    })
+    .map((item) => ({ ...item, displayName: itemDisplayName(item), quantity: quantityByItem?.get(item.uuid) ?? 0 }));
 
   return {
     stockList: stockItems,

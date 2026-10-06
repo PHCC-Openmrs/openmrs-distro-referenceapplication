@@ -9,7 +9,7 @@ import {
 } from '../../core/api/types/stockOperation/StockOperationAction';
 import { executeStockOperationAction } from '../stock-operations.resource';
 import { extractErrorMessagesFromResponse } from '../../constants';
-import { handleMutate } from '../../utils';
+import { useHandleMutate } from '../../utils';
 import styles from './stock-operations.scss';
 
 interface StockOperationsModalProps {
@@ -22,6 +22,7 @@ interface StockOperationsModalProps {
 const StockOperationsModal: React.FC<StockOperationsModalProps> = ({ title, requireReason, operation, closeModal }) => {
   const confirmType = title.toLocaleLowerCase().trim();
   const { t } = useTranslation();
+  const handleMutate = useHandleMutate();
   const [notes, setNotes] = useState('');
   const [isApproving, setIsApproving] = useState(false);
 
@@ -85,6 +86,10 @@ const StockOperationsModal: React.FC<StockOperationsModalProps> = ({ title, requ
         });
         closeModal();
         handleMutate(`${restBaseUrl}/stockmanagement/stockoperation`);
+        // Completing/dispatching an operation is what actually changes quantities on hand,
+        // but nothing else in the app invalidates this endpoint - without it, the Items
+        // table's Quantity column keeps showing stale numbers until a full page reload.
+        handleMutate(`${restBaseUrl}/stockmanagement/stockiteminventory`);
       },
       (err) => {
         setIsApproving(false);

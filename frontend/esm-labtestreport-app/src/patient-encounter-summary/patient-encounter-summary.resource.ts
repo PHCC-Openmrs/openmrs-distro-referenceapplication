@@ -5,10 +5,16 @@ export interface PatientEncounterSummaryRow {
   patientId: number;
   patientUuid: string;
   givenName: string;
+  middleName: string;
   familyName: string;
   age: number;
   visitCount: number;
   mostRecentVisitDate: string;
+  sex: string;
+  nationalId: string;
+  phoneNumber: string;
+  location: string;
+  serviceType: string;
 }
 
 export function usePatientEncounterSummary(startDate?: string, endDate?: string, enabled: boolean = true) {
@@ -34,6 +40,7 @@ export interface PatientEncounterDetailRow {
   visitDate: string;
   locationName: string;
   providerName: string;
+  serviceType: string;
 }
 
 export function usePatientEncounterDetails(startDate?: string, endDate?: string, enabled: boolean = true) {

@@ -1,0 +1,80 @@
+package org.openmrs.module.labtestreport;
+
+import java.util.Date;
+import java.util.List;
+
+import org.openmrs.api.OpenmrsService;
+
+public interface StockFlowService extends OpenmrsService {
+
+	/**
+	 * How much of each stock item was actually issued out of (consumed at) one or all
+	 * locations over a date range - stock dispensed to patients plus stock transferred out
+	 * to another location, both counted the same way: it has left the location either way.
+	 *
+	 * @param startDate only include activity on/after this date (inclusive), or null for no lower bound
+	 * @param endDate only include activity through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include this location's consumption, or null for all locations combined
+	 * @return one row per stock item (and, when locationUuid is null, per consuming location too)
+	 */
+	List<StockLocationQtyRow> getConsumptionByLocation(Date startDate, Date endDate, String locationUuid);
+
+	/**
+	 * How much of each stock item was transferred out from a given source location to each
+	 * destination location over a date range - e.g. distribution from a central Main Store
+	 * out to clinic locations.
+	 *
+	 * @param startDate only include activity on/after this date (inclusive), or null for no lower bound
+	 * @param endDate only include activity through the end of this date (inclusive), or null for no upper bound
+	 * @param sourceLocationUuid only include transfers out of this location, or null for all sources combined
+	 * @return one row per stock item per destination location that received a transfer
+	 */
+	List<StockLocationQtyRow> getDistributionFromSource(Date startDate, Date endDate, String sourceLocationUuid);
+
+	/**
+	 * How much of each stock item was disposed of (expired or damaged, removed from circulation)
+	 * at each location over a date range.
+	 *
+	 * @param startDate only include activity on/after this date (inclusive), or null for no lower bound
+	 * @param endDate only include activity through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include this location's disposals, or null for all locations combined
+	 * @return one row per stock item (and, when locationUuid is null, per location too)
+	 */
+	List<StockLocationQtyRow> getWastageByLocation(Date startDate, Date endDate, String locationUuid);
+
+	/**
+	 * @return how much of one Consumption summary cell's total (a single stock item at a single
+	 *         location) came from each batch, with that batch's vendor
+	 */
+	List<StockMovementDetailRow> getConsumptionDetails(Integer stockItemId, Integer locationId, Date startDate,
+	        Date endDate);
+
+	/**
+	 * @return how much of one Wastage summary cell's total (a single stock item at a single
+	 *         location) came from each batch, with that batch's vendor
+	 */
+	List<StockMovementDetailRow> getWastageDetails(Integer stockItemId, Integer locationId, Date startDate,
+	        Date endDate);
+
+	/**
+	 * @return how much of one Distribution summary cell's total (a single stock item at a single
+	 *         destination location) came from each batch, with that batch's vendor
+	 */
+	List<StockMovementDetailRow> getDistributionDetails(Integer stockItemId, Integer locationId,
+	        String sourceLocationUuid, Date startDate, Date endDate);
+
+	/**
+	 * Every Adjustment line over a date range, with the reason and remarks from its operation
+	 * header and a {@link StockAdjustmentRow.Purpose} saying whether that reason means routine
+	 * consumption (the non-drug commodity workflow) or an error correction (the drug workflow).
+	 * <p>
+	 * Line level rather than aggregated: remarks is free text on the operation, so rows grouped by
+	 * item would carry a quantity no single remark accounts for.
+	 *
+	 * @param startDate only include activity on/after this date (inclusive), or null for no lower bound
+	 * @param endDate only include activity through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include this location's adjustments, or null for all locations
+	 * @return one row per adjusted stock item line, newest operation first
+	 */
+	List<StockAdjustmentRow> getAdjustments(Date startDate, Date endDate, String locationUuid);
+}

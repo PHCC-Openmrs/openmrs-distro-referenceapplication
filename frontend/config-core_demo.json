@@ -1,4 +1,218 @@
 {
+  "@openmrs/esm-home-app": {
+    "extensionSlots": {
+      "homepage-dashboard-slot": {
+        "configure": {
+          "laboratory-dashboard-link": {
+            "Display conditions": {
+              "privileges": ["App: laboratory.dashboard"]
+            }
+          },
+          "patient-lists-dashboard-link": {
+            "Display conditions": {
+              "privileges": ["App: patientLists.dashboard"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "@openmrs/esm-patient-forms-app": {
+    "locationFormsAllowlist": [
+      {
+        "locationUuid": "8a84d48a-bf7e-45ca-b906-7fad48184642",
+        "allowedFormUuids": [
+          "330122a1-3669-4458-8540-f41cfcdbb9ac",
+          "1ae929be-07db-442c-91ed-f2d8cb8c5b74",
+          "7bc28659-2cbf-4432-bb33-a9612432cbdc",
+          "6cb24522-aef4-42a7-a4b8-f3e8b4415416",
+          "585447f0-dfb4-4dcc-98c1-c8ab819acd05",
+          "c1d7432a-f5ec-4769-9aed-ee6b382ad819"
+        ]
+      }
+    ]
+  },
+  "@openmrs/esm-system-admin-app": {
+    "extensionSlots": {
+      "system-admin-page-card-link-slot": {
+        "configure": {
+          "system-administration-cohort-builder-card-link": {
+            "Display conditions": {
+              "privileges": ["App: systemAdministration.cohortBuilder"]
+            }
+          },
+          "stock-management-admin-card-link": {
+            "Display conditions": {
+              "privileges": ["App: stockmanagement.dashboard"]
+            }
+          },
+          "system-admin-page-link": {
+            "Display conditions": {
+              "privileges": ["App: systemAdministration.legacyAdmin"]
+            }
+          },
+          "reports-overview-admin-link": {
+            "Display conditions": {
+              "privileges": ["App: systemAdministration.reports"]
+            }
+          },
+          "admin-service-queues-card-link": {
+            "Display conditions": {
+              "privileges": ["App: systemAdministration.serviceQueuesAdmin"]
+            }
+          },
+          "system-administration-form-builder-card-link": {
+            "Display conditions": {
+              "privileges": ["App: systemAdministration.formBuilder"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "@openmrs/esm-patient-search-app": {
+    "extensionSlots": {
+      "start-visit-button-slot": {
+        "configure": {
+          "start-visit-button-patient-search": {
+            "Display conditions": {
+              "privileges": ["Add Visits"]
+            }
+          }
+        }
+      },
+      "start-visit-button-slot2": {
+        "configure": {
+          "patient-search-start-visit-button": {
+            "Display conditions": {
+              "privileges": ["Add Visits"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "@openmrs/esm-primary-navigation-app": {
+    "extensionSlots": {
+      "top-nav-actions-slot": {
+        "configure": {
+          "add-patient-action": {
+            "Display conditions": {
+              "privileges": ["Add Patients"]
+            }
+          }
+        }
+      },
+      "top-nav-app-menu-slot": {
+        "configure": {
+          "app-menu-button": {
+            "Display conditions": {
+              "privileges": ["App: primaryNavigation.appMenu"]
+            }
+          }
+        }
+      },
+      "app-menu-slot": {
+        "configure": {
+          "dispensing-link": {
+            "Display conditions": {
+              "privileges": ["App: dispensing.dashboard"]
+            }
+          },
+          "queue-screen-link": {
+            "Display conditions": {
+              "privileges": ["App: serviceQueues.dashboard"]
+            }
+          },
+          "forms-app-link": {
+            "Display conditions": {
+              "privileges": ["App: fastDataEntry.dashboard"]
+            }
+          },
+          "system-administration-app-menu-link": {
+            "Display conditions": {
+              "privileges": ["App: systemAdministration.dashboard"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "@openmrs/esm-help-menu-app": {
+    "extensionSlots": {
+      "help-menu-slot": {
+        "remove": ["release-notes", "docs", "contact-us", "tutorials"]
+      }
+    }
+  },
+  "esm-labtestreport-app": {
+    "extensionSlots": {
+      "system-admin-page-card-link-slot": {
+        "remove": [
+          "lab-test-summary-admin-link",
+          "patient-encounter-summary-admin-link",
+          "disease-summary-admin-link",
+          "session-attendance-admin-link",
+          "stock-ledger-admin-link",
+          "cmam-summary-admin-link",
+          "bed-management-admin-card-link",
+          "admin-ocl-card-link",
+          "admin-report-link"
+        ]
+      }
+    }
+  },
+  "@openmrs/esm-appointments-app": {
+    "extensionSlots": {
+      "homepage-dashboard-slot": {
+        "remove": ["clinical-appointments-dashboard-link"]
+      }
+    }
+  },
+  "@openmrs/esm-service-queues-app": {
+    "hiddenServicePrograms": ["481fd184-69e9-41af-b4b3-28d714c94343"],
+    "defaultInitialServiceQueue": "Front Desk",
+    "pharmacyQueueName": "Pharmacy",
+    "priorityConfigs": [
+      { "conceptUuid": "f4620bfa-3625-4883-bd3f-84c2cce14470", "color": "green", "style": null },
+      { "conceptUuid": "dc3492ef-24a5-4fd9-b58d-4fd2acf7071f", "color": "orange", "style": null },
+      { "conceptUuid": "04f6f7e0-e3cb-4e13-a133-4479f759574e", "color": "red", "style": "bold" }
+    ],
+    "queueTables": {
+      "columnDefinitions": [
+        {
+          "id": "actions",
+          "columnType": "actions",
+          "config": {
+            "actions": {
+              "buttons": ["move"],
+              "overflowMenu": ["transition", "edit", "remove", "undo"]
+            }
+          }
+        }
+      ],
+      "tableDefinitions": [
+        {
+          "columns": [
+            "patient-name",
+            "queue",
+            "status",
+            "priority",
+            "location",
+            "visit-duration",
+            "programs",
+            "actions"
+          ],
+          "appliedTo": [{ "queue": "", "status": "" }]
+        }
+      ]
+    },
+    "Translation overrides": {
+      "en": {
+        "programs": "Service-type"
+      }
+    }
+  },
   "@openmrs/esm-patient-registration-app": {
     "fieldConfigurations": {
       "name": {
@@ -16,12 +230,25 @@
           }
         ],
         "fieldValidation": [{ "id": "address3", "validateLuhn": true }]
+      },
+      "phone": {
+        "personAttributeUuid": "14d4f066-15f5-102d-96e4-000c29c2a5d7",
+        "validation": {
+          "required": false,
+          "matches": "^[0-9]{10}$"
+        }
+      }
+    },
+    "Translation overrides": {
+      "en": {
+        "invalidInput": "Phone number must be exactly 10 digits",
+        "attributesLabelText": "Phone Number"
       }
     }
   },
   "@openmrs/esm-patient-chart-app": {
     "restrictByVisitLocationTag": true,
-    "showUpcomingAppointments": true,
+    "showUpcomingAppointments": false,
     "visitAttributeTypes": [
       {
         "uuid": "57ea0cbb-064f-4d09-8cf4-e8228700491c",
@@ -32,21 +259,265 @@
     "extensionSlots": {
       "action-menu-patient-chart-items-slot": {
         "order": ["order-basket-action-menu"]
+      },
+      "patient-chart-dashboard-slot": {
+        "remove": [
+          "attachments-results-summary-dashboard",
+          "growth-chart-dashboard-link",
+          "procedures-summary-dashboard"
+        ]
+      },
+      "patient-chart-programs-dashboard-slot": {
+        "configure": {
+          "programs-details-widget": {
+            "Display conditions": {
+              "expression": "(session.user ? session.user.privileges.some(p => p.display === 'Add Patient Programs' || p.display === 'Edit Patient Programs') : false)"
+            }
+          }
+        }
       }
     }
+  },
+  "@openmrs/esm-patient-programs-app": {
+    "programsLocationRestrictions": [
+      {
+        "programUuid": "f73376c9-7bdf-44e5-ba97-ddf4db5bc9f9",
+        "allowedLocationUuids": ["ba34b45c-0a0d-4000-9624-ab6fd419f778"]
+      },
+      {
+        "programUuid": "bd6b8c0a-49c9-4f98-afea-8b8fcd999688",
+        "allowedLocationUuids": ["ba34b45c-0a0d-4000-9624-ab6fd419f778"]
+      },
+      {
+        "programUuid": "9138885e-f9f4-4981-b1fb-ef3d022228bd",
+        "allowedLocationUuids": ["ba34b45c-0a0d-4000-9624-ab6fd419f778"]
+      }
+    ],
+    "hiddenServicePrograms": [
+      "481fd184-69e9-41af-b4b3-28d714c94343"
+    ]
   },
   "@openmrs/esm-ward-app": {
     "extensionSlots": {
       "action-menu-ward-patient-items-slot": {
         "add": ["order-basket-action-menu"]
+      },
+      "homepage-dashboard-slot": {
+        "remove": ["ward-dashboard-link", "clinical-appointments-dashboard-link"]
+      }
+    }
+  },
+  "@openmrs/esm-patient-orders-app": {
+    "extensionSlots": {
+      "order-basket-slot": {
+        "configure": {
+          "drug-order-panel": {
+            "Display conditions": {
+              "privileges": ["Task: patientChart.addDrugOrder"]
+            }
+          },
+          "lab-order-panel": {
+            "Display conditions": {
+              "privileges": ["Task: patientChart.addLabOrder"]
+            }
+          }
+        }
       }
     }
   },
   "@openmrs/esm-laboratory-app": {
-    "labTableColumns": ["name", "patientId", "urgency", "age", "sex", "totalOrders", "action"]
+    "labTableColumns": ["name", "patientId", "urgency", "age", "sex", "totalOrders", "action"],
+    "extensionSlots": {
+      "tests-ordered-actions-slot": {
+        "configure": {
+          "pick-lab-request-action": {
+            "Display conditions": {
+              "privileges": ["Edit Orders"]
+            }
+          }
+        }
+      },
+      "approved-ordered-actions-slot": {
+        "configure": {
+          "approve-lab-results-tests-ordered-action": {
+            "Display conditions": {
+              "privileges": ["Edit Orders"]
+            }
+          }
+        }
+      },
+      "amended-ordered-actions-slot": {
+        "configure": {
+          "amend-lab-results-tests-ordered-action": {
+            "Display conditions": {
+              "privileges": ["Task: laboratory.addLabResults"]
+            }
+          }
+        }
+      },
+      "rejected-ordered-actions-slot": {
+        "configure": {
+          "reject-lab-request-tests-ordered-action": {
+            "Display conditions": {
+              "privileges": ["Edit Orders"]
+            }
+          }
+        }
+      },
+      "inprogress-tests-actions-slot": {
+        "configure": {
+          "reject-lab-request-worklist-action": {
+            "Display conditions": {
+              "privileges": ["Edit Orders"]
+            }
+          },
+          "add-lab-request-results-action": {
+            "Display conditions": {
+              "privileges": ["Task: laboratory.addLabResults"]
+            }
+          }
+        }
+      }
+    }
   },
   "@openmrs/esm-styleguide": {
-    "Brand color #1": "#005d5d"
+    "Brand color #1": "#005d5d",
+    "Translation overrides": {
+      "en": {
+        "Conditions": "Diagnoses"
+      }
+    },
+    "extensionSlots": {
+      "patient-actions-slot": {
+        "configure": {
+          "start-visit-button": {
+            "Display conditions": {
+              "privileges": ["Add Visits"]
+            }
+          },
+          "stop-visit-button": {
+            "Display conditions": {
+              "privileges": ["Edit Visits"]
+            }
+          },
+          "mark-alive-button": {
+            "Display conditions": {
+              "privileges": ["Edit Patients"]
+            }
+          },
+          "add-patient-to-patient-list-button": {
+            "Display conditions": {
+              "privileges": ["Edit Cohorts in Cohort Module"]
+            }
+          },
+          "mark-patient-deceased-button": {
+            "Display conditions": {
+              "privileges": ["Edit Patients"]
+            }
+          },
+          "delete-visit-button": {
+            "Display conditions": {
+              "privileges": ["Delete Visits"]
+            }
+          },
+          "delete-patient-button": {
+            "Display conditions": {
+              "privileges": ["Delete Patients"]
+            }
+          },
+          "edit-patient-details-button": {
+            "Display conditions": {
+              "expression": "(session.user ? session.user.privileges.some(p => p.display === 'Add Patients' || p.display === 'Edit Patients') : false)"
+            }
+          },
+          "print-identifier-sticker-button": {
+            "Display conditions": {
+              "privileges": ["App: Can generate a Patient Identity Sticker"]
+            }
+          }
+        }
+      },
+      "patient-chart": {
+        "configure": {
+          "patient-chart-order-basket": {
+            "Display conditions": {
+              "privileges": ["App: patientChart.orderBasket"]
+            }
+          },
+          "patient-chart-clinical-forms": {
+            "Display conditions": {
+              "privileges": ["App: patientChart.clinicalForms"]
+            }
+          },
+          "task-list": {
+            "Display conditions": {
+              "privileges": ["App: patientChart.taskList"]
+            }
+          },
+          "patient-lists": {
+            "Display conditions": {
+              "privileges": ["View Cohorts In Cohort Module"]
+            }
+          }
+        }
+      },
+      "patient-search-actions-slot": {
+        "configure": {
+          "stop-visit-button-patient-search": {
+            "Display conditions": {
+              "privileges": ["Edit Visits"]
+            }
+          },
+          "edit-patient-details-button": {
+            "Display conditions": {
+              "expression": "(session.user ? session.user.privileges.some(p => p.display === 'Add Patients' || p.display === 'Edit Patients') : false)"
+            }
+          },
+          "delete-visit-button": {
+            "Display conditions": {
+              "privileges": ["Delete Visits"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "@openmrs/esm-patient-conditions-app": {
+    "Translation overrides": {
+      "en": {
+        "Conditions": "Diagnoses",
+        "conditions": "diagnoses"
+      }
+    }
+  },
+  "@openmrs/esm-stock-management-app": {
+    "autoPopulateResponsiblePerson": true,
+    "packingUnitsUUID": "a6d438fe-05c1-4d4d-9755-c11cf6b0b3b9",
+    "dispensingUnitsUUID": "162402AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "stockAdjustmentReasonUUID": "3a9021d1-d6c1-4fc2-8e30-ca8e204e44de",
+    "stockTakeReasonUUID": "faa466c5-0953-4d4f-8ea7-d9a06341c3f3",
+    "stockSourceTypeUUID": "937a0440-95f7-42f6-aaef-16cf611fcf10",
+    "stockItemCategoryUUID": "8ccf6066-9297-4d76-aaf3-00aa3714d198",
+    "extensionSlots": {
+      "stock-page-dashboard-slot": {
+        "configure": {
+          "user-scopes-db-link": {
+            "Display conditions": {
+              "privileges": ["App: stockmanagement.userRoleScopesAdmin"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "@openmrs/esm-dispensing-app": {
+    "enableStockDispense": true,
+    "locationBehavior": {
+      "restrictToSessionLocation": true,
+      "locationColumn": {
+        "enabled": true
+      }
+    }
   },
   "translations": {
     "ar": {

@@ -1,0 +1,63 @@
+package org.openmrs.module.labtestreport.db;
+
+import java.util.Date;
+import java.util.List;
+
+import org.openmrs.api.db.DAOException;
+
+/**
+ * Database access object backing the stock consumption-by-location and distribution
+ * reports. Plain native SQL (see src/main/resources/queries), same rationale as
+ * {@link StockLedgerDAO} - these pivot over the stock management module's own tables
+ * directly.
+ */
+public interface StockFlowDAO {
+
+	/**
+	 * @return one row per stock item (and per consuming location, when locationUuid is null),
+	 *         each an 8-element array matching the column order of
+	 *         queries/stock_consumption_by_location.sql
+	 */
+	List<Object[]> getConsumptionRows(Date startDate, Date endDate, String locationUuid) throws DAOException;
+
+	/**
+	 * @return one row per stock item per destination location, each an 8-element array matching
+	 *         the column order of queries/stock_distribution_from_source.sql
+	 */
+	List<Object[]> getDistributionRows(Date startDate, Date endDate, String sourceLocationUuid) throws DAOException;
+
+	/**
+	 * @return one row per stock item (and per location, when locationUuid is null), each a
+	 *         8-element array matching the column order of queries/stock_wastage_by_location.sql
+	 */
+	List<Object[]> getWastageRows(Date startDate, Date endDate, String locationUuid) throws DAOException;
+
+	/**
+	 * @return one row per batch behind a Consumption summary cell, each a 5-element array
+	 *         matching the column order of queries/stock_consumption_drilldown.sql
+	 */
+	List<Object[]> getConsumptionDetailRows(Integer stockItemId, Integer locationId, Date startDate, Date endDate)
+	        throws DAOException;
+
+	/**
+	 * @return one row per batch/reason behind a Wastage summary cell, each a 6-element array
+	 *         matching the column order of queries/stock_wastage_drilldown.sql (the 6th being the
+	 *         disposal reason - unique to Wastage, absent from Consumption/Distribution)
+	 */
+	List<Object[]> getWastageDetailRows(Integer stockItemId, Integer locationId, Date startDate, Date endDate)
+	        throws DAOException;
+
+	/**
+	 * @return one row per batch behind a Distribution summary cell, each a 5-element array
+	 *         matching the column order of queries/stock_distribution_drilldown.sql
+	 */
+	List<Object[]> getDistributionDetailRows(Integer stockItemId, Integer locationId, String sourceLocationUuid,
+	        Date startDate, Date endDate) throws DAOException;
+
+	/**
+	 * @return one row per Adjustment line (not aggregated - remarks is per operation, so lines
+	 *         cannot be collapsed), each a 17-element array matching the column order of
+	 *         queries/stock_adjustments.sql
+	 */
+	List<Object[]> getAdjustmentRows(Date startDate, Date endDate, String locationUuid) throws DAOException;
+}

@@ -60,7 +60,10 @@ const StockOperationsFilters: React.FC<StockOperationFiltersProps> = ({ conceptU
 
   return (
     <MultiSelect
-      autoAlign
+      // This filter bar always sits at the top of the page with the full page body free below it,
+      // so the menu should always open downward. autoAlign's viewport-space measurement has been
+      // observed to flip it upward here regardless, covering the page header.
+      direction="bottom"
       className={styles.filtersAlign}
       disabled={!dataItems.length}
       id="multiSelect"

@@ -27,7 +27,16 @@ public interface StockOperationTypeProcessor {
 	boolean canCapturePurchasePrice();
 	
 	boolean shouldVerifyNegativeStockAmountsAtSource();
-	
+
+	/**
+	 * Whether item stock is only moved once the operation reaches
+	 * StockOperationStatus.COMPLETED. Types that return false move stock while the operation is
+	 * still pending, so their source balance is already reduced by the time it completes.
+	 *
+	 * @return true if stock is applied at completion only, else false
+	 */
+	boolean appliesStockAtCompletion();
+
 	BigDecimal getQuantityToApplyAtSource(BigDecimal quantity);
 	
 	/**

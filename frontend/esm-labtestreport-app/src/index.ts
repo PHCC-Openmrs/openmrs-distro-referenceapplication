@@ -34,12 +34,87 @@ export const diseaseSummaryReport = getAsyncLifecycle(
   options,
 );
 
-export const sessionAttendanceReport = getAsyncLifecycle(
-  () => import('./session-attendance/session-attendance.component'),
+export const stockReportsHome = getAsyncLifecycle(
+  () => import('./stock-reports-home/stock-reports-home.component'),
   options,
 );
 
 export const stockLedgerReport = getAsyncLifecycle(() => import('./stock-ledger/stock-ledger.component'), options);
+
+export const stockConsumptionReport = getAsyncLifecycle(
+  () => import('./stock-consumption/stock-consumption.component'),
+  options,
+);
+
+export const stockDistributionReport = getAsyncLifecycle(
+  () => import('./stock-distribution/stock-distribution.component'),
+  options,
+);
+
+export const stockWastageReport = getAsyncLifecycle(() => import('./stock-wastage/stock-wastage.component'), options);
+
+export const stockAdjustmentsReport = getAsyncLifecycle(
+  () => import('./stock-adjustments/stock-adjustments.component'),
+  options,
+);
+
+export const stockExpiryRiskReport = getAsyncLifecycle(
+  () => import('./stock-expiry-risk/stock-expiry-risk.component'),
+  options,
+);
+
+export const stockDaysRemainingReport = getAsyncLifecycle(
+  () => import('./stock-days-remaining/stock-days-remaining.component'),
+  options,
+);
+
+export const stockReorderReport = getAsyncLifecycle(() => import('./stock-reorder/stock-reorder.component'), options);
+
+export const stockStockoutFrequencyReport = getAsyncLifecycle(
+  () => import('./stock-stockout-frequency/stock-stockout-frequency.component'),
+  options,
+);
+
+export const cmamSummaryReport = getAsyncLifecycle(() => import('./cmam-summary/cmam-summary.component'), options);
+
+export const cmamAbove5SummaryReport = getAsyncLifecycle(
+  () => import('./cmam-summary/cmam-above5-summary.component'),
+  options,
+);
+
+export const childUnder5Report = getAsyncLifecycle(
+  () => import('./nutrition-report/child-under-5-report.component'),
+  options,
+);
+
+export const childAbove5Report = getAsyncLifecycle(
+  () => import('./nutrition-report/child-above-5-report.component'),
+  options,
+);
+
+export const referralFormReport = getAsyncLifecycle(
+  () => import('./referral-form-report/referral-form-report.component'),
+  options,
+);
+
+export const ncdPatientCardReport = getAsyncLifecycle(
+  () => import('./ncd-patient-card-report/ncd-patient-card-report.component'),
+  options,
+);
+
+export const nursingReport = getAsyncLifecycle(() => import('./nursing-report/nursing-report.component'), options);
+
+export const healthPromotionReport = getAsyncLifecycle(
+  () => import('./health-promotion-report/health-promotion-report.component'),
+  options,
+);
+
+export const srhReport = getAsyncLifecycle(() => import('./srh-report/srh-report.component'), options);
+
+export const medicineDistributionReport = getAsyncLifecycle(
+  () => import('./medicine-distribution-report/medicine-distribution-report.component'),
+  options,
+);
 
 export const labTestSummaryLink = getAsyncLifecycle(() => import('./lab-test-summary-link.component'), options);
 
@@ -50,6 +125,18 @@ export const patientEncounterSummaryLink = getAsyncLifecycle(
 
 export const diseaseSummaryLink = getAsyncLifecycle(() => import('./disease-summary-link.component'), options);
 
-export const sessionAttendanceLink = getAsyncLifecycle(() => import('./session-attendance-link.component'), options);
-
 export const stockLedgerLink = getAsyncLifecycle(() => import('./stock-ledger-link.component'), options);
+
+export const cmamSummaryLink = getAsyncLifecycle(() => import('./cmam-summary-link.component'), options);
+
+export const reportsOverviewLink = getAsyncLifecycle(() => import('./reports-overview-link.component'), options);
+
+export const notificationsButton = getAsyncLifecycle(
+  () => import('./notifications/notifications-button.component'),
+  options,
+);
+
+export const notificationsPanel = getAsyncLifecycle(
+  () => import('./notifications/notifications-panel.component'),
+  options,
+);

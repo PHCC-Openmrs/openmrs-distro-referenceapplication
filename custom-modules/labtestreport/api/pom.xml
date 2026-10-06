@@ -26,6 +26,10 @@
 			<groupId>org.openmrs.module</groupId>
 			<artifactId>reporting-api</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.openmrs</groupId>
+			<artifactId>event-api</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

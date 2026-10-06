@@ -27,15 +27,18 @@
 		<tr>
 			<th rowspan="2"><spring:message code="labtestreport.stockLedger.date" /></th>
 			<c:forEach items="${items}" var="item">
-				<th colspan="4">${item.itemName}</th>
+				<th colspan="7">${item.itemName}</th>
 			</c:forEach>
 		</tr>
 		<tr>
 			<c:forEach items="${items}" var="item">
 				<th><spring:message code="labtestreport.stockLedger.actual" /></th>
-				<th><spring:message code="labtestreport.stockLedger.incoming" /></th>
+				<th><spring:message code="labtestreport.stockLedger.inflow" /></th>
 				<th><spring:message code="labtestreport.stockLedger.outgoing" /></th>
 				<th><spring:message code="labtestreport.stockLedger.remaining" /></th>
+				<th><spring:message code="labtestreport.stockLedger.purchaseOrderNo" /></th>
+				<th><spring:message code="labtestreport.stockLedger.purchaseRequestNo" /></th>
+				<th><spring:message code="labtestreport.stockLedger.projectFundCode" /></th>
 			</c:forEach>
 		</tr>
 	</thead>
@@ -45,9 +48,12 @@
 				<td class="ledgerDate"><fmt:formatDate value="${block.date}" pattern="yyyy-MM-dd" /></td>
 				<c:forEach items="${block.cells}" var="cell">
 					<td>${cell.actualQty}</td>
-					<td>${cell.incomingQty}</td>
+					<td>${cell.inflowQty}</td>
 					<td>${cell.outgoingQty}</td>
 					<td>${cell.remainingQty}</td>
+					<td>${cell.purchaseOrderNo}</td>
+					<td>${cell.purchaseRequestNo}</td>
+					<td>${cell.projectFundCode}</td>
 				</c:forEach>
 			</tr>
 		</c:forEach>

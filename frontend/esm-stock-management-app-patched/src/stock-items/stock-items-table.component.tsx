@@ -21,8 +21,8 @@ import {
   Tile,
 } from '@carbon/react';
 import { Edit } from '@carbon/react/icons';
-import { isDesktop, restBaseUrl, useSession } from '@openmrs/esm-framework';
-import { handleMutate } from '../utils';
+import { ErrorState, isDesktop, restBaseUrl, useSession, userHasAccess } from '@openmrs/esm-framework';
+import { useHandleMutate } from '../utils';
 import { launchAddOrEditStockItemWorkspace } from './stock-item.utils';
 import { ResourceRepresentation } from '../core/api/api';
 import { useDebounce } from '../core/hooks/debounce-hook';
@@ -30,8 +30,14 @@ import { useStockItemsPages } from './stock-items-table.resource';
 import { useStockItemQuantities } from './stock-item-quantities.resource';
 import AddStockItemActionButton from './add-stock-item/add-stock-action-button.component';
 import AddStockItemsBulktImportActionButton from './add-bulk-stock-item/add-stock-items-bulk-import-action-button.component';
+import DeleteStockItemActionButton from './delete-stock-item-action-button.component';
 import EditStockItemActionsMenu from './edit-stock-item/edit-stock-item-action-menu.component';
 import FilterStockItems from './components/filter-stock-items/filter-stock-items.component';
+import StockItemsColumnFilter, {
+  EMPTY_COLUMN_FILTERS,
+  type StockItemColumnFilters,
+  type StockStatus,
+} from './components/stock-items-column-filter/stock-items-column-filter.component';
 import { type CustomTableHeader } from '../core/components/table/types';
 import styles from './stock-items-table.scss';
 
@@ -41,29 +47,84 @@ interface StockItemsTableProps {
 
 const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
   const { t } = useTranslation();
-  const { sessionLocation } = useSession();
+  const handleMutate = useHandleMutate();
+  const session = useSession();
+  const { sessionLocation } = session;
+  const canManageStockItems = userHasAccess('Task: stockmanagement.stockItems.mutate', session?.user);
   const [searchInput, setSearchInput] = useState('');
 
   const handleRefresh = () => {
     handleMutate(`${restBaseUrl}/stockmanagement/stockitem`);
+    handleMutate(`${restBaseUrl}/stockmanagement/stockiteminventory`);
   };
 
-  const {
-    currentPage,
-    currentPageSize,
-    isDrug,
-    isLoading,
-    items,
-    pageSizes,
-    setCurrentPage,
-    setDrug,
-    setPageSize,
-    setSearchString,
-    totalCount,
-  } = useStockItemsPages(ResourceRepresentation.Full);
+  const { error, isDrug, isLoading, items, setDrug, setSearchString } = useStockItemsPages(ResourceRepresentation.Full);
+
+  // Only the very first fetch should replace the toolbar/search with a full-page
+  // skeleton. Later refetches (e.g. triggered by typing in the search box) must
+  // keep the table mounted, otherwise the search input unmounts/remounts and
+  // steals focus after every debounced search.
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  useEffect(() => {
+    if (!isLoading) {
+      setHasLoadedOnce(true);
+    }
+  }, [isLoading]);
+
+  const pageSizes = [10, 20, 30, 40, 50];
+  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPageSize, setPageSize] = useState(10);
 
   const stockItemUuids = useMemo(() => items?.map((item) => item.uuid) ?? [], [items]);
-  const { quantityByItem } = useStockItemQuantities(stockItemUuids, sessionLocation?.uuid);
+  const { quantityByItem, quantityMetaByItem } = useStockItemQuantities(stockItemUuids, sessionLocation?.uuid);
+
+  const [columnFilters, setColumnFilters] = useState<StockItemColumnFilters>(EMPTY_COLUMN_FILTERS);
+
+  const getStockStatus = (stockItem: { uuid: string | null | undefined; reorderLevel?: number | null }): StockStatus => {
+    const quantity = quantityByItem.get(stockItem.uuid ?? '') ?? 0;
+    if (quantity <= 0) return 'outOfStock';
+    if (stockItem.reorderLevel && quantity < stockItem.reorderLevel) return 'understocked';
+    return 'inStock';
+  };
+
+  const dispensingUoMOptions = useMemo(
+    () =>
+      Array.from(new Set(items?.map((item) => item.dispensingUnitName).filter((v): v is string => Boolean(v)))).sort(),
+    [items],
+  );
+  const packagingUoMOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(items?.map((item) => item.defaultStockOperationsUoMName).filter((v): v is string => Boolean(v))),
+      ).sort(),
+    [items],
+  );
+
+  const filteredItems = useMemo(() => {
+    const { dispensingUoM, packagingUoM, stockStatus } = columnFilters;
+    if (dispensingUoM.length === 0 && packagingUoM.length === 0 && stockStatus.length === 0) {
+      return items;
+    }
+    return items?.filter((item) => {
+      if (dispensingUoM.length > 0 && !dispensingUoM.includes(item.dispensingUnitName ?? '')) return false;
+      if (packagingUoM.length > 0 && !packagingUoM.includes(item.defaultStockOperationsUoMName ?? '')) return false;
+      if (stockStatus.length > 0 && !stockStatus.includes(getStockStatus(item))) return false;
+      return true;
+    });
+  }, [items, columnFilters, quantityByItem]);
+
+  // Column filters/search/type now narrow the full fetched set (see stock-items-table.resource.ts),
+  // so pagination is applied client-side, after filtering, over that full set.
+  const pageItems = useMemo(() => {
+    const start = (currentPage - 1) * currentPageSize;
+    return filteredItems?.slice(start, start + currentPageSize) ?? [];
+  }, [filteredItems, currentPage, currentPageSize]);
+
+  // Land back on page 1 whenever the filtered set changes shape, so the user
+  // never lands on a page number that no longer has any rows.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [columnFilters, isDrug]);
 
   const handleSearch = (query: string) => {
     setSearchInput(query);
@@ -71,6 +132,7 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
 
   const debouncedSearch = useDebounce((query: string) => {
     setSearchString(query);
+    setCurrentPage(1);
   }, 1000);
 
   useEffect(() => {
@@ -129,18 +191,30 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
   );
 
   const tableRows = useMemo(() => {
-    return items?.map((stockItem, index) => ({
+    return pageItems?.map((stockItem) => ({
       ...stockItem,
       id: stockItem?.uuid,
       key: `key-${stockItem?.uuid}`,
       uuid: `${stockItem?.uuid}`,
       type: stockItem?.drugUuid ? t('drug', 'Drug') : t('other', 'Other'),
-      genericName: <EditStockItemActionsMenu data={items[index]} />,
+      genericName: <EditStockItemActionsMenu data={stockItem} />,
       commonName: stockItem?.commonName,
       tradeName: stockItem?.drugUuid ? stockItem?.conceptName : '',
       preferredVendorName: stockItem?.preferredVendorName,
       dispensingUoM: stockItem?.defaultStockOperationsUoMName,
-      quantity: `${(quantityByItem.get(stockItem?.uuid) ?? 0).toLocaleString()} ${stockItem?.dispensingUnitName ?? ''}`,
+      // Inventory is recorded in the packaging unit stock operations use (e.g. Box), not the
+      // dispensing unit (e.g. Strip) - show both when they differ so neither figure is mislabeled.
+      quantity: (() => {
+        const rawQuantity = quantityByItem.get(stockItem?.uuid) ?? 0;
+        const meta = quantityMetaByItem.get(stockItem?.uuid);
+        const packagingUoM = meta?.quantityUoM ?? stockItem?.dispensingUnitName ?? '';
+        const packagingPart = `${rawQuantity.toLocaleString()} ${packagingUoM}`;
+        if (meta && stockItem?.dispensingUnitName && meta.quantityUoM !== stockItem.dispensingUnitName) {
+          const dispensingQuantity = rawQuantity * meta.quantityFactor;
+          return `${packagingPart} (${dispensingQuantity.toLocaleString()} ${stockItem.dispensingUnitName})`;
+        }
+        return packagingPart;
+      })(),
       dispensingUnitName: stockItem?.dispensingUnitName,
       defaultStockOperationsUoMName: stockItem?.defaultStockOperationsUoMName,
       reorderLevel:
@@ -148,22 +222,35 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
           ? `${stockItem?.reorderLevel?.toLocaleString()} ${stockItem?.reorderLevelUoMName}`
           : '',
       actions: (
-        <IconButton
-          kind="ghost"
-          label={t('editStockItem', 'Edit stock item')}
-          onClick={() => {
-            stockItem.isDrug = !!stockItem.drugUuid;
-            launchAddOrEditStockItemWorkspace(t, stockItem);
-          }}
-        >
-          <Edit size={16} />
-        </IconButton>
+        <>
+          {canManageStockItems && (
+            <IconButton
+              kind="ghost"
+              label={t('editStockItem', 'Edit stock item')}
+              onClick={() => {
+                stockItem.isDrug = !!stockItem.drugUuid;
+                launchAddOrEditStockItemWorkspace(t, stockItem);
+              }}
+            >
+              <Edit size={16} />
+            </IconButton>
+          )}
+          <DeleteStockItemActionButton
+            uuid={stockItem?.uuid}
+            displayName={stockItem?.drugName ?? stockItem?.conceptName ?? stockItem?.commonName}
+            quantityOnHand={quantityByItem.get(stockItem?.uuid ?? '') ?? 0}
+          />
+        </>
       ),
     }));
-  }, [items, t, quantityByItem]);
+  }, [pageItems, t, quantityByItem, quantityMetaByItem, canManageStockItems]);
 
-  if (isLoading) {
+  if (isLoading && !hasLoadedOnce) {
     return <DataTableSkeleton role="progressbar" />;
+  }
+
+  if (error) {
+    return <ErrorState headerTitle={t('errorLoadingStockItems', 'Error loading stock items')} error={error} />;
   }
 
   return (
@@ -197,6 +284,12 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
                   value={searchInput}
                 />
                 <FilterStockItems filterType={isDrug} changeFilterType={setDrug} />
+                <StockItemsColumnFilter
+                  dispensingUoMOptions={dispensingUoMOptions}
+                  packagingUoMOptions={packagingUoMOptions}
+                  filters={columnFilters}
+                  onChange={setColumnFilters}
+                />
                 <AddStockItemsBulktImportActionButton />
                 <TableToolbarMenu data-testid="stock-items-menu">
                   <TableToolbarAction className={styles.toolbarAction} onClick={handleRefresh}>
@@ -276,7 +369,7 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
         page={currentPage}
         pageSize={currentPageSize}
         pageSizes={pageSizes}
-        totalItems={totalCount}
+        totalItems={filteredItems?.length ?? 0}
       />
     </>
   );

@@ -16,13 +16,14 @@
 		<module>omod</module>
 	</modules>
 
-	<!-- keep in sync with distro/pom.xml's openmrs.version, legacyui.version and reporting.version -->
+	<!-- keep in sync with distro/pom.xml's openmrs.version, legacyui.version, reporting.version and event.version -->
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<openMRSVersion>2.8.7</openMRSVersion>
 		<legacyuiVersion>2.1.0</legacyuiVersion>
 		<reportingVersion>2.1.0</reportingVersion>
 		<jacksonVersion>2.15.2</jacksonVersion>
+		<eventVersion>4.0.0</eventVersion>
 	</properties>
 
 	<dependencyManagement>
@@ -51,6 +52,12 @@
 				<groupId>org.openmrs.module</groupId>
 				<artifactId>reporting-api</artifactId>
 				<version>${reportingVersion}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.openmrs</groupId>
+				<artifactId>event-api</artifactId>
+				<version>${eventVersion}</version>
 				<scope>provided</scope>
 			</dependency>
 			<!-- pinned so our own bundled copy stays internally consistent regardless of whatever

@@ -1,0 +1,4 @@
+/* legacy UI unread alerts banner (legacyui headerFull.jsp); see HideLegacyAlertsExt */
+#alertOuterBox {
+	display: none !important;
+}

@@ -22,9 +22,10 @@ import { type StockItemReferenceDTO } from '../../../core/api/types/stockItem/St
 import { createStockItemReference, deleteStockItemReference } from '../../stock-items.resource';
 import { restBaseUrl, showSnackbar } from '@openmrs/esm-framework';
 import { extractErrorMessagesFromResponse } from '../../../constants';
-import { handleMutate } from '../../../utils';
+import { useHandleMutate } from '../../../utils';
 import ControlledTextInput from '../../../core/components/carbon/controlled-text-input.component';
 import StockSourceSelector from './stock-references-selector.component';
+import StockItemPackagingUnitSelector from './stock-item-packaging-unit-selector.component';
 import { type CustomTableHeader, type CustomTableRow } from '../../../core/components/table/types';
 import styles from './stock-item-references.scss';
 
@@ -36,6 +37,7 @@ interface StockReferencesProps {
 
 const StockReferences: React.FC<StockReferencesProps> = ({ stockItemUuid }) => {
   const { t } = useTranslation();
+  const handleMutate = useHandleMutate();
 
   // get stock item references
   const { items, isLoading, setStockItemUuid } = useStockItemReferencesHook();
@@ -56,6 +58,11 @@ const StockReferences: React.FC<StockReferencesProps> = ({ stockItemUuid }) => {
         styles: { width: '50%' },
       },
       {
+        key: 'packSize',
+        header: t('packSize', 'Pack Size'),
+        styles: { width: '50%' },
+      },
+      {
         key: 'action',
         header: t('action', 'Actions'),
         styles: { width: '50%' },
@@ -72,12 +79,13 @@ const StockReferences: React.FC<StockReferencesProps> = ({ stockItemUuid }) => {
 
   const handleSaveStockItemReference = () => {
     const { getValues } = stockReferenceForm;
-    const { code, references } = getValues();
+    const { code, references, packagingUnit } = getValues();
 
     const payload: StockItemReferenceDTO = {
       referenceCode: code,
       stockItemUuid: stockItemUuid,
       stockSourceUuid: references,
+      packagingUnitUuid: packagingUnit || null,
     };
 
     createStockItemReference(payload).then(
@@ -142,9 +150,9 @@ const StockReferences: React.FC<StockReferencesProps> = ({ stockItemUuid }) => {
               </TableHead>
               <TableBody className={styles.referencesTableBody}>
                 {items?.map((row: StockItemReferenceDTO, index) => (
-                  <StockReferencesRow row={row} key={`${index}-${row?.uuid}`} />
+                  <StockReferencesRow row={row} stockItemUuid={stockItemUuid} key={`${index}-${row?.uuid}`} />
                 ))}
-                <StockReferencesRow row={{}} key="bottom-row" isEditing />
+                <StockReferencesRow row={{}} stockItemUuid={stockItemUuid} key="bottom-row" isEditing />
               </TableBody>
             </Table>
           </TableContainer>
@@ -169,8 +177,9 @@ export default StockReferences;
 const StockReferencesRow: React.FC<{
   isEditing?: boolean;
   row: StockItemReferenceDTO;
+  stockItemUuid: string;
   key?: string;
-}> = ({ isEditing, row, key }) => {
+}> = ({ isEditing, row, stockItemUuid, key }) => {
   const { t } = useTranslation();
 
   const { control } = useFormContext();
@@ -232,6 +241,22 @@ const StockReferencesRow: React.FC<{
             onClick={(e) => handleDelete(e)}
           />
         </div>
+      </TableCell>
+      <TableCell>
+        {isEditing ? (
+          <StockItemPackagingUnitSelector
+            stockItemUuid={stockItemUuid}
+            initialUuid={row?.packagingUnitUuid}
+            name="packagingUnit"
+            controllerName={'packagingUnit'}
+            control={control}
+            placeholder={t('filter', 'Filter...')}
+          />
+        ) : (
+          (row.packagingUnitName &&
+            (row.packagingUnitFactor ? `${row.packagingUnitName} - ${row.packagingUnitFactor}` : row.packagingUnitName)) ||
+          ''
+        )}
       </TableCell>
     </TableRow>
   );

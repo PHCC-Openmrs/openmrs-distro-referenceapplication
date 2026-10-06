@@ -13,6 +13,7 @@
 
 	<require_modules>
 		<require_module version="1.17.0">org.openmrs.module.reporting</require_module>
+		<require_module version="4.0.0">org.openmrs.event</require_module>
 	</require_modules>
 
 	<aware_of_modules>
@@ -24,9 +25,80 @@
 		<class>@MODULE_PACKAGE@.extension.html.LabTestReportAdminExt</class>
 	</extension>
 
+	<extension>
+		<point>org.openmrs.headerFullIncludeExt</point>
+		<class>@MODULE_PACKAGE@.extension.html.HideLegacyAlertsExt</class>
+	</extension>
+
 	<messages>
 		<lang>en</lang>
 		<file>messages.properties</file>
 	</messages>
+
+	<globalProperty>
+		<property>labtestreport.adjustmentConsumptionReasonUuids</property>
+		<defaultValue></defaultValue>
+		<description>
+			Comma-separated concept uuids of the stock adjustment reasons that represent routine
+			consumption rather than an error correction. The Stock Adjustments report uses these to
+			tell the two uses of an Adjustment apart: drawing down a non-drug commodity that has no
+			dispensing workflow, versus correcting a miscount on a drug. Reasons not listed here
+			count as corrections. Leave empty to classify everything as a correction, in which case
+			no mismatch flags are raised.
+		</description>
+	</globalProperty>
+
+	<globalProperty>
+		<property>labtestreport.notifications.labResultRoleNames</property>
+		<defaultValue></defaultValue>
+		<description>
+			Notification bell: comma-separated role names (e.g. Organizational: Doctor) whose users are
+			notified when a lab test result is entered, in addition to the provider who ordered the
+			test, who is always notified.
+		</description>
+	</globalProperty>
+
+	<globalProperty>
+		<property>labtestreport.notifications.labOrderRoleNames</property>
+		<defaultValue></defaultValue>
+		<description>
+			Notification bell: comma-separated role names whose users are notified when a lab test is
+			ordered. Leave empty to notify no one.
+		</description>
+	</globalProperty>
+
+	<globalProperty>
+		<property>labtestreport.notifications.medicationOrderRoleNames</property>
+		<defaultValue></defaultValue>
+		<description>
+			Notification bell: comma-separated role names (e.g. pharmacy staff) whose users are notified
+			when a medication is ordered. Leave empty to notify no one.
+		</description>
+	</globalProperty>
+
+	<globalProperty>
+		<property>labtestreport.notifications.patientRegisteredRoleNames</property>
+		<defaultValue></defaultValue>
+		<description>
+			Notification bell: comma-separated role names whose users are notified when a patient is
+			registered. Leave empty to notify no one.
+		</description>
+	</globalProperty>
+
+	<globalProperty>
+		<property>labtestreport.notifications.queueRoleNames</property>
+		<defaultValue></defaultValue>
+		<description>
+			Notification bell: who is notified when a patient is added to a service queue that is not
+			waiting for a specific provider (a queue entry waiting for a provider notifies only that
+			provider). Comma-separated entries, each either a role name (notified for every queue) or
+			"Queue name=Role name", e.g. "Pharmacy=Inventory Dispensing,Doctor Room 1=Organizational: Doctor".
+		</description>
+	</globalProperty>
+
+	<!-- Every role-based notification only reaches users whose location based access locationUuid
+	     property covers the patient's, encounter's or queue's location (users without it see all).
+	     Stock operation approvals need no setting: they go to users whose stock management role
+	     scope grants the approve privilege at the operation's location. -->
 
 </module>

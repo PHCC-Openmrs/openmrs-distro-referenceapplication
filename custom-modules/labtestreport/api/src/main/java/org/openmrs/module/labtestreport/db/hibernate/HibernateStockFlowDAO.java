@@ -1,0 +1,111 @@
+package org.openmrs.module.labtestreport.db.hibernate;
+
+import java.util.Date;
+import java.util.List;
+
+import org.hibernate.SQLQuery;
+import org.openmrs.api.db.DAOException;
+import org.openmrs.api.db.hibernate.DbSessionFactory;
+import org.openmrs.module.labtestreport.db.SqlResources;
+import org.openmrs.module.labtestreport.db.StockFlowDAO;
+
+public class HibernateStockFlowDAO implements StockFlowDAO {
+
+	private static final String CONSUMPTION_SQL = SqlResources.load("stock_consumption_by_location.sql");
+
+	private static final String DISTRIBUTION_SQL = SqlResources.load("stock_distribution_from_source.sql");
+
+	private static final String WASTAGE_SQL = SqlResources.load("stock_wastage_by_location.sql");
+
+	private static final String CONSUMPTION_DRILLDOWN_SQL = SqlResources.load("stock_consumption_drilldown.sql");
+
+	private static final String WASTAGE_DRILLDOWN_SQL = SqlResources.load("stock_wastage_drilldown.sql");
+
+	private static final String DISTRIBUTION_DRILLDOWN_SQL = SqlResources.load("stock_distribution_drilldown.sql");
+
+	private static final String ADJUSTMENTS_SQL = SqlResources.load("stock_adjustments.sql");
+
+	private DbSessionFactory sessionFactory;
+
+	public void setSessionFactory(DbSessionFactory sessionFactory) {
+		this.sessionFactory = sessionFactory;
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Object[]> getConsumptionRows(Date startDate, Date endDate, String locationUuid) throws DAOException {
+		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(CONSUMPTION_SQL);
+		query.setParameter("startDate", startDate);
+		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
+		return query.list();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Object[]> getDistributionRows(Date startDate, Date endDate, String sourceLocationUuid)
+	        throws DAOException {
+		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(DISTRIBUTION_SQL);
+		query.setParameter("startDate", startDate);
+		query.setParameter("endDate", endDate);
+		query.setParameter("sourceLocationUuid", sourceLocationUuid);
+		return query.list();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Object[]> getWastageRows(Date startDate, Date endDate, String locationUuid) throws DAOException {
+		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(WASTAGE_SQL);
+		query.setParameter("startDate", startDate);
+		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
+		return query.list();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Object[]> getConsumptionDetailRows(Integer stockItemId, Integer locationId, Date startDate,
+	        Date endDate) throws DAOException {
+		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(CONSUMPTION_DRILLDOWN_SQL);
+		query.setParameter("stockItemId", stockItemId);
+		query.setParameter("locationId", locationId);
+		query.setParameter("startDate", startDate);
+		query.setParameter("endDate", endDate);
+		return query.list();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Object[]> getWastageDetailRows(Integer stockItemId, Integer locationId, Date startDate, Date endDate)
+	        throws DAOException {
+		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(WASTAGE_DRILLDOWN_SQL);
+		query.setParameter("stockItemId", stockItemId);
+		query.setParameter("locationId", locationId);
+		query.setParameter("startDate", startDate);
+		query.setParameter("endDate", endDate);
+		return query.list();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Object[]> getDistributionDetailRows(Integer stockItemId, Integer locationId,
+	        String sourceLocationUuid, Date startDate, Date endDate) throws DAOException {
+		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(DISTRIBUTION_DRILLDOWN_SQL);
+		query.setParameter("stockItemId", stockItemId);
+		query.setParameter("locationId", locationId);
+		query.setParameter("sourceLocationUuid", sourceLocationUuid);
+		query.setParameter("startDate", startDate);
+		query.setParameter("endDate", endDate);
+		return query.list();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Object[]> getAdjustmentRows(Date startDate, Date endDate, String locationUuid) throws DAOException {
+		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(ADJUSTMENTS_SQL);
+		query.setParameter("startDate", startDate);
+		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
+		return query.list();
+	}
+}

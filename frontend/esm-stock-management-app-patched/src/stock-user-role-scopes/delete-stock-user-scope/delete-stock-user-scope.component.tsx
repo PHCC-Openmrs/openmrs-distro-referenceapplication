@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { IconButton, InlineLoading } from '@carbon/react';
 import { useTranslation } from 'react-i18next';
 import { TrashCan } from '@carbon/react/icons';
-import { restBaseUrl, showModal, showSnackbar } from '@openmrs/esm-framework';
+import { restBaseUrl, showModal, showSnackbar, useSession, userHasAccess } from '@openmrs/esm-framework';
 import { deleteUserRoleScopes } from '../stock-user-role-scopes.resource';
-import { handleMutate } from '../../utils';
+import { useHandleMutate } from '../../utils';
 
 interface StockUserScopDeleteActionMenuProps {
   uuid: string;
@@ -12,6 +12,8 @@ interface StockUserScopDeleteActionMenuProps {
 
 const StockUserScopeDeleteActionMenu: React.FC<StockUserScopDeleteActionMenuProps> = ({ uuid }) => {
   const { t } = useTranslation();
+  const handleMutate = useHandleMutate();
+  const session = useSession();
 
   const [deletingUserScope, setDeletingUserScope] = useState(false);
 
@@ -49,6 +51,10 @@ const StockUserScopeDeleteActionMenu: React.FC<StockUserScopDeleteActionMenuProp
       },
     });
   }, [t, uuid]);
+
+  if (!userHasAccess('Task: stockmanagement.userRoleScopes.mutate', session?.user)) {
+    return null;
+  }
 
   const deleteButton = (
     <IconButton

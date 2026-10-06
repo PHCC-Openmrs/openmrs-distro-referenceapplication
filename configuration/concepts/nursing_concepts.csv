@@ -1,0 +1,17 @@
+Uuid,Void/Retire,Fully specified name:en,Short name:en,Description:en,Data class,Data type,Answers,Units,Allow decimals
+8cc0095a-ab13-4a8d-9c8a-2ea21adef6e5,FALSE,Fucidin,,Fucidin ointment,Misc,N/A,,,
+69f1f71b-c951-4e06-86b8-96522b50fbef,FALSE,Iruxol,,Iruxol ointment,Misc,N/A,,,
+5b8a33d4-b711-4aad-b5a8-53d7c1b43e3a,FALSE,Silver,,Silver ointment,Misc,N/A,,,
+2601d675-2cb9-4ac9-95f6-c44e09e769da,FALSE,Bepanthin,,Bepanthin ointment,Misc,N/A,,,
+c9fac642-9701-4a9d-9596-e84edb732558,FALSE,Miconazole,,Miconazole ointment,Misc,N/A,,,
+463b0339-2226-4aed-b669-d70a1c60c1ab,FALSE,Calmex,,Calmex ointment,Misc,N/A,,,
+fb801b00-0eeb-42ca-8683-7f968eb5f51f,FALSE,Nursing Type of Wound,Type of Wound,The type of wound being dressed,Question,Text,,,
+74286289-c1a9-4c8b-8b5a-19b547d7e58e,FALSE,Nursing Ointment,Ointment,The ointment(s) applied to the wound. Recorded as one observation per ointment selected,Question,Coded,8cc0095a-ab13-4a8d-9c8a-2ea21adef6e5;69f1f71b-c951-4e06-86b8-96522b50fbef;5b8a33d4-b711-4aad-b5a8-53d7c1b43e3a;2601d675-2cb9-4ac9-95f6-c44e09e769da;c9fac642-9701-4a9d-9596-e84edb732558;463b0339-2226-4aed-b669-d70a1c60c1ab,,
+ee5488f1-4ac6-4ab6-a12d-46dd4630d584,FALSE,Nursing Dressing General Notes,Dressing Notes,Additional observations or information related to the dressing case,Question,Text,,,
+46e50d98-f499-4352-aea9-82b85d1dc4db,FALSE,Nursing ECG Image,ECG Image,"The UUID of the ECG attachment uploaded against this encounter. The image itself is stored as a patient attachment, not as the value of this observation",Question,Text,,,
+26cd9082-7d3a-4955-ae2a-aae22e19cfe1,FALSE,Nursing Spirometry,Spirometry,Spirometry measurement recorded by the nursing team,Question,Numeric,,g,TRUE
+b9e461bc-432f-44df-82ae-e08e4c4ad7cf,FALSE,Nursing Monofilament,Monofilament,Monofilament measurement recorded by the nursing team,Question,Numeric,,L,TRUE
+33db9b1c-77b6-4360-9fc5-f8724145fcb7,FALSE,Nursing IM Injection,IM Injection,The intramuscular injection administered,Question,Text,,,
+bfeb3e24-1aab-42c3-beb1-33ab91fdbe7b,FALSE,Nursing IV Injection,IV Injection,The intravenous injection administered,Question,Text,,,
+99a79867-1b40-43ab-ac08-6483acfd3a46,FALSE,Nursing Oral Administration,Oral,The oral medication administered,Question,Text,,,
+992966a6-45b5-4b32-b515-b0a298881e35,FALSE,Nursing Nebulization,Nebulization,The nebulization administered,Question,Text,,,

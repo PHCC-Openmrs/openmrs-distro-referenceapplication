@@ -47,7 +47,9 @@ public class StockReceiptReport extends StockOperationLineItemReport {
 		            .toPlainString(), row.getStockItemPackagingUOMName(), row.getStockItemPackagingUOMFactor()
 		            .toPlainString(), row.getPurchasePrice() == null ? "" : row.getPurchasePrice().toPlainString(), row
 		            .getStockItemDrugId() == null ? "" : row.getStockItemDrugId().toString(),
-		    row.getStockItemConceptId() == null ? "" : row.getStockItemConceptId().toString());
+		    row.getStockItemConceptId() == null ? "" : row.getStockItemConceptId().toString(),
+		    emptyIfNull(row.getPurchaseOrderNo()), emptyIfNull(row.getPurchaseRequestNo()),
+		    emptyIfNull(row.getProjectFundCode()));
 	}
 	
 	@Override
@@ -76,7 +78,10 @@ public class StockReceiptReport extends StockOperationLineItemReport {
 		    messageSourceService.getMessage("stockmanagement.report.packsize"),
 		    messageSourceService.getMessage("stockmanagement.report.purchaseprice"),
 		    messageSourceService.getMessage("stockmanagement.report.drugid"),
-		    messageSourceService.getMessage("stockmanagement.report.conceptid"));
+		    messageSourceService.getMessage("stockmanagement.report.conceptid"),
+		    messageSourceService.getMessage("stockmanagement.report.purchaseorderno"),
+		    messageSourceService.getMessage("stockmanagement.report.purchaserequestno"),
+		    messageSourceService.getMessage("stockmanagement.report.projectfundcode"));
 	}
 	
 }
