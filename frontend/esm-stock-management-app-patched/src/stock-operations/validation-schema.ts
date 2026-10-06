@@ -19,6 +19,7 @@ export type StockItemPackagingUOMDTOFormData = z.infer<typeof stockItemPackaging
 export const recordPermissionSchema = z.object({
   canView: z.boolean(),
   canEdit: z.boolean(),
+  canEditBeforeApproval: z.boolean().nullish(),
   canApprove: z.boolean().nullish(),
   canReceiveItems: z.boolean().nullish(),
   canDisplayReceivedItems: z.boolean().nullish(),

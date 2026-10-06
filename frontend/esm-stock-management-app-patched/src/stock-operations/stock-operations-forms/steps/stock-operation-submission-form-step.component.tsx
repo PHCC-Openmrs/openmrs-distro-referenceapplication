@@ -37,7 +37,17 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
   const { sessionLocation } = useSession();
   const handleMutate = useHandleMutate();
   const operationTypePermision = useOperationTypePermisions(stockOperationType);
-  const editable = useMemo(() => !stockOperation || stockOperation.status === 'NEW', [stockOperation]);
+  // A submitted operation that hasn't been approved, rejected or returned yet can still be edited;
+  // the backend then moves it back to NEW, so it has to be submitted for review again.
+  const isEditingSubmitted = useMemo(
+    () => stockOperation?.status === 'SUBMITTED' && !!stockOperation.permission?.canEditBeforeApproval,
+    [stockOperation],
+  );
+  const editable = useMemo(
+    () =>
+      !stockOperation || stockOperation.status === 'NEW' || stockOperation.status === 'RETURNED' || isEditingSubmitted,
+    [stockOperation, isEditingSubmitted],
+  );
   const form = useFormContext<StockOperationItemDtoSchema>();
   // Every stock operation has to go through approval, whatever its type and whoever creates it,
   // so the choice below is locked to "Yes" and the "No" option is disabled.
@@ -46,7 +56,9 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
     () => OperationType.STOCK_ISSUE_OPERATION_TYPE === stockOperationType.operationType,
     [stockOperationType],
   );
-  const handleSave = useCallback(async () => {
+  // `savingAsDraft` is true only for the plain Save button; Submit/Complete/Dispatch save first and
+  // then move the operation on, so the "back to draft" notice would be misleading there.
+  const handleSave = useCallback(async (savingAsDraft = false) => {
     let result: StockOperationDTO; // To store the result for returning
     await form.handleSubmit(async (formData) => {
       try {
@@ -119,9 +131,14 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
             ? t('editStockOperation', 'Edit stock operation')
             : t('addStockOperation', 'Add stock operation'),
           kind: 'success',
-          subtitle: stockOperation
-            ? t('stockOperationEdited', 'Stock operation edited successfully')
-            : t('stockOperationAdded', 'Stock operation added successfully'),
+          subtitle: isEditingSubmitted && savingAsDraft
+            ? t(
+                'submittedStockOperationEdited',
+                'Stock operation edited and moved back to draft. Submit it for review again.',
+              )
+            : stockOperation
+              ? t('stockOperationEdited', 'Stock operation edited successfully')
+              : t('stockOperationAdded', 'Stock operation added successfully'),
         });
       } catch (error) {
         const errorMessages = extractErrorMessagesFromResponse(error);
@@ -135,7 +152,17 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
       }
     })(); // Call handleSubmit to trigger validation and submission
     return result; // Return the result after handleSubmit completes
-  }, [form, stockOperation, t, approvalRequired, isStockIssueOperation, dismissWorkspace, handleMutate, sessionLocation]);
+  }, [
+    form,
+    stockOperation,
+    t,
+    approvalRequired,
+    isStockIssueOperation,
+    isEditingSubmitted,
+    dismissWorkspace,
+    handleMutate,
+    sessionLocation,
+  ]);
 
   const handleComplete = useCallback(() => {
     handleSave().then((operation) => {
@@ -239,7 +266,7 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
             style={{ margin: '4px' }}
             disabled={form.formState.isSubmitting}
             kind="secondary"
-            onClick={handleSave}
+            onClick={() => handleSave(true)}
             renderIcon={Save}
           >
             {form.formState.isSubmitting ? <InlineLoading /> : t('save', 'Save')}

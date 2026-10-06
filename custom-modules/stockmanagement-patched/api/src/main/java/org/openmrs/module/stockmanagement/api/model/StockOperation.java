@@ -465,6 +465,10 @@ public class StockOperation extends BaseChangeableOpenmrsData implements Seriali
 		return !getLocked() && !getVoided() && StockOperationStatus.IsUpdateable(getStatus());
 	}
 	
+	public boolean isEditableBeforeApproval() {
+		return !getVoided() && StockOperationStatus.IsEditableBeforeApproval(getStatus());
+	}
+	
 	public boolean canReceiveItems() {
 		return !isUpdateable() && StockOperationStatus.canReceiveItems(getStatus());
 	}
