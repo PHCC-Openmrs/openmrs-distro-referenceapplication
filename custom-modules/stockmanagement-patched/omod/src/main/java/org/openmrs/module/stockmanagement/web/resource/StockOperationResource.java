@@ -38,8 +38,6 @@ import java.util.stream.Collectors;
         "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
 public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	
-	private Map<String, SimpleObject> permissionCache;
-	
 	public StockOperationResource() {
 	}
 	
@@ -382,9 +380,6 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	
 	@PropertyGetter("permission")
     public SimpleObject getPermission(StockOperationDTO stockOperationDTO) {
-        if(permissionCache != null && permissionCache.containsKey(stockOperationDTO.getUuid()))
-            return permissionCache.get(stockOperationDTO.getUuid());
-
         SimpleObject simpleObject = new SimpleObject();
         simpleObject.add("canView", true);
 
@@ -457,17 +452,19 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
             canUpdateBatchInformation = userHasEditPermissions.booleanValue();
         }
 
+        // A submitted operation can still be edited (which sends it back to NEW) by anyone who
+        // could have edited it before submission. userHasEditPermissions is already resolved here
+        // for a SUBMITTED operation, since it is approveable.
+        boolean canEditBeforeApproval = stockOperationDTO.isEditableBeforeApproval()
+                && Boolean.TRUE.equals(userHasEditPermissions);
+
         simpleObject.add("canEdit", canEdit);
+        simpleObject.add("canEditBeforeApproval", canEditBeforeApproval);
         simpleObject.add("canApprove", canApprove);
         simpleObject.add("canReceiveItems", canReceiveItems);
         simpleObject.add("canDisplayReceivedItems", canDisplayReceivedItems);
         simpleObject.add("isRequisitionAndCanIssueStock", isRequisitionAndCanIssueStock);
         simpleObject.add("canUpdateBatchInformation", canUpdateBatchInformation);
-
-        if(permissionCache == null){
-            permissionCache=new HashMap<>();
-            permissionCache.put(stockOperationDTO.getUuid(), simpleObject);
-        }
         return simpleObject;
     }
 	

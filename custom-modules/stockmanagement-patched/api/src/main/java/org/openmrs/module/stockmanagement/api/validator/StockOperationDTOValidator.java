@@ -43,7 +43,7 @@ public class StockOperationDTOValidator implements Validator {
         StockOperation stockOperation = null;
         if (object.getUuid() != null) {
             stockOperation = service.getStockOperationByUuid(object.getUuid());
-            if(stockOperation == null || !stockOperation.isUpdateable()){
+            if(stockOperation == null || !(stockOperation.isUpdateable() || stockOperation.isEditableBeforeApproval())){
                 errors.rejectValue("uuid", messageSourceService.getMessage("stockmanagement.stockoperation.notupdateable"));
                 return;
             }

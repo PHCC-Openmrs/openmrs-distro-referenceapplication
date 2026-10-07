@@ -1180,6 +1180,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             stockOperation.setChangedBy(Context.getAuthenticatedUser());
             stockOperation.setDateChanged(new Date());
             stockOperationType = stockOperation.getStockOperationType();
+            revertSubmittedStockOperationForEdit(stockOperation);
         } else {
             stockOperation = new StockOperation();
             stockOperation.setOperationOrder(1);
@@ -1403,6 +1404,25 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         return stockOperation;
     }
 
+    /**
+     * Editing an operation that is still waiting for approval takes it back out of the approval
+     * queue: any stock reserved on submission is released (as a RETURN does), the record is
+     * unlocked and its status goes back to NEW, so the edited version must be submitted again.
+     */
+    private void revertSubmittedStockOperationForEdit(StockOperation stockOperation) {
+        if (!stockOperation.isEditableBeforeApproval()) {
+            return;
+        }
+        stockOperation.getStockOperationType().onCancelled(stockOperation);
+        stockOperation.setLocked(false);
+        stockOperation.setStatus(StockOperationStatus.NEW);
+        stockOperation.setSubmittedBy(null);
+        stockOperation.setSubmittedDate(null);
+        stockOperation.setChangedBy(Context.getAuthenticatedUser());
+        stockOperation.setDateChanged(new Date());
+        dao.saveStockOperation(stockOperation);
+    }
+
     public StockBatch getStockBatchByUuid(String uuid) {
         return dao.getStockBatchByUuid(uuid);
     }
@@ -1452,7 +1472,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         MessageSourceService messageSourceService = Context.getMessageSourceService();
         StockOperationItem stockOperationItem = getStockOperationItemByUuid(stockOperationItemUuid);
         StockOperation stockOperation = stockOperationItem.getStockOperation();
-        if (!stockOperation.isUpdateable()) {
+        if (!stockOperation.isUpdateable() && !stockOperation.isEditableBeforeApproval()) {
             throw new StockManagementException(
                     messageSourceService.getMessage("stockmanagement.stockoperation.notupdateable"));
         }
@@ -1461,6 +1481,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             throw new StockManagementException(
                     messageSourceService.getMessage("stockmanagement.stockoperation.nopermission"));
         }
+        revertSubmittedStockOperationForEdit(stockOperation);
 
         if (getStockOperationItemCount(stockOperation.getId()) < 2) {
             throw new StockManagementException(

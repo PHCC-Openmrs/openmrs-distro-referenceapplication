@@ -590,6 +590,10 @@ public class StockOperationDTO {
 		return !getLocked() && !getVoided() && StockOperationStatus.IsUpdateable(getStatus());
 	}
 	
+	public boolean isEditableBeforeApproval() {
+		return !getVoided() && StockOperationStatus.IsEditableBeforeApproval(getStatus());
+	}
+	
 	public boolean isApproveable() {
 		return getLocked() && !getVoided() && StockOperationStatus.IsApproveable(getStatus());
 	}

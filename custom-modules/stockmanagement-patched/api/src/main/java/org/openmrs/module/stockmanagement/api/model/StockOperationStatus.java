@@ -57,6 +57,14 @@ public enum StockOperationStatus {
 		return stockOperationStatus != null && (stockOperationStatus == NEW || stockOperationStatus == RETURNED);
 	}
 	
+	/**
+	 * A submitted operation can still be edited until someone approves, rejects or returns it.
+	 * Saving such an edit puts it back to NEW so it has to be submitted (and approved) again.
+	 */
+	public static boolean IsEditableBeforeApproval(StockOperationStatus stockOperationStatus) {
+		return stockOperationStatus != null && stockOperationStatus == SUBMITTED;
+	}
+	
 	public static boolean IsApproveable(StockOperationStatus stockOperationStatus) {
 		return stockOperationStatus != null && (stockOperationStatus == SUBMITTED);
 	}

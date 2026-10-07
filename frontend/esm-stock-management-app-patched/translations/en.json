@@ -366,6 +366,7 @@
   "submitAndDispatch": "Submit/Dispatch",
   "submitForReview": "Submit For Review",
   "submitted": "Submitted",
+  "submittedStockOperationEdited": "Stock operation edited and moved back to draft. Submit it for review again.",
   "submittingForReview": "Submitting for review",
   "success": "Success",
   "successfullySaved": "You have successfully saved user role scope",
