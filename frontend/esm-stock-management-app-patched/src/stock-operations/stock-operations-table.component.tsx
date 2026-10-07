@@ -262,7 +262,7 @@ const StockOperations: React.FC<StockOperationsTableProps> = () => {
                           </TableCell>
                         ))}
                       </TableExpandRow>
-                      {row.isExpanded ? (
+                      {row.isExpanded && items?.some((item) => item.uuid === row.id) ? (
                         <TableExpandedRow colSpan={headers.length + 2}>
                           <StockOperationExpandedRow model={items.find((item) => item.uuid === row.id)} />
                         </TableExpandedRow>

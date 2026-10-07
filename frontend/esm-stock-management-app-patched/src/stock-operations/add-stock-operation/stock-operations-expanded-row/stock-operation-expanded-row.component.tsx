@@ -17,8 +17,13 @@ const StockOperationExpandedRow: React.FC<StockOperationExpandedRowProps> = (pro
   const { t } = useTranslation();
   const { types, isLoading, error } = useStockOperationTypes();
   const currentOperationType = useMemo(() => {
-    return types?.results?.find(({ uuid }) => props.model.operationTypeUuid === uuid);
-  }, [props.model.operationTypeUuid, types?.results]);
+    return types?.results?.find(({ uuid }) => props.model?.operationTypeUuid === uuid);
+  }, [props.model?.operationTypeUuid, types?.results]);
+
+  if (!props.model) {
+    return null;
+  }
+
   return (
     <>
       <Layer className={styles.statusContainer}>
