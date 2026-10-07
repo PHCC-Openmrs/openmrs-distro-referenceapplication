@@ -87,7 +87,7 @@ FROM --platform=$BUILDPLATFORM node:22-alpine as dev
 # config below) didn't set that flag, leaving the runtime unpublished so no
 # lazily-loaded frontend module -- including every patient-chart dashboard
 # tab -- could start.
-ARG APP_SHELL_VERSION=latest
+ARG APP_SHELL_VERSION=10.0.0
 
 RUN apk add --no-cache git
 

@@ -67,6 +67,10 @@
       "route": "disease-summary-report"
     },
     {
+      "component": "ewarsReport",
+      "route": "ewars-report"
+    },
+    {
       "component": "stockReportsHome",
       "route": "stock-reports-home"
     },

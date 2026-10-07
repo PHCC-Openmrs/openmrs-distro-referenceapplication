@@ -15,6 +15,13 @@ public interface DiseaseSummaryService extends OpenmrsService {
 	List<DiseaseSummaryRow> getSummaryReport(Date startDate, Date endDate);
 
 	/**
+	 * @param startDate only include diagnoses on/after this date (inclusive), or null for no lower bound
+	 * @param endDate only include diagnoses through the end of this date (inclusive), or null for no upper bound
+	 * @return the EWARS weekly report: one row per fixed EWARS diagnosis (in report order), with no category
+	 */
+	List<DiseaseSummaryRow> getEwarsReport(Date startDate, Date endDate);
+
+	/**
 	 * Drills down into a single summary report cell to list the patients behind its count.
 	 *
 	 * @param diagnosisConceptId concept id of the diagnosis to match
@@ -24,5 +31,9 @@ public interface DiseaseSummaryService extends OpenmrsService {
 	 * @param endDate only include diagnoses through the end of this date (inclusive), or null for no upper bound
 	 */
 	List<PatientRow> getPatientsForCell(Integer diagnosisConceptId, String gender, String ageGroup, Date startDate,
+	        Date endDate);
+
+	/** Patients behind an EWARS report cell, identified by the row's diagnosis label. */
+	List<PatientRow> getPatientsForEwarsCell(String diagnosisLabel, String gender, String ageGroup, Date startDate,
 	        Date endDate);
 }

@@ -83,6 +83,12 @@ export default function ReportsHome() {
           ),
           route: 'disease-summary-report',
         },
+        {
+          key: 'ewars-report',
+          title: t('ewarsReportTitle', 'EWARS Report'),
+          description: t('ewarsReportTileDesc', 'EWARS priority diagnoses by age group and gender.'),
+          route: 'ewars-report',
+        },
       ],
     },
     {

@@ -47,10 +47,37 @@ public class DiseaseSummaryServiceImpl extends BaseOpenmrsService implements Dis
 	}
 
 	@Override
+	public List<DiseaseSummaryRow> getEwarsReport(Date startDate, Date endDate) {
+		String[] keys = { "0-4_M", "0-4_F", "5-14_M", "5-14_F", "15-18_M", "15-18_F", "19-49_M", "19-49_F", "50-65_M",
+		        "50-65_F", "65+_M", "65+_F" };
+		List<DiseaseSummaryRow> rows = new ArrayList<>();
+		for (Object[] r : dao.getEwarsRows(startDate, endDate)) {
+			DiseaseSummaryRow row = new DiseaseSummaryRow();
+			row.setDiagnosisLabel((String) r[0]);
+			for (int i = 0; i < keys.length; i++) {
+				row.getCounts().put(keys[i], toLong(r[i + 1]));
+			}
+			row.setTotal(toLong(r[13]));
+			rows.add(row);
+		}
+		return rows;
+	}
+
+	@Override
 	public List<PatientRow> getPatientsForCell(Integer diagnosisConceptId, String gender, String ageGroup,
 	        Date startDate, Date endDate) {
+		return toPatientRows(dao.getPatientsForDiagnosisCell(diagnosisConceptId, gender, ageGroup, startDate, endDate));
+	}
+
+	@Override
+	public List<PatientRow> getPatientsForEwarsCell(String diagnosisLabel, String gender, String ageGroup,
+	        Date startDate, Date endDate) {
+		return toPatientRows(dao.getPatientsForEwarsCell(diagnosisLabel, gender, ageGroup, startDate, endDate));
+	}
+
+	private static List<PatientRow> toPatientRows(List<Object[]> results) {
 		List<PatientRow> rows = new ArrayList<>();
-		for (Object[] r : dao.getPatientsForDiagnosisCell(diagnosisConceptId, gender, ageGroup, startDate, endDate)) {
+		for (Object[] r : results) {
 			PatientRow row = new PatientRow();
 			row.setPatientId(toInteger(r[0]));
 			row.setPatientUuid((String) r[1]);

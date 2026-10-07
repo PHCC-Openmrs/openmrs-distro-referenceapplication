@@ -206,6 +206,13 @@ public class LabTestReportRestController {
 		return jsonResponse(rows);
 	}
 
+	@RequestMapping(value = "/ewars-report.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> ewarsReport(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		return jsonResponse(Context.getService(DiseaseSummaryService.class).getEwarsReport(startDate, endDate));
+	}
+
 	@RequestMapping(value = "/disease-drilldown.json", method = RequestMethod.GET)
 	@ResponseBody
 	public ResponseEntity<String> diseaseDrilldown(@RequestParam("diagnosisConceptId") Integer diagnosisConceptId,
@@ -214,6 +221,18 @@ public class LabTestReportRestController {
 	        @RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
 		List<PatientRow> rows = Context.getService(DiseaseSummaryService.class).getPatientsForCell(diagnosisConceptId,
+		    gender, ageGroup, startDate, endDate);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/ewars-drilldown.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> ewarsDrilldown(@RequestParam("diagnosisLabel") String diagnosisLabel,
+	        @RequestParam(value = "gender", required = false) String gender,
+	        @RequestParam(value = "ageGroup", required = false) String ageGroup,
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		List<PatientRow> rows = Context.getService(DiseaseSummaryService.class).getPatientsForEwarsCell(diagnosisLabel,
 		    gender, ageGroup, startDate, endDate);
 		return jsonResponse(rows);
 	}

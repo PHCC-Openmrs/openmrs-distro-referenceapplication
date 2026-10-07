@@ -22,6 +22,14 @@ public interface DiseaseSummaryDAO {
 	List<Object[]> getSummaryRows(Date startDate, Date endDate) throws DAOException;
 
 	/**
+	 * @param startDate only include diagnoses on/after this date (inclusive), or null for no lower bound
+	 * @param endDate only include diagnoses through the end of this date (inclusive), or null for no upper bound
+	 * @return one row per EWARS diagnosis, each a 13-element array matching the column order of
+	 *         queries/ewars_report.sql
+	 */
+	List<Object[]> getEwarsRows(Date startDate, Date endDate) throws DAOException;
+
+	/**
 	 * @param diagnosisConceptId concept id of the diagnosis to match
 	 * @param gender "M" or "F", or null to match any gender
 	 * @param ageGroup one of "0-4", "5-14", "15-18", "19-49", "50-65", "65+", or null to match any age
@@ -31,5 +39,13 @@ public interface DiseaseSummaryDAO {
 	 *         queries/patients_for_diagnosis_cell.sql
 	 */
 	List<Object[]> getPatientsForDiagnosisCell(Integer diagnosisConceptId, String gender, String ageGroup, Date startDate,
+	        Date endDate) throws DAOException;
+
+	/**
+	 * Same as {@link #getPatientsForDiagnosisCell} but for an EWARS row label, which may map to several concepts.
+	 * 
+	 * @see queries/patients_for_ewars_cell.sql
+	 */
+	List<Object[]> getPatientsForEwarsCell(String diagnosisLabel, String gender, String ageGroup, Date startDate,
 	        Date endDate) throws DAOException;
 }

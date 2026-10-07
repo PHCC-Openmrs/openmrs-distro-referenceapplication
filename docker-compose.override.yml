@@ -27,7 +27,7 @@ services:
         # didn't set `experiments.provideExternalRuntime`, which some recent
         # `next` prerelease started requiring). Pin to the stable release for
         # local dev builds instead.
-        APP_SHELL_VERSION: latest
+        APP_SHELL_VERSION: 10.0.0
         PATIENT_MANAGEMENT_SOURCE: patient-management-local-aliased
         PATIENT_CHART_SOURCE: patient-chart-local-aliased
 

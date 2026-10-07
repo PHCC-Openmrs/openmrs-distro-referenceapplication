@@ -1,3 +1,32 @@
+WITH ewars_map AS (
+  SELECT 1  AS sort_order, 'Acute Respiratory Infections' AS label, 'Acute (Upper) Respiratory infection' AS concept_name
+  UNION ALL SELECT 1,  'Acute Respiratory Infections', 'Acute (Lower) Respiratory infection (suspected Pneumonia)'
+  UNION ALL SELECT 1,  'Acute Respiratory Infections', 'Acute respiratory infection'
+  UNION ALL SELECT 2,  'Acute watery Diarrhea',        'Acute Diarrhea (Report)'
+  UNION ALL SELECT 3,  'Acute Flaccid Paralysis',      'Acute Flaccid Paralysis (AFP)'
+  UNION ALL SELECT 4,  'Suspected Cholera',            'Acute Watery Diarrhea (Suspected Cholera)'
+  UNION ALL SELECT 5,  'Suspected Measles',            'Suspected Measles'
+  UNION ALL SELECT 6,  'Suspected Mumps',              'Suspected Mumps'
+  UNION ALL SELECT 7,  'Suspected Diphtheria',         'Suspected Diptheria'
+  UNION ALL SELECT 8,  'Acute Jaundice Syndrome',      'Acute Jaundice Syndrome'
+  UNION ALL SELECT 9,  'Suspected tetanus',            'Suspected Neonatal Tetanus'
+  UNION ALL SELECT 10, 'Suspected Shigellosis',        'Suspected Shigellosis'
+  UNION ALL SELECT 11, 'Suspected Meningitis',         'Suspected Meningitis (Report)'
+  UNION ALL SELECT 12, 'Suspected Tuberculosis',       'Suspected Tuberculosis'
+  UNION ALL SELECT 13, 'Suspected chickenpox',         'Chicken Pox (Report)'
+  UNION ALL SELECT 14, 'Ectoparasitic skin disease',   'Skin Diseases (scabies, chicken pox, lice, etc.)'
+  UNION ALL SELECT 15, 'Suspected Impetigo',           'Suspected Impetigo'
+  UNION ALL SELECT 16, 'Unusual Event',                'Unusual Event'
+),
+ewars_concepts AS (
+  SELECT em.sort_order, em.label, cn.concept_id
+  FROM ewars_map em
+  JOIN concept_name cn ON cn.name = em.concept_name
+                       AND cn.locale = 'en'
+                       AND cn.concept_name_type = 'FULLY_SPECIFIED'
+                       AND cn.voided = 0
+  JOIN concept c ON c.concept_id = cn.concept_id AND c.retired = 0
+)
 SELECT DISTINCT
   p.person_id                  AS patientId,
   p.uuid                       AS patientUuid,
@@ -27,7 +56,7 @@ LEFT JOIN patient_identifier pi_nid
 LEFT JOIN person_attribute pa_phone
   ON pa_phone.person_id = p.person_id AND pa_phone.voided = 0
   AND pa_phone.person_attribute_type_id = (SELECT person_attribute_type_id FROM person_attribute_type WHERE name = 'Phone Number')
-WHERE ed.concept_id = :diagnosisConceptId
+WHERE ed.concept_id IN (SELECT concept_id FROM ewars_concepts WHERE label = :diagnosisLabel)
   AND (:gender IS NULL OR p.gender = :gender)
   AND (:startDate IS NULL OR ed.event_date >= :startDate)
   AND (:endDate IS NULL OR ed.event_date < DATE_ADD(:endDate, INTERVAL 1 DAY))
