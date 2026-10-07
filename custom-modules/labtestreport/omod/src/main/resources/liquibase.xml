@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
+
+    <!-- Runs every minute; the task itself decides when the clinic's closing time has passed
+         (see AutoCloseVisitsTask and the labtestreport.autoCloseVisits.* global properties). -->
+    <changeSet id="labtestreport-create-auto-close-visits-task-20261007" author="labtestreport">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM scheduler_task_config
+                WHERE schedulable_class = 'org.openmrs.module.labtestreport.tasks.AutoCloseVisitsTask';
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="scheduler_task_config">
+            <column name="name" value="Auto Close Visits at Closing Time"/>
+            <column name="description" value="Ends all open visits daily at labtestreport.autoCloseVisits.time in labtestreport.autoCloseVisits.timezone"/>
+            <column name="schedulable_class" value="org.openmrs.module.labtestreport.tasks.AutoCloseVisitsTask"/>
+            <column name="start_time" valueDate="NOW()"/>
+            <column name="start_time_pattern" value="MM/dd/yyyy HH:mm:ss"/>
+            <column name="repeat_interval" valueNumeric="60"/>
+            <column name="start_on_startup" valueBoolean="true"/>
+            <column name="started" valueBoolean="false"/>
+            <column name="created_by" valueNumeric="1"/>
+            <column name="date_created" valueDate="NOW()"/>
+            <column name="uuid" value="5e0c7a2e-8f3b-4c1d-9a6e-2b7d4f1c3a90"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>

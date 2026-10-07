@@ -96,6 +96,25 @@
 		</description>
 	</globalProperty>
 
+	<globalProperty>
+		<property>labtestreport.autoCloseVisits.time</property>
+		<defaultValue>17:00</defaultValue>
+		<description>
+			Daily closing time (24-hour HH:mm, in labtestreport.autoCloseVisits.timezone) at which every
+			still-open visit is ended, which also takes those patients out of the service queues.
+			Leave empty to disable.
+		</description>
+	</globalProperty>
+
+	<globalProperty>
+		<property>labtestreport.autoCloseVisits.timezone</property>
+		<defaultValue>Asia/Gaza</defaultValue>
+		<description>
+			IANA timezone id (e.g. Asia/Gaza) that labtestreport.autoCloseVisits.time is expressed in.
+			Daylight saving is handled automatically.
+		</description>
+	</globalProperty>
+
 	<!-- Every role-based notification only reaches users whose location based access locationUuid
 	     property covers the patient's, encounter's or queue's location (users without it see all).
 	     Stock operation approvals need no setting: they go to users whose stock management role
