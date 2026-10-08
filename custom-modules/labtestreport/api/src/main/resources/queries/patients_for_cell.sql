@@ -21,6 +21,8 @@ LEFT JOIN person_attribute pa_phone
   ON pa_phone.person_id = p.person_id AND pa_phone.voided = 0
   AND pa_phone.person_attribute_type_id = (SELECT person_attribute_type_id FROM person_attribute_type WHERE name = 'Phone Number')
 WHERE o.voided = 0
+  AND o.order_action <> 'DISCONTINUE'
+  AND (o.fulfiller_status IS NULL OR o.fulfiller_status <> 'DECLINED')
   AND o.concept_id = :testConceptId
   AND (:gender IS NULL OR p.gender = :gender)
   AND (:startDate IS NULL OR e.encounter_datetime >= :startDate)
@@ -32,6 +34,6 @@ WHERE o.voided = 0
     OR (:ageGroup = '15-18' AND TIMESTAMPDIFF(YEAR, p.birthdate, e.encounter_datetime) BETWEEN 15 AND 18)
     OR (:ageGroup = '19-49' AND TIMESTAMPDIFF(YEAR, p.birthdate, e.encounter_datetime) BETWEEN 19 AND 49)
     OR (:ageGroup = '50-65' AND TIMESTAMPDIFF(YEAR, p.birthdate, e.encounter_datetime) BETWEEN 50 AND 65)
-    OR (:ageGroup = '65+'   AND TIMESTAMPDIFF(YEAR, p.birthdate, e.encounter_datetime) > 65)
+    OR (:ageGroup = '65+'   AND (p.birthdate IS NULL OR TIMESTAMPDIFF(YEAR, p.birthdate, e.encounter_datetime) NOT BETWEEN 0 AND 65))
   )
 ORDER BY familyName, givenName

@@ -40,6 +40,8 @@ qualifying_orders AS (
   JOIN encounter e     ON e.encounter_id = o.encounter_id
   JOIN person p        ON p.person_id = o.patient_id
   WHERE o.voided = 0
+    AND o.order_action <> 'DISCONTINUE'
+    AND (o.fulfiller_status IS NULL OR o.fulfiller_status <> 'DECLINED')
     AND (:startDate IS NULL OR e.encounter_datetime >= :startDate)
     AND (:endDate IS NULL OR e.encounter_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
 )
