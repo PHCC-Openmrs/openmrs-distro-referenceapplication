@@ -118,34 +118,44 @@ export const stockOperationSchema = z.object({
   dispatchedDate: z.coerce.date(),
   requisitionStockOperationUuid: z.string().uuid().nullish(),
 });
-export const baseStockOperationItemSchema = z.object({
-  uuid: z.string().min(1, 'Required'),
-  stockItemUuid: z.string().min(1, { message: 'Required' }),
-  stockItemPackagingUOMUuid: z.string().min(1, { message: 'Required' }),
-  batchNo: z.string().min(1, { message: 'Required' }),
-  stockBatchUuid: z.string().optional(),
-  expiration: z.coerce.date({ required_error: 'Required' }),
-  quantity: z.coerce.number().min(1, { message: 'Required' }),
-  purchasePrice: z.coerce.number().nullish(),
-  hasExpiration: z.boolean().nullish(),
-});
+type TranslateFn = (key: string, defaultValue: string) => string;
+
+// Used when no translator is passed (e.g. for the exported schemas used for type inference):
+// returns the English default message.
+const defaultTranslate: TranslateFn = (_key, defaultValue) => defaultValue;
+
+export const createBaseStockOperationItemSchema = (t: TranslateFn = defaultTranslate) =>
+  z.object({
+    uuid: z.string().min(1, t('required', 'Required')),
+    stockItemUuid: z.string().min(1, { message: t('required', 'Required') }),
+    stockItemPackagingUOMUuid: z.string().min(1, { message: t('required', 'Required') }),
+    batchNo: z.string().min(1, { message: t('required', 'Required') }),
+    stockBatchUuid: z.string().optional(),
+    expiration: z.coerce.date({ required_error: t('required', 'Required') }),
+    quantity: z.coerce.number().min(1, { message: t('required', 'Required') }),
+    purchasePrice: z.coerce.number().nullish(),
+    hasExpiration: z.boolean().nullish(),
+  });
+
+export const baseStockOperationItemSchema = createBaseStockOperationItemSchema();
 
 export type BaseStockOperationItemFormData = z.infer<typeof baseStockOperationItemSchema>;
 
-export const getStockOperationItemFormSchema = (operationType: OperationType) => {
+export const getStockOperationItemFormSchema = (operationType: OperationType, t: TranslateFn = defaultTranslate) => {
+  const itemSchema = createBaseStockOperationItemSchema(t);
   switch (operationType) {
     case OperationType.RECEIPT_OPERATION_TYPE:
     case OperationType.OPENING_STOCK_OPERATION_TYPE:
-      return baseStockOperationItemSchema.omit({ stockBatchUuid: true });
+      return itemSchema.omit({ stockBatchUuid: true });
     case OperationType.REQUISITION_OPERATION_TYPE:
-      return baseStockOperationItemSchema.omit({
+      return itemSchema.omit({
         batchNo: true,
         stockBatchUuid: true,
         expiration: true,
         purchasePrice: true,
       });
     case OperationType.ADJUSTMENT_OPERATION_TYPE:
-      return baseStockOperationItemSchema
+      return itemSchema
         .omit({
           batchNo: true,
           expiration: true,
@@ -154,7 +164,7 @@ export const getStockOperationItemFormSchema = (operationType: OperationType) =>
         .extend({
           // Override quantity to allow negative values for negative adjustment operation
           quantity: z.coerce.number().refine((value) => value !== 0, {
-            message: 'Quantity cannot be zero.',
+            message: t('quantityCannotBeZero', 'Quantity cannot be zero.'),
           }),
         });
     case OperationType.DISPOSED_OPERATION_TYPE:
@@ -162,42 +172,47 @@ export const getStockOperationItemFormSchema = (operationType: OperationType) =>
     case OperationType.STOCK_ISSUE_OPERATION_TYPE:
     case OperationType.STOCK_TAKE_OPERATION_TYPE:
     case OperationType.TRANSFER_OUT_OPERATION_TYPE:
-      return baseStockOperationItemSchema.omit({
+      return itemSchema.omit({
         batchNo: true,
         expiration: true,
         purchasePrice: true,
       });
     default:
-      return baseStockOperationItemSchema;
+      return itemSchema;
   }
 };
-export const stockOperationItemDtoSchema = z.object({
-  operationDate: z.coerce.date(),
-  sourceUuid: z.string({ required_error: 'Location Required' }).min(1, {
-    message: 'Location Required',
-  }),
-  destinationUuid: z.string({ required_error: 'Location Required' }).min(1, {
-    message: 'Location Required',
-  }),
-  reasonUuid: z.string({ required_error: 'Reason Required' }).min(1, {
-    message: 'Reason Required',
-  }),
-  responsiblePersonUuid: z
-    .string({
-      required_error: 'Responsible Person Required',
-    })
-    .min(1, {
-      message: 'Responsible Person Required',
+export const createStockOperationItemDtoSchema = (t: TranslateFn = defaultTranslate) =>
+  z.object({
+    operationDate: z.coerce.date(),
+    sourceUuid: z.string({ required_error: t('locationRequiredMessage', 'Location Required') }).min(1, {
+      message: t('locationRequiredMessage', 'Location Required'),
     }),
-  responsiblePersonOther: z.string().nullish(),
-  remarks: z.string().nullish(),
-  purchaseOrderNo: z.string().nullish(),
-  purchaseRequestNo: z.string().nullish(),
-  projectFundCode: z.string().nullish(),
-  operationTypeUuid: z.string().min(1, 'Operation type required').uuid('Invalid operation type'),
-  stockOperationItems: baseStockOperationItemSchema.array().nonempty('You must add atleast one stock item'),
-  requisitionStockOperationUuid: z.string().uuid().optional(), // Suplied only for stock issue operation
-});
+    destinationUuid: z.string({ required_error: t('locationRequiredMessage', 'Location Required') }).min(1, {
+      message: t('locationRequiredMessage', 'Location Required'),
+    }),
+    reasonUuid: z.string({ required_error: t('reasonRequired', 'Reason Required') }).min(1, {
+      message: t('reasonRequired', 'Reason Required'),
+    }),
+    responsiblePersonUuid: z
+      .string({
+        required_error: t('responsiblePersonRequired', 'Responsible Person Required'),
+      })
+      .min(1, {
+        message: t('responsiblePersonRequired', 'Responsible Person Required'),
+      }),
+    responsiblePersonOther: z.string().nullish(),
+    remarks: z.string().nullish(),
+    purchaseOrderNo: z.string().nullish(),
+    purchaseRequestNo: z.string().nullish(),
+    projectFundCode: z.string().nullish(),
+    operationTypeUuid: z.string().min(1, 'Operation type required').uuid('Invalid operation type'),
+    stockOperationItems: createBaseStockOperationItemSchema(t)
+      .array()
+      .nonempty(t('mustAddAtLeastOneStockItem', 'You must add atleast one stock item')),
+    requisitionStockOperationUuid: z.string().uuid().optional(), // Suplied only for stock issue operation
+  });
+
+export const stockOperationItemDtoSchema = createStockOperationItemDtoSchema();
 
 // Applied on top of any per-operation-type schema below (all of which are built via .omit()/
 // .merge() on stockOperationItemDtoSchema, none of which touch these 3 fields) - kept as a
@@ -220,20 +235,21 @@ export type StockOperationItemDtoSchema = z.infer<typeof stockOperationItemDtoSc
 
 export type StockOperationFormData = z.infer<typeof stockOperationSchema>;
 
-export const getStockOperationFormSchema = (operation: OperationType): z.Schema => {
+export const getStockOperationFormSchema = (operation: OperationType, t: TranslateFn = defaultTranslate): z.Schema => {
+  const dtoSchema = createStockOperationItemDtoSchema(t);
   switch (operation) {
     case OperationType.OPENING_STOCK_OPERATION_TYPE:
       return withExternalReferenceLengthCheck(
-        stockOperationItemDtoSchema
+        dtoSchema
           .omit({
             destinationUuid: true,
             reasonUuid: true,
           })
           .merge(
             z.object({
-              stockOperationItems: getStockOperationItemFormSchema(operation)
+              stockOperationItems: getStockOperationItemFormSchema(operation, t)
                 .array()
-                .nonempty('You must add atleast one stock item'),
+                .nonempty(t('mustAddAtLeastOneStockItem', 'You must add atleast one stock item')),
             }),
           ),
       );
@@ -241,26 +257,26 @@ export const getStockOperationFormSchema = (operation: OperationType): z.Schema 
     case OperationType.ADJUSTMENT_OPERATION_TYPE:
     case OperationType.DISPOSED_OPERATION_TYPE:
       return withExternalReferenceLengthCheck(
-        stockOperationItemDtoSchema.omit({ destinationUuid: true }).merge(
+        dtoSchema.omit({ destinationUuid: true }).merge(
           z.object({
-            stockOperationItems: getStockOperationItemFormSchema(operation)
+            stockOperationItems: getStockOperationItemFormSchema(operation, t)
               .array()
-              .nonempty('You must add atleast one stock item'),
+              .nonempty(t('mustAddAtLeastOneStockItem', 'You must add atleast one stock item')),
           }),
         ),
       );
     case OperationType.TRANSFER_OUT_OPERATION_TYPE:
     case OperationType.STOCK_ISSUE_OPERATION_TYPE:
       return withExternalReferenceLengthCheck(
-        stockOperationItemDtoSchema.omit({ reasonUuid: true }).merge(
+        dtoSchema.omit({ reasonUuid: true }).merge(
           z.object({
             // Merged to overid initial one with error message having  location instead of destination
-            destinationUuid: z.string({ required_error: 'Destination Required' }).min(1, {
-              message: 'Destination Required',
+            destinationUuid: z.string({ required_error: t('destinationRequired', 'Destination Required') }).min(1, {
+              message: t('destinationRequired', 'Destination Required'),
             }),
-            stockOperationItems: getStockOperationItemFormSchema(operation)
+            stockOperationItems: getStockOperationItemFormSchema(operation, t)
               .array()
-              .nonempty('You must add atleast one stock item'),
+              .nonempty(t('mustAddAtLeastOneStockItem', 'You must add atleast one stock item')),
           }),
         ),
       );
@@ -268,15 +284,15 @@ export const getStockOperationFormSchema = (operation: OperationType): z.Schema 
     case OperationType.REQUISITION_OPERATION_TYPE:
     case OperationType.RECEIPT_OPERATION_TYPE:
       return withExternalReferenceLengthCheck(
-        stockOperationItemDtoSchema.omit({ reasonUuid: true }).merge(
+        dtoSchema.omit({ reasonUuid: true }).merge(
           z.object({
             // Merged to overid initial one with error message having location instead of source
-            sourceUuid: z.string({ required_error: 'Source Required' }).min(1, {
-              message: 'Source Required',
+            sourceUuid: z.string({ required_error: t('sourceRequired', 'Source Required') }).min(1, {
+              message: t('sourceRequired', 'Source Required'),
             }),
-            stockOperationItems: getStockOperationItemFormSchema(operation)
+            stockOperationItems: getStockOperationItemFormSchema(operation, t)
               .array()
-              .nonempty('You must add atleast one stock item'),
+              .nonempty(t('mustAddAtLeastOneStockItem', 'You must add atleast one stock item')),
           }),
         ),
       );

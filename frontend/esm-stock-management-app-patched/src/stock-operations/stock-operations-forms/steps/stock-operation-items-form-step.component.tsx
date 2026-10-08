@@ -233,11 +233,11 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
     } else {
       showSnackbar({
         kind: 'error',
-        title: 'Validation error',
+        title: t('validationError', 'Validation error'),
         subtitle:
           observableOperationItems && observableOperationItems.length > 0
-            ? 'You must update batch infomation for items'
-            : 'You must add atleast one item',
+            ? t('mustUpdateBatchInformationForItems', 'You must update batch infomation for items')
+            : t('mustAddAtLeastOneItem', 'You must add atleast one item'),
       });
     }
   };

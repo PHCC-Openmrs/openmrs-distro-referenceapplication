@@ -270,8 +270,8 @@ const StockReports: React.FC = () => {
             </Table>
             {!canViewReports ? (
               <PrivilegedView
-                title="Can not view stock reports"
-                description="You have no permissions to view reports"
+                title={t('cannotViewStockReports', 'Can not view stock reports')}
+                description={t('noPermissionsToViewReports', 'You have no permissions to view reports')}
               />
             ) : rows.length === 0 ? (
               <div className={styles.tileContainer}>
@@ -287,6 +287,17 @@ const StockReports: React.FC = () => {
         )}
       </DataTable>
       <Pagination
+        itemsPerPageText={t('itemsPerPage', 'Items per page:')}
+        itemRangeText={(min, max, total) =>
+          t('paginationItemRange', '{{min}}–{{max}} of {{total}} items', { min, max, total })
+        }
+        pageRangeText={(_current, total) =>
+          t('paginationPageRange', 'of {{total}} pages', {
+            count: total,
+            total,
+            defaultValue_one: 'of {{total}} page',
+          })
+        }
         page={currentPage}
         pageSize={currentPageSize}
         pageSizes={pageSizes}

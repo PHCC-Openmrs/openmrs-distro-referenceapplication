@@ -94,11 +94,11 @@ const StockOperationPrintButton: React.FC<StockOperationCancelButtonProps> = ({ 
       );
       if (data) {
         if (operation?.operationType === OperationType.RECEIPT_OPERATION_TYPE) {
-          await PrintGoodsReceivedNoteStockOperation(data);
+          await PrintGoodsReceivedNoteStockOperation(data, t);
         } else if (operation?.operationType === OperationType.TRANSFER_OUT_OPERATION_TYPE) {
-          await PrintTransferOutStockOperation(data);
+          await PrintTransferOutStockOperation(data, t);
         } else {
-          await PrintRequisitionStockOperation(data);
+          await PrintRequisitionStockOperation(data, t);
         }
       } else {
         console.info(data);

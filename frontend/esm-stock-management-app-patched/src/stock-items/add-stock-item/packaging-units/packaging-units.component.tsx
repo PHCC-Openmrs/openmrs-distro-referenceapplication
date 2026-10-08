@@ -283,6 +283,7 @@ const PackagingUnitRow: React.FC<{
   onChange?: (value: string | number) => void;
   onChangePackageUnit?: (value: { uuid: string; display: string }) => void;
 }> = ({ isEditing, row, id, onChange, onChangePackageUnit }) => {
+  const { t } = useTranslation();
   const {
     control,
     formState: { errors },
@@ -298,7 +299,7 @@ const PackagingUnitRow: React.FC<{
               row={row}
               controllerName={'packagingUomUuid'}
               name="packagingUomUuid"
-              placeholder="Filter"
+              placeholder={t('packagingUnitFilterPlaceholder', 'Filter')}
               control={control}
               onPackageUnitChange={(concept) => onChangePackageUnit(concept)}
               invalid={!!errors.packagingUomUuid}

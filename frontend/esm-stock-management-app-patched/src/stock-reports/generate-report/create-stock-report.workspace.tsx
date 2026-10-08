@@ -256,7 +256,9 @@ const CreateReport: React.FC<CreateReportProps> = ({ model, closeWorkspace }) =>
   });
 
   if (isLoading) {
-    return <InlineLoading status="active" iconDescription="Loading" description="Loading data..." />;
+    return (
+      <InlineLoading status="active" iconDescription="Loading" description={t('loadingData', 'Loading data...')} />
+    );
   }
 
   const handleSave = async (report: StockReportSchema) => {

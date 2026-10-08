@@ -21,12 +21,12 @@ const IssuingStockModal = ({ issuingStock, closeModal }: IssuingStockModalProps)
   const { t } = useTranslation();
 
   const headers = [
-    { key: 'status', header: 'Status' },
-    { key: 'sourceName', header: 'Source' },
-    { key: 'destinationName', header: 'Destination' },
-    { key: 'stockItemName', header: 'Stock Item' },
-    { key: 'stockItemPackagingUOMName', header: 'Unit' },
-    { key: 'quantity', header: 'Quantity' },
+    { key: 'status', header: t('status', 'Status') },
+    { key: 'sourceName', header: t('source', 'Source') },
+    { key: 'destinationName', header: t('destinationHeader', 'Destination') },
+    { key: 'stockItemName', header: t('stockItemHeader', 'Stock Item') },
+    { key: 'stockItemPackagingUOMName', header: t('unit', 'Unit') },
+    { key: 'quantity', header: t('quantity', 'Quantity') },
   ];
 
   return (

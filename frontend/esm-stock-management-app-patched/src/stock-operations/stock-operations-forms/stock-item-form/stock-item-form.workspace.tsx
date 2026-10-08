@@ -45,13 +45,14 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
   onSave,
   onBack,
 }) => {
+  const { t } = useTranslation();
   const isTablet = useLayoutType() === 'tablet';
   const operationType = useMemo(() => {
     return operationFromString(stockOperationType.operationType);
   }, [stockOperationType]);
   const formSchema = useMemo(() => {
-    return getStockOperationItemFormSchema(operationType);
-  }, [operationType]);
+    return getStockOperationItemFormSchema(operationType, t);
+  }, [operationType, t]);
   const operationTypePermision = useOperationTypePermisions(stockOperationType);
   const { useItemCommonNameAsDisplay } = useConfig<ConfigObject>();
 
@@ -62,7 +63,6 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
     defaultValues: stockOperationItem,
     mode: 'all',
   });
-  const { t } = useTranslation();
   const { item } = useStockItem(form.getValues('stockItemUuid'));
   const commonName = useMemo(() => {
     if (!useItemCommonNameAsDisplay) return;

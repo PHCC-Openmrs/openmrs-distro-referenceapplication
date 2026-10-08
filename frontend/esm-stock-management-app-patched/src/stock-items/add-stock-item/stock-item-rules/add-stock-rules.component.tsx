@@ -193,7 +193,7 @@ const StockRulesAddOrUpdate: React.FC<AddStockRuleProps> = ({ model, stockItemUu
                 size="md"
                 onChange={onNameChanged}
                 value={model?.name}
-                placeholder="e.g Panado Alert"
+                placeholder={t('egPanadoAlert', 'e.g Panado Alert')}
               />
             </section>
 
@@ -227,7 +227,7 @@ const StockRulesAddOrUpdate: React.FC<AddStockRuleProps> = ({ model, stockItemUu
                 size="md"
                 onChange={onQuantityChanged}
                 value={model?.quantity}
-                placeholder="e.g 30 Boxes"
+                placeholder={t('eg30Boxes', 'e.g 30 Boxes')}
               />
             </section>
           </section>
@@ -272,7 +272,7 @@ const StockRulesAddOrUpdate: React.FC<AddStockRuleProps> = ({ model, stockItemUu
               size="md"
               onChange={onEvaluationFrequencyChanged}
               value={model?.evaluationFrequency}
-              placeholder="e.g 30 Minutes"
+              placeholder={t('eg30Minutes', 'e.g 30 Minutes')}
             />
             <TextInput
               id="actionFrequency"
@@ -281,7 +281,7 @@ const StockRulesAddOrUpdate: React.FC<AddStockRuleProps> = ({ model, stockItemUu
               size="md"
               onChange={onActionFrequencyChanged}
               value={model?.actionFrequency}
-              placeholder="e.g 3600 Minutes"
+              placeholder={t('eg3600Minutes', 'e.g 3600 Minutes')}
             />
           </section>
         </FormGroup>

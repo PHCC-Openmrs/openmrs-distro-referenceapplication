@@ -57,11 +57,11 @@ const StockOperationForm: React.FC<StockOperationFormProps> = ({
   }, [stockOperationType]);
   const operationTypePermision = useOperationTypePermisions(stockOperationType);
   const stockOperationItemFormSchema = useMemo(() => {
-    return getStockOperationItemFormSchema(operationType);
-  }, [operationType]);
+    return getStockOperationItemFormSchema(operationType, t);
+  }, [operationType, t]);
   const formschema = useMemo(() => {
-    return getStockOperationFormSchema(operationType);
-  }, [operationType]);
+    return getStockOperationFormSchema(operationType, t);
+  }, [operationType, t]);
   const showReceivedItems = useMemo(() => {
     return (
       (StockOperationTypeIsStockIssue(stockOperation?.operationType as OperationType) ||

@@ -242,7 +242,18 @@ RUN npm install --no-save --legacy-peer-deps openmrs@${APP_SHELL_VERSION:-next} 
     echo "Found esm-routes at: ${ROUTES_DIR}" && \
     test -n "${ROUTES_DIR}" && \
     rm -rf "${ROUTES_DIR}/dist" && \
-    cp -r openmrs-esm-core/packages/framework/esm-routes/dist "${ROUTES_DIR}/dist"
+    cp -r openmrs-esm-core/packages/framework/esm-routes/dist "${ROUTES_DIR}/dist" && \
+    # The app shell imports the core translations straight from
+    # @openmrs/esm-translations/translations/<locale>.json (esm-app-shell
+    # src/locale.ts), so without this the published core translations are
+    # served instead of our fork's (e.g. the Arabic ar.json). There can be
+    # more than one copy in node_modules, so replace every one.
+    for TRANSLATIONS_DIR in $(find node_modules -type d -path '*@openmrs/esm-translations'); do \
+      echo "Replacing esm-translations at: ${TRANSLATIONS_DIR}" && \
+      rm -rf "${TRANSLATIONS_DIR}/dist" "${TRANSLATIONS_DIR}/translations" && \
+      cp -r openmrs-esm-core/packages/framework/esm-translations/dist "${TRANSLATIONS_DIR}/dist" && \
+      cp -r openmrs-esm-core/packages/framework/esm-translations/translations "${TRANSLATIONS_DIR}/translations" ; \
+    done
 RUN node_modules/.bin/openmrs assemble --manifest --mode config --config spa-assemble-config.json --target ./spa
 RUN node_modules/.bin/openmrs build --build-config spa-build-config.json --target ./spa
 RUN if [ ! -f ./spa/index.html ]; then echo 'Build failed. Please check the logs above for details. This may have happened because of an update to a library that OpenMRS depends on.'; exit 1; fi

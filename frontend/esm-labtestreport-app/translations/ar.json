@@ -1,0 +1,18 @@
+{
+  "loading": "جارٍ التحميل...",
+  "manageReports": "إدارة التقارير",
+  "markAllRead": "تحديد الكل كمقروء",
+  "noNotifications": "لا توجد إشعارات جديدة.",
+  "notifications": "الإشعارات",
+  "notificationsError": "تعذّر تحميل الإشعارات.",
+  "notificationTypeGeneral": "النظام",
+  "notificationTypeLabOrder": "طلب مختبر",
+  "notificationTypeLabResult": "نتيجة مختبر",
+  "notificationTypeLowStock": "مخزون منخفض",
+  "notificationTypeMedicationOrder": "طلب دواء",
+  "notificationTypePatientQueued": "الطابور",
+  "notificationTypePatientRegistered": "مريض جديد",
+  "notificationTypeStockExpiry": "مخزون قارب على الانتهاء",
+  "notificationTypeStockOperation": "عملية مخزون",
+  "reports": "التقارير"
+}

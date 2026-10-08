@@ -22,6 +22,19 @@ interface StockOperationsModalProps {
 const StockOperationsModal: React.FC<StockOperationsModalProps> = ({ title, requireReason, operation, closeModal }) => {
   const confirmType = title.toLocaleLowerCase().trim();
   const { t } = useTranslation();
+  // `title` is the English action name and drives the logic below (via `confirmType`);
+  // only the word shown to the user is translated.
+  const actionLabels: Record<string, string> = {
+    approve: t('approve', 'Approve'),
+    reject: t('rejectAction', 'Reject'),
+    dispatch: t('dispatch', 'Dispatch'),
+    cancel: t('cancel', 'Cancel'),
+    complete: t('complete', 'Complete'),
+    return: t('returnAction', 'Return'),
+    'complete dispatch': t('completeDispatchAction', 'Complete Dispatch'),
+    submit: t('submit', 'Submit'),
+  };
+  const titleLabel = actionLabels[confirmType] ?? title;
   const handleMutate = useHandleMutate();
   const [notes, setNotes] = useState('');
   const [isApproving, setIsApproving] = useState(false);
@@ -78,9 +91,9 @@ const StockOperationsModal: React.FC<StockOperationsModalProps> = ({ title, requ
       () => {
         setIsApproving(false);
         showSnackbar({
-          title: t('operationSuccessTitle', '{{title}} Operation', { title }),
+          title: t('operationSuccessTitle', '{{title}} Operation', { title: titleLabel }),
           subtitle: t('operationSuccessful', 'You have successfully {{title}} operation', {
-            title,
+            title: titleLabel,
           }),
           kind: 'success',
         });
@@ -110,12 +123,15 @@ const StockOperationsModal: React.FC<StockOperationsModalProps> = ({ title, requ
   return (
     <div>
       <Form onSubmit={handleClick}>
-        <ModalHeader closeModal={closeModal} title={t('operationModalTitle', '{{title}} Operation', { title })} />
+        <ModalHeader
+          closeModal={closeModal}
+          title={t('operationModalTitle', '{{title}} Operation', { title: titleLabel })}
+        />
         <ModalBody>
           <div className={styles.modalBody}>
             <section className={styles.section}>
               <h5 className={styles.section}>
-                {t('confirmOperation', 'Would you really like to {{title}} the operation?', { title })}
+                {t('confirmOperation', 'Would you really like to {{title}} the operation?', { title: titleLabel })}
               </h5>
             </section>
             <br />

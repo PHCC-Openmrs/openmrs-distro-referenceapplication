@@ -1,3 +1,4 @@
+import { type TFunction } from 'i18next';
 import { formatDisplayDate } from '../../core/utils/datetimeUtils';
 import { GetHeaderSection, GetPrintTemplate } from '../../core/print/PrintTemplate';
 import {
@@ -8,28 +9,28 @@ import {
 import { printDocument } from '../../core/print/printUtils';
 import { type StockOperationPrintData } from './StockOperationReport';
 
-export const FormatRequisitionDocument = async (data: StockOperationPrintData): Promise<string> => {
+export const FormatRequisitionDocument = async (data: StockOperationPrintData, t: TFunction): Promise<string> => {
   const emptyRowCount: number = Math.max(0, 28 - (data?.items?.length ?? 0));
   const headerSection = await GetHeaderSection();
   return `
     <div>
         ${headerSection}
         <div class="heading text">
-            <b>HMIS FORM 017: REQUISITION AND ISSUE VOUCHER</b>
+            <b>${t('hmisForm017RequisitionAndIssueVoucher', 'HMIS FORM 017: REQUISITION AND ISSUE VOUCHER')}</b>
         </div>
         <div class="heading-row text">
-            <span>Name of Health Unit: </span>
+            <span>${t('nameOfHealthUnit', 'Name of Health Unit:')} </span>
             <b><span>${data?.organizationName ?? ''}</span></b>
         </div>
         <div class="heading-row text">
             <table style="width:99%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
                     <td style="text-align: left;">
-                        <span>Dept/section/ward/dispensary: </span>
+                        <span>${t('deptSectionWardDispensary', 'Dept/section/ward/dispensary:')} </span>
                         <b><span>${data?.location ?? ''}</span></b>
                     </td>
                     <td style="text-align: right;">                    
-                        <span>Date: </span>
+                        <span>${t('dateLabel', 'Date:')} </span>
                         <b><span>${formatDisplayDate(data?.operationDate)}</span></b>
                     </td>
                 </tr>
@@ -38,22 +39,28 @@ export const FormatRequisitionDocument = async (data: StockOperationPrintData): 
         <table class="table-data" border="0" cellspacing="0" cellpadding="0">
             <tr>
                 <td colspan="4" valign="top" style='border:solid black 1.0pt;height:40pt'>
-                    <div class='text'><b>Ordered by (Name and signature):</b></div>
+                    <div class='text'><b>${t('orderedByNameAndSignature', 'Ordered by (Name and signature):')}</b></div>
                     <p class='text' style='margin-top: 1pt;'>${data.orderedBy ?? '&nbsp;'}</p>
                 </td>
                 <td colspan="4" valign="top" style='border:solid black 1.0pt;border-left:none;height:40pt'>
-                    <div class='text'><b>Authorized by (Name and Signature):</b></div>
+                    <div class='text'><b>${t(
+                      'authorizedByNameAndSignature',
+                      'Authorized by (Name and Signature):',
+                    )}</b></div>
                     <p class='text' style='margin-top: 1pt;'>${data.authorizedBy ?? '&nbsp;'}</p>
                 </td>
             </tr>            
             <tr>
-                <th valign="middle" class="left"><b>Item Code No.</b></th>
-                <th valign="middle" class="left"><b>Item Description (name, formulation, strength)</b></th>
-                <th valign="middle"><b>Balance on Hand</b></th>
-                <th valign="middle"><b>Quantity Required</b></th>
-                <th valign="middle"><b>Quantity Issued</b></th>
-                <th valign="middle"><b>Unit Cost</b></th>
-                <th valign="middle"><b>Total Cost</b></th>
+                <th valign="middle" class="left"><b>${t('itemCodeNo', 'Item Code No.')}</b></th>
+                <th valign="middle" class="left"><b>${t(
+                  'itemDescriptionNameFormulationStrength',
+                  'Item Description (name, formulation, strength)',
+                )}</b></th>
+                <th valign="middle"><b>${t('balanceOnHand', 'Balance on Hand')}</b></th>
+                <th valign="middle"><b>${t('quantityRequired', 'Quantity Required')}</b></th>
+                <th valign="middle"><b>${t('quantityIssued', 'Quantity Issued')}</b></th>
+                <th valign="middle"><b>${t('unitCost', 'Unit Cost')}</b></th>
+                <th valign="middle"><b>${t('totalCost', 'Total Cost')}</b></th>
             </tr>            
             ${
               data?.items
@@ -108,8 +115,8 @@ export const FormatRequisitionDocument = async (data: StockOperationPrintData): 
                 : ''
             }
             <tr class="footer-field">
-                <td valign="middle" colspan="3">Issue date:</td>
-                <td valign="middle" colspan="4">Receipt date:</td>
+                <td valign="middle" colspan="3">${t('issueDate', 'Issue date:')}</td>
+                <td valign="middle" colspan="4">${t('receiptDate', 'Receipt date:')}</td>
             </tr>
             <tr class="footer-field">
                 <td valign="middle" colspan="3">Name &amp; Signature receiver:</td>
@@ -120,7 +127,7 @@ export const FormatRequisitionDocument = async (data: StockOperationPrintData): 
     `;
 };
 
-export const PrintRequisitionStockOperation = async (data: StockOperationPrintData) => {
-  const printData = await FormatRequisitionDocument(data);
+export const PrintRequisitionStockOperation = async (data: StockOperationPrintData, t: TFunction) => {
+  const printData = await FormatRequisitionDocument(data, t);
   printDocument(GetPrintTemplate(printData, data?.documentTitle, true, CLOSE_PRINT_AFTER_PRINT));
 };
