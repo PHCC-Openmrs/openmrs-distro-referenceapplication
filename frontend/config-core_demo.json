@@ -172,7 +172,6 @@
   "@openmrs/esm-service-queues-app": {
     "hiddenServicePrograms": ["481fd184-69e9-41af-b4b3-28d714c94343"],
     "defaultInitialServiceQueue": "Front Desk",
-    "pharmacyQueueName": "Pharmacy",
     "priorityConfigs": [
       { "conceptUuid": "f4620bfa-3625-4883-bd3f-84c2cce14470", "color": "green", "style": null },
       { "conceptUuid": "dc3492ef-24a5-4fd9-b58d-4fd2acf7071f", "color": "orange", "style": null },
