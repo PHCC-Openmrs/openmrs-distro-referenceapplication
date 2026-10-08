@@ -108,7 +108,13 @@ const DrugSelector = <T,>(props: DrugSelectorProps<T>) => {
           );
         }}
       />
-      {isLoading && <InlineLoading status="active" iconDescription="Searching" description="Searching..." />}
+      {isLoading && (
+        <InlineLoading
+          status="active"
+          iconDescription="Searching"
+          description={t('searchingEllipsis', 'Searching...')}
+        />
+      )}
       {!props.readOnly && showExistenceError && (
         <div style={{ color: '#da1e28' }}>{t('itemAlreadyExists', 'Item already exists')}</div>
       )}

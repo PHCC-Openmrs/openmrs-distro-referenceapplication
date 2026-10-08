@@ -92,42 +92,42 @@ const TransactionsPrintAction: React.FC<Props> = ({ columns, data, itemUuid, fil
     () => [
       {
         key: 'patientId',
-        header: 'Patient ID',
+        header: t('patientId', 'Patient ID'),
       },
       {
         key: 'patientName',
-        header: 'Patient Name',
+        header: t('patientName', 'Patient Name'),
       },
       {
         key: 'patientIdentifier',
-        header: 'Patient Identifier',
+        header: t('patientIdentifier', 'Patient Identifier'),
       },
       {
         key: 'date',
-        header: 'Date',
+        header: t('date', 'Date'),
       },
       {
         key: 'location',
-        header: 'Location',
+        header: t('locationHeader', 'Location'),
       },
       {
         key: 'transaction',
-        header: 'Transaction',
+        header: t('transaction', 'Transaction'),
       },
       {
         key: 'balance',
-        header: 'Balance',
+        header: t('balance', 'Balance'),
       },
       {
         key: 'totalout',
-        header: 'OUT',
+        header: t('transactionOut', 'OUT'),
       },
       {
         key: 'batch',
-        header: 'Batch',
+        header: t('batchHeader', 'Batch'),
       },
     ],
-    [],
+    [t],
   );
 
   const handleBincardClick = () => {
@@ -151,7 +151,7 @@ const TransactionsPrintAction: React.FC<Props> = ({ columns, data, itemUuid, fil
   return (
     <>
       {enablePrintButton && (
-        <ComboButton label="Print">
+        <ComboButton label={t('print', 'Print')}>
           <MenuItem
             label={t('printStockCard', 'Print Stock Card')}
             renderIcon={(props) => <Printer size={24} {...props} />}

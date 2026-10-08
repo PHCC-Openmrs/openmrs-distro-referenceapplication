@@ -48,7 +48,7 @@ const StockOperationTypesSelector = () => {
     <OverflowMenu
       renderIcon={() => (
         <>
-          Start New&nbsp;&nbsp;
+          {t('startNew', 'Start New')}&nbsp;&nbsp;
           <OverflowMenuVertical size={16} />
         </>
       )}

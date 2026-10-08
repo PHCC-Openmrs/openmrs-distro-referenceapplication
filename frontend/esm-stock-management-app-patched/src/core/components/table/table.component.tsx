@@ -181,6 +181,17 @@ const DataList: React.FC<ListProps> = ({ columns, data, children, totalItems, go
                 </div>
               ) : null}
               <Pagination
+                itemsPerPageText={t('itemsPerPage', 'Items per page:')}
+                itemRangeText={(min, max, total) =>
+                  t('paginationItemRange', '{{min}}–{{max}} of {{total}} items', { min, max, total })
+                }
+                pageRangeText={(_current, total) =>
+                  t('paginationPageRange', 'of {{total}} pages', {
+                    count: total,
+                    total,
+                    defaultValue_one: 'of {{total}} page',
+                  })
+                }
                 forwardText={t('nextPage', 'Next page')}
                 backwardText={t('previousPage', 'Previous page')}
                 page={currentPage}

@@ -361,6 +361,17 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
         )}
       </DataTable>
       <Pagination
+        itemsPerPageText={t('itemsPerPage', 'Items per page:')}
+        itemRangeText={(min, max, total) =>
+          t('paginationItemRange', '{{min}}–{{max}} of {{total}} items', { min, max, total })
+        }
+        pageRangeText={(_current, total) =>
+          t('paginationPageRange', 'of {{total}} pages', {
+            count: total,
+            total,
+            defaultValue_one: 'of {{total}} page',
+          })
+        }
         className={styles.paginationOverride}
         onChange={({ page, pageSize }) => {
           setCurrentPage(page);

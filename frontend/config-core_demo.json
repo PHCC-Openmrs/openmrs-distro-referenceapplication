@@ -18,6 +18,12 @@
     }
   },
   "@openmrs/esm-patient-forms-app": {
+    "Translation overrides": {
+      "ar": {
+        "off": "إيقاف",
+        "on": "تشغيل"
+      }
+    },
     "locationFormsAllowlist": [
       {
         "locationUuid": "8a84d48a-bf7e-45ca-b906-7fad48184642",
@@ -33,6 +39,11 @@
     ]
   },
   "@openmrs/esm-system-admin-app": {
+    "Translation overrides": {
+      "ar": {
+        "legacyAdmin": "الإدارة الكلاسيكية"
+      }
+    },
     "extensionSlots": {
       "system-admin-page-card-link-slot": {
         "configure": {
@@ -71,6 +82,42 @@
     }
   },
   "@openmrs/esm-patient-search-app": {
+    "Translation overrides": {
+      "ar": {
+        "searchPatientButton": "زر البحث عن مريض",
+        "recentPatientsEmptyStateHint": "سيظهر المرضى الذين تختارهم هنا للوصول السريع",
+        "noRecentlyViewedPatients": "لا يوجد مرضى تم عرضهم مؤخرًا",
+        "errorUpdatingRecentlyViewedPatients": "خطأ في تحديث المرضى الذين تم عرضهم مؤخرًا",
+        "errorStartingVisitDescription": "حدث خطأ أثناء بدء الزيارة",
+        "errorStartingVisit": "خطأ في بدء الزيارة",
+        "errorFetchingUserProperties": "خطأ في جلب خصائص المستخدم",
+        "errorFetchingPatients": "خطأ في جلب المرضى",
+        "closeSearch": "إغلاق لوحة البحث",
+        "close": "إغلاق",
+        "countOfFiltersApplied_few": "تم تطبيق {{count}} فلاتر",
+        "countOfFiltersApplied_many": "تم تطبيق {{count}} فلترًا",
+        "countOfFiltersApplied_one": "تم تطبيق {{count}} فلتر",
+        "countOfFiltersApplied_other": "تم تطبيق {{count}} فلاتر",
+        "countOfFiltersApplied_two": "تم تطبيق فلترين",
+        "countOfFiltersApplied_zero": "لم يتم تطبيق أي فلتر",
+        "errorLoadingAttribute": "خطأ في تحميل نوع السمة {{attributeUuid}}",
+        "errorLoadingConceptAttributeAnswers": "خطأ في تحميل إجابات concept attribute",
+        "errorLoadingLocationsForAttribute": "خطأ في تحميل المواقع لسمة الشخص {{attributeName}}",
+        "recentSearchResultsCount_few": "{{count}} نتائج بحث حديثة",
+        "recentSearchResultsCount_many": "{{count}} نتيجة بحث حديثة",
+        "recentSearchResultsCount_two": "نتيجتا بحث حديثتان",
+        "recentSearchResultsCount_zero": "لا توجد نتائج بحث حديثة",
+        "searchLocationPersonAttribute": "البحث عن موقع",
+        "searchPatient": "البحث عن مريض",
+        "searchResultsCount_few": "{{count}} نتائج بحث",
+        "searchResultsCount_many": "{{count}} نتيجة بحث",
+        "searchResultsCount_two": "نتيجتا بحث",
+        "searchResultsCount_zero": "لا توجد نتائج بحث",
+        "selectOption": "اختر خيارًا",
+        "startVisit": "بدء الزيارة",
+        "unsupportedAttributeFormat": "تنسيق السمة غير مدعوم: {{format}}"
+      }
+    },
     "extensionSlots": {
       "start-visit-button-slot": {
         "configure": {
@@ -516,6 +563,434 @@
       "restrictToSessionLocation": true,
       "locationColumn": {
         "enabled": true
+      }
+    }
+  },
+  "@openmrs/esm-form-engine-app": {
+    "Translation overrides": {
+      "ar": {
+        "alreadyDiscontinuedDescription": "هذا المريض مسجل بالفعل في البرنامج المحدد وتم إيقاف تسجيله بالفعل.",
+        "alreadyEnrolledDescription": "هذا المريض مسجل بالفعل في البرنامج المحدد ولا يمكن تسجيله مرة أخرى.",
+        "attachmentsSaved": "تم حفظ المرفقات بنجاح",
+        "cannotDiscontinueEnrollment": "لا يمكن إيقاف تسجيل غير موجود",
+        "causeOfDeathQuestionIdIsNotConfigured": "لم يتم إعداد معرّف سؤال سبب الوفاة",
+        "dateOfDeathQuestionIdIsNotConfigured": "لم يتم إعداد معرّف سؤال تاريخ الوفاة",
+        "diagnosisSaved": "تم حفظ التشخيص (التشخيصات) بنجاح",
+        "enrolledToProgram": "تم تسجيل المريض في البرنامج بنجاح.",
+        "enrollmentAlreadyDiscontinued": "تم إيقاف التسجيل بالفعل.",
+        "enrollmentDiscontinuationNotAllowed": "إيقاف التسجيل غير مسموح به",
+        "enrollmentDiscontinued": "تم إيقاف تسجيل المريض في البرنامج بنجاح.",
+        "enrollmentNotAllowed": "التسجيل غير مسموح به",
+        "errorDescriptionTitle": "تفاصيل الخطأ",
+        "errorLaunchingWorkspace": "خطأ في فتح مساحة العمل",
+        "errorLaunchingWorkspaceSubtitle": "حدث خطأ غير متوقع أثناء فتح مساحة العمل.",
+        "errorMarkingAsDeceased": "خطأ في تسجيل وفاة المريض",
+        "errorMarkingPatientDeceased": "خطأ في تسجيل وفاة المريض",
+        "errorProcessingFormSubmission": "خطأ في معالجة إرسال النموذج",
+        "errorSavingAttachments": "خطأ في حفظ المرفقات",
+        "errorSavingEncounter": "خطأ في حفظ اللقاء",
+        "errorSavingEnrollment": "خطأ في حفظ التسجيل",
+        "errorSavingPatientIdentifiers": "خطأ في حفظ معرّفات المريض",
+        "errorSavingPatientPrograms": "خطأ في حفظ برامج المريض",
+        "errorSavingPersonAttributes": "خطأ في حفظ سمات الشخص",
+        "formActionFailed": "فشل إجراء النموذج",
+        "noPatientContext": "لم يتم اختيار مريض",
+        "noPatientContextSubtitle": "افتح سجل مريض لاستخدام هذا الزر.",
+        "ordersSaved": "تم حفظ الطلبات بنجاح",
+        "patientCannotBeMarkedAsDeceasedBecauseNoPayloadSupplied": "لا يمكن تسجيل وفاة المريض لعدم توفر البيانات المطلوبة",
+        "patientIdentifiersSaved": "تم حفظ معرّفات المريض بنجاح",
+        "patientIsAlreadyMarkedAsDeceased": "تم تسجيل وفاة المريض بالفعل",
+        "patientProgramsSaved": "تم حفظ برامج المريض بنجاح",
+        "personAttributesSaved": "تم حفظ سمات الشخص بنجاح",
+        "submittedForm": "تم إرسال النموذج",
+        "submittedFormDescription": "تم إرسال النموذج بنجاح",
+        "successfullyMarkedAsDeceased": "تم تسجيل وفاة المريض بنجاح",
+        "updatedRecord": "تم تحديث السجل",
+        "updatedRecordDescription": "تم تحديث سجل زيارة المريض."
+      }
+    }
+  },
+  "@openmrs/esm-implementer-tools-app": {
+    "Translation overrides": {
+      "ar": {
+        "implementerTools": "أدوات المنفّذ"
+      }
+    }
+  },
+  "@openmrs/esm-patient-banner-app": {
+    "Translation overrides": {
+      "ar": {
+        "activeVisit": "زيارة نشطة",
+        "deceased": "متوفى",
+        "from_lower": "من",
+        "pastVisitWithDate": "زيارة سابقة: {{date}}",
+        "started": "بدأت"
+      }
+    }
+  },
+  "@openmrs/esm-patient-tests-app": {
+    "Translation overrides": {
+      "ar": {
+        "add": "إضافة",
+        "addOrderableForOrderType": "إضافة {{orderTypeDisplay}}",
+        "age": "العمر",
+        "back": "رجوع",
+        "backToOrderBasket": "العودة إلى سلة الطلب",
+        "cancel": "إلغاء",
+        "checkFilters": "تحقق من الفلاتر أعلاه",
+        "clear": "مسح",
+        "clearFilters": "مسح الفلاتر",
+        "closeSearchBar": "إغلاق البحث",
+        "collapseAll": "طي الكل",
+        "confirmEditResults": "هل تريد تعديل نتائج الفحص للمريض التالي؟",
+        "data": "البيانات",
+        "dataLoadError": "خطأ في تحميل البيانات",
+        "dataTimelineText": "الخط الزمني للبيانات",
+        "dateOrdered": "تاريخ الطلب",
+        "discontinued": "متوقف",
+        "editLabResults": "تعديل فحوصات المختبر",
+        "editOrderableForOrderType": "تعديل {{orderTypeDisplay}}",
+        "editTestResults": "تعديل نتائج الفحص",
+        "endDate": "تاريخ الانتهاء",
+        "errorFetchingTestTypes": "خطأ في جلب نتائج \"{{searchTerm}}\"",
+        "errorSavingLabOrder": "خطأ في حفظ طلب المختبر",
+        "expandAll": "توسيع الكل",
+        "female": "أنثى",
+        "gender": "الجنس",
+        "goToDrugOrderForm": "نموذج الطلب",
+        "individualTests": "الفحوصات الفردية",
+        "labOrders": "طلبات المختبر",
+        "location": "الموقع",
+        "male": "ذكر",
+        "name": "الاسم",
+        "noPanelsFound": "لم يتم العثور على لوحات",
+        "noTestResultsWithinSpecifiedRange": "لم يتم العثور على نتائج فحوصات ضمن النطاق المحدد",
+        "onDate": "في",
+        "or": "أو",
+        "orderActionDiscontinue": "إيقاف",
+        "orderActionIncomplete": "غير مكتمل",
+        "orderActionRenew": "تجديد",
+        "orderActionRevise": "تعديل",
+        "orderDetails": "تفاصيل الطلب",
+        "orderDiscontinued": "تم إيقاف الطلب",
+        "ordered": "تم تقديم طلب لـ",
+        "orderedFor": "تم تقديم طلب لـ",
+        "orderNumber": "رقم الطلب",
+        "orderPlaced": "تم تقديم الطلب",
+        "orderReason": "سبب الطلب",
+        "orderReasonRequired": "سبب الطلب مطلوب",
+        "ordersCompleted": "اكتملت الطلبات",
+        "ordersDiscontinued": "تم إيقاف الطلبات",
+        "ordersPlaced": "تم تقديم الطلبات",
+        "ordersUpdated": "تم تحديث الطلبات",
+        "orderUpdated": "تم تحديث الطلب",
+        "other": "أخرى",
+        "overTime": "بمرور الوقت",
+        "panels": "لوحات",
+        "patientDetails": "تفاصيل المريض",
+        "print": "طباعة",
+        "printedBy": "طُبع بواسطة",
+        "printTestResults": "طباعة نتائج الفحوصات",
+        "priorityRequired": "الأولوية مطلوبة",
+        "referenceNumber": "الرقم المرجعي",
+        "refreshData": "تحديث البيانات",
+        "refreshingData": "جارٍ تحديث البيانات",
+        "reset": "إعادة تعيين",
+        "resetView": "لإعادة تعيين هذا العرض",
+        "resultDate": "تاريخ النتيجة",
+        "returnToOrderBasket": "العودة إلى سلة الطلب",
+        "scheduledDate": "التاريخ المجدول",
+        "scheduledDateRequired": "التاريخ المجدول مطلوب",
+        "search": "بحث",
+        "searchAgain": "البحث مرة أخرى",
+        "searchByTestName": "البحث باسم الفحص",
+        "searchFieldPlaceholder": "البحث عن نوع فحص",
+        "searchResultsMatchesForTerm_few": "{{count}} نتائج لـ \"{{searchTerm}}\"",
+        "searchResultsMatchesForTerm_many": "{{count}} نتيجة لـ \"{{searchTerm}}\"",
+        "searchResultsMatchesForTerm_one": "{{count}} نتيجة لـ \"{{searchTerm}}\"",
+        "searchResultsMatchesForTerm_two": "نتيجتان لـ \"{{searchTerm}}\"",
+        "searchResultsMatchesForTerm_zero": "لا توجد نتائج لـ \"{{searchTerm}}\"",
+        "searchResultsTextFor_few": "{{count}} نتائج بحث لـ {{searchTerm}}",
+        "searchResultsTextFor_many": "{{count}} نتيجة بحث لـ {{searchTerm}}",
+        "searchResultsTextFor_one": "{{count}} نتيجة بحث لـ {{searchTerm}}",
+        "searchResultsTextFor_two": "نتيجتا بحث لـ {{searchTerm}}",
+        "searchResultsTextFor_zero": "لا توجد نتائج بحث لـ {{searchTerm}}",
+        "selectTestPrompt": "يرجى اختيار الفحص الذي تريد تعديله للمريض التالي:",
+        "selectTestToEdit": "اختر الفحص للتعديل",
+        "startDate": "تاريخ البدء",
+        "testResultsData": "بيانات نتائج الفحوصات",
+        "tests": "الفحوصات",
+        "testTypeRequired": "نوع الفحص مطلوب",
+        "trendline": "خط الاتجاه Trendline",
+        "trendlineTooltipDate": "التاريخ",
+        "trendlineTooltipRange": "النطاق",
+        "trendlineTooltipValue": "القيمة",
+        "trySearchingAgain": "يرجى محاولة البحث مرة أخرى",
+        "tryTo": "حاول",
+        "unknown": "غير معروف",
+        "updated": "تم التحديث",
+        "usingADifferentTerm": "باستخدام مصطلح مختلف"
+      }
+    }
+  },
+  "@openmrs/esm-patient-attachments-app": {
+    "Translation overrides": {
+      "ar": {
+        "addAnImage": "إضافة صورة",
+        "attachmentPreview": "معاينة المرفق",
+        "attachmentsInLowerCase": "المرفقات",
+        "attachmentsInProperFormat": "المرفقات",
+        "cameraAccessErrorMessage": "يرجى تمكين الوصول إلى الكاميرا في إعدادات المتصفح والمحاولة مرة أخرى.",
+        "chooseAnAllowedFileType": "لا يمكن رفع الملف \"{{fileName}}\". يرجى رفع ملف بأحد الامتدادات التالية: {{supportedExtensions}}، أو {{ lastExtension }}.",
+        "deleteAttachment": "حذف المرفق",
+        "deleteAttachmentConfirmationText": "هل أنت متأكد أنك تريد حذف المرفق \"{{fileName}}\"؟ لا يمكن التراجع عن هذا الإجراء.",
+        "deletePdf": "حذف ملف PDF",
+        "edit": "تعديل",
+        "gridView": "عرض الشبكة",
+        "imagePlaceholder": "عنصر نائب للصورة",
+        "imagePreview": "معاينة الصورة",
+        "keepAttachment": "الاحتفاظ بالمرفق",
+        "noAttachmentsToDisplay": "لا توجد مرفقات لعرضها لهذا المريض",
+        "noImageToDisplay": "لا توجد صورة لعرضها",
+        "options": "الخيارات",
+        "supportedFiletypes": "الملفات المدعومة هي {{supportedFiles}}",
+        "tableView": "عرض الجدول",
+        "unsavedAttachment": "مرفق غير محفوظ",
+        "unsavedAttachmentMessage": "لديك مرفق غير محفوظ. هل أنت متأكد أنك تريد تجاهله؟",
+        "unsupportedFileType": "نوع ملف غير مدعوم",
+        "uploadError": "خطأ في رفع الملف",
+        "uploadFiles": "رفع الملفات"
+      }
+    }
+  },
+  "@openmrs/esm-patient-flags-app": {
+    "Translation overrides": {
+      "ar": {
+        "assigned": "مُسند",
+        "clinical": "سريري",
+        "closeFlagsList": "إغلاق قائمة العلامات",
+        "editPatientFlags": "تعديل علامات المريض",
+        "flagCount_few": "{{count}} علامات خطر",
+        "flagCount_many": "{{count}} علامة خطر",
+        "flagCount_two": "علامتا خطر",
+        "flagCount_zero": "لا توجد علامات خطر",
+        "flagsUpdated": "تم تحديث العلامات",
+        "flagsUpdatedSuccessfully": "تم تحديث العلامات بنجاح",
+        "flagsUpdateError": "فشل تحديث بعض العلامات",
+        "matchesForSearchTerm_few": "{{count}} علامات",
+        "matchesForSearchTerm_many": "{{count}} علامة",
+        "matchesForSearchTerm_two": "علامتان",
+        "matchesForSearchTerm_zero": "لا توجد علامات",
+        "saving": "جارٍ الحفظ...",
+        "sortBy": "ترتيب حسب",
+        "updateError": "خطأ في التحديث"
+      }
+    }
+  },
+  "@openmrs/esm-generic-patient-widgets-app": {
+    "Translation overrides": {
+      "ar": {
+        "addEncounter": "إضافة لقاء",
+        "date": "التاريخ",
+        "editabilityNote": "انقر على ملاحظة لتعديلها",
+        "errorSavingObservation": "خطأ في حفظ الملاحظة",
+        "noValue": "لا توجد قيمة",
+        "observationSaved": "تم حفظ الملاحظة بنجاح"
+      }
+    }
+  },
+  "@openmrs/esm-patient-lists-app": {
+    "Translation overrides": {
+      "ar": {
+        "patientListDetailWorkspaceTitle": "تفاصيل قائمة المرضى",
+        "patientListsWorkspaceTitle": "قوائم المرضى"
+      }
+    }
+  },
+  "@openmrs/esm-patient-label-printing-app": {
+    "Translation overrides": {
+      "ar": {
+        "patientIdNotFound": "لم يتم العثور على رقم المريض",
+        "printInProgress": "الطباعة قيد التنفيذ بالفعل"
+      }
+    }
+  },
+  "@openmrs/esm-patient-task-list-app": {
+    "Translation overrides": {
+      "ar": {
+        "addTask": "إضافة مهمة",
+        "assignedTo": "مُسندة إلى",
+        "assignProviderLabel": "إسناد إلى مقدم خدمة",
+        "assignProviderPlaceholder": "البحث عن مقدمي الخدمة",
+        "assignProviderRoleLabel": "إسناد إلى دور مقدم خدمة",
+        "assignProviderRolePlaceholder": "البحث عن أدوار مقدمي الخدمة",
+        "backToTaskDetails": "العودة إلى تفاصيل المهمة",
+        "backToTaskList": "العودة إلى قائمة المهام",
+        "createdBy": "أنشأها",
+        "customTaskName": "مهمة مخصصة",
+        "date": "التاريخ",
+        "deleteTask": "حذف المهمة",
+        "deleteTaskConfirmationText": "هل أنت متأكد أنك تريد حذف هذه المهمة؟",
+        "deleting": "جارٍ الحذف",
+        "discard": "تجاهل",
+        "dueDate": "تاريخ الاستحقاق",
+        "dueDateLabel": "تاريخ الاستحقاق",
+        "dueDateRequired": "تاريخ الاستحقاق مطلوب عند اختيار \"التاريخ\"",
+        "dueLabel": "مستحقة",
+        "editTask": "تعديل المهمة",
+        "errorDeletingTask": "خطأ في حذف المهمة",
+        "markComplete": "تحديد كمكتملة",
+        "markIncomplete": "تحديد كغير مكتملة",
+        "name": "الاسم",
+        "nextVisit": "الزيارة التالية",
+        "noAssignment": "بدون إسناد",
+        "none": "لا شيء",
+        "noTasksMessage": "لا توجد مهام بعد",
+        "overdue": "متأخرة",
+        "priorityHigh": "عالية",
+        "priorityLabel": "الأولوية",
+        "priorityLow": "منخفضة",
+        "priorityMedium": "متوسطة",
+        "priorityPlaceholder": "اختر الأولوية (اختياري)",
+        "providerSearchHint": "ابدأ الكتابة للبحث عن مقدمي الخدمة",
+        "rationale": "المبرر",
+        "rationaleLabel": "اشرح باختصار سبب ضرورة هذه المهمة (اختياري)",
+        "rationalePlaceholder": "أضف ملاحظة هنا",
+        "saveTask": "حفظ المهمة",
+        "scheduledInfo": "مجدولة",
+        "scheduledOnNextVisit": "في {{date}} للزيارة التالية",
+        "scheduledOnThisVisit": "في {{date}} لنفس الزيارة",
+        "scheduledTodayForNextVisit": "اليوم للزيارة التالية",
+        "scheduledTodayForThisVisit": "اليوم لهذه الزيارة",
+        "selectSingleAssignee": "اختر مقدم خدمة أو دور مقدم خدمة، وليس كليهما",
+        "systemTaskEditSubtitle": "لا يمكن تغيير اسم المهمة.",
+        "systemTaskEditTitle": "أنت تعدّل مهمة نظام",
+        "task": "المهمة",
+        "taskAdded": "تمت إضافة المهمة",
+        "taskAddFailed": "فشلت إضافة المهمة",
+        "taskCompleted": "تم تحديد المهمة كمكتملة",
+        "taskDeleted": "تم حذف المهمة",
+        "taskDetails": "تفاصيل المهمة",
+        "taskIncomplete": "تم تحديد المهمة كغير مكتملة",
+        "taskList": "قائمة المهام",
+        "taskListLoadError": "حدثت مشكلة في تحميل قائمة المهام.",
+        "taskListWorkspaceTitle": "قائمة المهام",
+        "taskLoadError": "حدثت مشكلة في تحميل المهمة.",
+        "taskNameComboBoxPlaceholder": "أدخل اسم المهمة أو اختره",
+        "taskNameLabel": "اسم المهمة",
+        "taskNamePlaceholder": "أدخل اسم المهمة",
+        "taskNameRequired": "اسم المهمة مطلوب",
+        "taskUpdated": "تم تحديث المهمة",
+        "taskUpdateFailed": "تعذّر تحديث المهمة",
+        "thisVisit": "هذه الزيارة"
+      }
+    }
+  },
+  "@openmrs/esm-patient-procedures-app": {
+    "Translation overrides": {
+      "ar": {
+        "november": "نوفمبر",
+        "october": "أكتوبر",
+        "add": "إضافة",
+        "addProcedure": "إضافة إجراء",
+        "am": "ص",
+        "amPm": "ص/م",
+        "april": "أبريل",
+        "august": "أغسطس",
+        "bodySite": "موضع الجسم",
+        "bodySiteRequired": "موضع الجسم مطلوب",
+        "cancel": "إلغاء",
+        "date": "التاريخ",
+        "december": "ديسمبر",
+        "delete": "حذف",
+        "deleteModalConfirmationText": "هل أنت متأكد أنك تريد حذف هذا الإجراء؟",
+        "deleteProcedure": "حذف الإجراء",
+        "deleting": "جارٍ الحذف",
+        "duration": "المدة",
+        "durationPositive": "يجب أن تكون المدة رقمًا موجبًا",
+        "durationUnit": "وحدة المدة",
+        "durationUnitOptionsLoadFailed": "تعذّر تحميل خيارات وحدة المدة. يرجى المحاولة مرة أخرى.",
+        "durationUnitRequired": "وحدة المدة مطلوبة عند إدخال مدة",
+        "durationValue": "المدة",
+        "edit": "تعديل",
+        "editProcedure": "تعديل الإجراء",
+        "endDate": "تاريخ الانتهاء",
+        "endDateAfterStart": "يجب أن يكون تاريخ الانتهاء في تاريخ البدء أو بعده",
+        "endDateAndTime": "تاريخ ووقت الانتهاء",
+        "enterBodySite": "أدخل موضع الجسم",
+        "enterDuration": "أدخل المدة",
+        "enterNotes": "أدخل الملاحظات (اختياري)",
+        "enterProcedure": "أدخل الإجراء",
+        "errorDeletingProcedure": "خطأ في حذف الإجراء",
+        "errorFetchingConcepts": "خطأ في جلب البيانات",
+        "errorSavingProcedure": "خطأ في حفظ الإجراء",
+        "estimatedStartDate": "تاريخ البدء التقديري",
+        "february": "فبراير",
+        "isStartDateKnown": "هل تاريخ البدء معروف؟",
+        "january": "يناير",
+        "july": "يوليو",
+        "june": "يونيو",
+        "loading": "جارٍ التحميل",
+        "march": "مارس",
+        "may": "مايو",
+        "monthOptional": "الشهر (اختياري)",
+        "no": "لا",
+        "noProceduresToDisplay": "لا توجد إجراءات لعرضها",
+        "noResultsFor": "لا توجد نتائج لـ",
+        "notes": "ملاحظات",
+        "options": "الخيارات",
+        "pm": "م",
+        "procedure": "الإجراء",
+        "procedureDeleted": "تم حذف الإجراء",
+        "procedureDuration": "مدة الإجراء",
+        "procedureNowVisible": "أصبح مرئيًا الآن في صفحة الإجراءات",
+        "procedureRequired": "الإجراء مطلوب",
+        "procedures": "الإجراءات",
+        "procedures_lower": "الإجراءات",
+        "procedureSaved": "تم حفظ الإجراء",
+        "proceduresSummary": "ملخص الإجراءات",
+        "procedureType": "نوع الإجراء",
+        "procedureTypeRequired": "نوع الإجراء مطلوب",
+        "procedureUpdated": "تم تحديث الإجراء",
+        "procedureUpdatesNowVisible": "أصبحت التغييرات على الإجراء مرئية الآن في صفحة الإجراءات",
+        "recordProcedure": "تسجيل إجراء",
+        "required": "مطلوب",
+        "saveAndClose": "حفظ وإغلاق",
+        "saving": "جارٍ الحفظ",
+        "searchBodySites": "البحث عن مواضع الجسم",
+        "searching": "جارٍ البحث",
+        "searchProcedures": "البحث عن الإجراءات",
+        "selectDurationUnit": "اختر الوحدة",
+        "selectMonth": "اختر الشهر (اختياري)",
+        "selectProcedureType": "اختر نوع الإجراء",
+        "selectStatus": "اختر الحالة",
+        "selectYear": "اختر السنة",
+        "september": "سبتمبر",
+        "startDate": "تاريخ البدء",
+        "startDateAndTime": "تاريخ ووقت البدء",
+        "startDateRequired": "تاريخ البدء مطلوب",
+        "status": "الحالة",
+        "statusOptionsLoadFailed": "تعذّر تحميل خيارات الحالة. يرجى المحاولة مرة أخرى.",
+        "statusRequired": "الحالة مطلوبة",
+        "time": "الوقت",
+        "year": "السنة",
+        "yes": "نعم"
+      }
+    }
+  },
+  "@openmrs/esm-cohort-builder-app": {
+    "Translation overrides": {
+      "ar": {
+        "manageCohorts": "إدارة المجموعات",
+        "cohortBuilder": "منشئ المجموعات"
+      }
+    }
+  },
+  "@openmrs/esm-form-builder-app": {
+    "Translation overrides": {
+      "ar": {
+        "manageForms": "إدارة النماذج",
+        "formBuilder": "منشئ النماذج"
       }
     }
   },

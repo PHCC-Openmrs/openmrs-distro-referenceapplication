@@ -21,11 +21,11 @@ const ExpiredStockModal = ({ closeModal, expiredStock }: ExpiredStockModalProps)
   const { t } = useTranslation();
 
   const headers = [
-    { key: 'drugName', header: 'Drug Name' },
-    { key: 'batchNo', header: 'Batch No' },
-    { key: 'quantity', header: 'Quantity' },
-    { key: 'dispensingUnitName', header: 'Unit' },
-    { key: 'expiration', header: 'Expiration Date' },
+    { key: 'drugName', header: t('drugName', 'Drug Name') },
+    { key: 'batchNo', header: t('batch', 'Batch No') },
+    { key: 'quantity', header: t('quantity', 'Quantity') },
+    { key: 'dispensingUnitName', header: t('unit', 'Unit') },
+    { key: 'expiration', header: t('expirationDateHeader', 'Expiration Date') },
   ];
 
   const formatDate = (dateString) => {
