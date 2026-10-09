@@ -65,7 +65,7 @@ services:
     image: portainer/portainer-ce:latest
     restart: "unless-stopped"
     environment:
-      TRUSTED_ORIGINS: ${CERT_WEB_DOMAINS:-localhost},localhost
+      TRUSTED_ORIGINS: https://${CERT_WEB_DOMAINS:-localhost},http://localhost
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer-data:/data
