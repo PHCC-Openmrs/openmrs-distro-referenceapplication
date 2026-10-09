@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import dayjs from 'dayjs';
 import { Button, Column, InlineLoading, RadioButton, RadioButtonGroup, Stack } from '@carbon/react';
 import { ArrowLeft, ArrowRight, Departure, ListChecked, Save, SendFilled } from '@carbon/react/icons';
 import { useFormContext } from 'react-hook-form';
@@ -114,6 +115,9 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
           stockOperationItems: [
             ...formData.stockOperationItems.map((item) => ({
               ...item,
+              // Batch expiry is a calendar date (DATE column). Sending the picker's local-midnight
+              // instant lets UTC conversion shift it to the previous day, so send the day itself.
+              expiration: item.expiration ? dayjs(item.expiration).format('YYYY-MM-DD') : item.expiration,
               uuid:
                 item.uuid.startsWith('new-item-') || (!stockOperation && isStockIssueOperation) ? undefined : item.uuid, // Remove uuid for newly inserted items and stock issue items derived from requisition to avoid foreign key constraint lookup error
             })),

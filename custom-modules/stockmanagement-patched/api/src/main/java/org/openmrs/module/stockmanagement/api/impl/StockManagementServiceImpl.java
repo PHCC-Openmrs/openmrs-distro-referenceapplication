@@ -1326,14 +1326,13 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 item.setStockBatch(stockBatch);
             } else if (stockOperationType.requiresActualBatchInformation()) {
                 {
-                    StockBatch stockBatch = findStockBatch(stockItem, itemDto.getBatchNo(), itemDto.getExpiration());
+                    Date batchExpiration = toBatchExpiration(stockItem, itemDto.getExpiration());
+                    StockBatch stockBatch = findStockBatch(stockItem, itemDto.getBatchNo(), batchExpiration);
                     if (stockBatch == null) {
                         Optional<StockBatch> newlyAddedStockBatch = newStockBatches
                                 .stream().filter(p -> p.getStockItem().getId().equals(stockItem.getId()) &&
                                         itemDto.getBatchNo().equalsIgnoreCase(p.getBatchNo()) &&
-                                        ((stockItem.getHasExpiration() && p.getExpiration().equals(p.getExpiration()))
-                                                ||
-                                                (!stockItem.getHasExpiration() && p.getExpiration() == null)))
+                                        Objects.equals(batchExpiration, p.getExpiration()))
                                 .findFirst();
                         if (newlyAddedStockBatch.isPresent()) {
                             stockBatchMapping.putIfAbsent(item.getUuid(), newlyAddedStockBatch.get());
@@ -1342,9 +1341,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                             newStockBatches.add(stockBatch);
                             stockBatch.setStockItem(stockItem);
                             stockBatch.setBatchNo(itemDto.getBatchNo());
-                            if (stockItem.getHasExpiration()) {
-                                stockBatch.setExpiration(itemDto.getExpiration());
-                            }
+                            stockBatch.setExpiration(batchExpiration);
                             stockBatch.setCreator(Context.getAuthenticatedUser());
                             stockBatch.setDateCreated(new Date());
                             stockBatchMapping.putIfAbsent(item.getUuid(), stockBatch);
@@ -1429,6 +1426,20 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 
     public StockBatch findStockBatch(StockItem stockItem, String batchNo, Date expiration) {
         return dao.findStockBatch(stockItem, batchNo, expiration);
+    }
+
+    /**
+     * The batch expiration column is a DATE, but the client may send an instant with a time part.
+     * Looking a batch up with that time part misses the existing row, and the insert that follows
+     * is then truncated by the database onto that same row's key (stock_item_batch_no_expiration).
+     * Normalise to the calendar day (and to null for items that do not expire) before any lookup
+     * or insert so both agree with what is stored.
+     */
+    private Date toBatchExpiration(StockItem stockItem, Date expiration) {
+        if (expiration == null || !stockItem.getHasExpiration()) {
+            return null;
+        }
+        return DateUtils.truncate(expiration, Calendar.DATE);
     }
 
     public Result<StockBatchDTO> findStockBatches(StockBatchSearchFilter filter) {
@@ -3466,7 +3477,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 }
 
                 StockItem stockItem = existingItemDto.get().getStockItem();
-                StockBatch stockBatch = findStockBatch(stockItem, batchNumber.getBatchNo(), batchNumber.getExpiration());
+                Date batchExpiration = toBatchExpiration(stockItem, batchNumber.getExpiration());
+                StockBatch stockBatch = findStockBatch(stockItem, batchNumber.getBatchNo(), batchExpiration);
                 if (stockBatch == null) {
                     if (stockBatchHasTransactions.containsKey(existingItemDto.get().getStockBatch().getId())) {
                         invalidRequestWithKey("stockmanagement.stockoperation.updatebatchnumbersalreadyinuse", existingItemDto.get().getStockBatch().getBatchNo());
@@ -3474,9 +3486,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                     Optional<StockBatch> newlyAddedStockBatch = newStockBatches
                             .stream().filter(p -> p.getStockItem().getId().equals(stockItem.getId()) &&
                                     batchNumber.getBatchNo().equalsIgnoreCase(p.getBatchNo()) &&
-                                    ((stockItem.getHasExpiration() && p.getExpiration().equals(p.getExpiration()))
-                                            ||
-                                            (!stockItem.getHasExpiration() && p.getExpiration() == null)))
+                                    Objects.equals(batchExpiration, p.getExpiration()))
                             .findFirst();
                     if (newlyAddedStockBatch.isPresent()) {
                         stockBatchMapping.putIfAbsent(existingItemDto.get().getUuid(), newlyAddedStockBatch.get());
@@ -3485,9 +3495,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                         newStockBatches.add(stockBatch);
                         stockBatch.setStockItem(stockItem);
                         stockBatch.setBatchNo(batchNumber.getBatchNo());
-                        if (stockItem.getHasExpiration()) {
-                            stockBatch.setExpiration(batchNumber.getExpiration());
-                        }
+                        stockBatch.setExpiration(batchExpiration);
                         stockBatch.setCreator(Context.getAuthenticatedUser());
                         stockBatch.setDateCreated(new Date());
                         stockBatchMapping.putIfAbsent(existingItemDto.get().getUuid(), stockBatch);
