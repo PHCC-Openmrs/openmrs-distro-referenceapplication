@@ -353,6 +353,12 @@
       }
     }
   },
+  "@openmrs/esm-patient-medications-app": {
+    "lockedDoseUnits": {
+      "1db0283f-0b20-40ed-8163-eb71a998f919": "162372AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "e8648fca-d038-45bf-a7c4-da5bea9c9849": "162372AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    }
+  },
   "@openmrs/esm-patient-orders-app": {
     "extensionSlots": {
       "order-basket-slot": {
