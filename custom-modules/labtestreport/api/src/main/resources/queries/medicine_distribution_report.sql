@@ -57,7 +57,17 @@ SELECT
     WHERE md.drug_order_id = o.order_id AND md.voided = 0
     ORDER BY COALESCE(md.date_handed_over, md.date_created) DESC, md.medication_dispense_id DESC
     LIMIT 1)                        AS dispenseStatus,
-  TRIM(CONCAT(COALESCE(prescriberName.given_name, ''), ' ', COALESCE(prescriberName.family_name, ''))) AS prescriber,
+  -- Staff accounts are often saved without a name flagged preferred (only patients get that from
+  -- registration), so take the preferred name if there is one, else any non-voided name, else the
+  -- provider's own name field.
+  COALESCE(
+    (SELECT NULLIF(TRIM(CONCAT(COALESCE(prescriberName.given_name, ''), ' ', COALESCE(prescriberName.family_name, ''))), '')
+       FROM person_name prescriberName
+      WHERE prescriberName.person_id = pr.person_id AND prescriberName.voided = 0
+      ORDER BY prescriberName.preferred DESC, prescriberName.person_name_id
+      LIMIT 1),
+    NULLIF(TRIM(pr.name), '')
+  )                                AS prescriber,
   -- Scalar subquery for the same reason as nationalId: one row per order even if the patient has
   -- more than one non-voided phone attribute. Matched by the UUID the registration form writes to
   -- (named "Telephone Number" in the reference dictionary) as well as by the "Phone Number" name
@@ -90,8 +100,6 @@ LEFT JOIN concept_name durationUnitsName ON durationUnitsName.concept_id = do.du
 LEFT JOIN concept_name quantityUnitsName ON quantityUnitsName.concept_id = do.quantity_units
   AND quantityUnitsName.voided = 0 AND quantityUnitsName.locale = 'en' AND quantityUnitsName.locale_preferred = 1
 LEFT JOIN provider pr ON pr.provider_id = o.orderer
-LEFT JOIN person_name prescriberName ON prescriberName.person_id = pr.person_id
-  AND prescriberName.voided = 0 AND prescriberName.preferred = 1
 WHERE o.voided = 0
   AND o.order_action <> 'DISCONTINUE'
   AND (:startDate IS NULL OR o.date_activated >= :startDate)
