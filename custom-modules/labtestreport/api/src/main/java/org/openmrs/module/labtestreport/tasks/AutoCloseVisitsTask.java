@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.openmrs.Visit;
@@ -14,6 +15,8 @@ import org.openmrs.api.context.Context;
 import org.openmrs.scheduler.tasks.AbstractTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Ends every still-open visit at the clinic's daily closing time, so patients don't linger in the
@@ -29,6 +32,11 @@ import org.slf4j.LoggerFactory;
  * idempotent and self-healing: running it repeatedly is harmless, and if the server was down at
  * closing time the next run still catches up. A visit started after closing time stays open until
  * the following day's closing time.
+ * <p>
+ * Scheduler threads have no Hibernate session spanning the run, so visits loaded by one service
+ * call are detached by the next and endVisit fails on their lazy encounters. Each visit is
+ * therefore re-loaded and ended inside its own transaction, which also keeps one bad visit from
+ * rolling back the rest.
  */
 public class AutoCloseVisitsTask extends AbstractTask {
 
@@ -79,24 +87,30 @@ public class AutoCloseVisitsTask extends AbstractTask {
 		}
 
 		Date cutoff = mostRecentCloseTime(ZonedDateTime.now(zone), closeTime);
+		TransactionTemplate tx = new TransactionTemplate(
+		        Context.getRegisteredComponent("transactionManager", PlatformTransactionManager.class));
 		VisitService visitService = Context.getVisitService();
-		List<Visit> openVisits = visitService.getVisits(null, null, null, null, null, cutoff, null, null, null, false,
-		    false);
-		if (openVisits.isEmpty()) {
+		List<Integer> openVisitIds = tx.execute(status -> visitService
+		        .getVisits(null, null, null, null, null, cutoff, null, null, null, false, false).stream()
+		        .map(Visit::getVisitId).collect(Collectors.toList()));
+		if (openVisitIds == null || openVisitIds.isEmpty()) {
 			return;
 		}
 
 		// One stop time for the whole batch, so every visit is ended at the same moment
 		Date stopDatetime = new Date();
-		log.info("Auto-closing {} visit(s) started before {} at {}", openVisits.size(), cutoff, stopDatetime);
-		for (Visit visit : openVisits) {
+		log.info("Auto-closing {} visit(s) started before {} at {}", openVisitIds.size(), cutoff, stopDatetime);
+		int closed = 0;
+		for (Integer visitId : openVisitIds) {
 			try {
-				visitService.endVisit(visit, stopDatetime);
+				tx.executeWithoutResult(status -> visitService.endVisit(visitService.getVisit(visitId), stopDatetime));
+				closed++;
 			}
 			catch (Exception e) {
-				log.warn("Unable to auto-close visit {}", visit.getUuid(), e);
+				log.warn("Unable to auto-close visit {}", visitId, e);
 			}
 		}
+		log.info("Auto-closed {} of {} visit(s)", closed, openVisitIds.size());
 	}
 
 	/**
