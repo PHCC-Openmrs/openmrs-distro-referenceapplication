@@ -9,9 +9,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
+import org.hibernate.type.IntegerType;
 import org.openmrs.Visit;
 import org.openmrs.api.VisitService;
 import org.openmrs.api.context.Context;
+import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.scheduler.tasks.AbstractTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,8 +22,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Ends every still-open visit at the clinic's daily closing time, so patients don't linger in the
- * service queues overnight. The queue module's "Auto Close Visit Queue Entries" task then ends
- * their queue entries within a minute.
+ * service queues overnight. Before a visit is ended, any of its queue entries still "In Service"
+ * are marked "Finished Service", so the patient leaves the queue as served rather than mid-service.
+ * The queue module's "Auto Close Visit Queue Entries" task then ends their queue entries within a
+ * minute.
  * <p>
  * The closing time is evaluated in the clinic's own timezone rather than the server's (which is
  * UTC), so it stays at the same wall-clock time across daylight saving changes. That's why this
@@ -49,6 +53,11 @@ public class AutoCloseVisitsTask extends AbstractTask {
 	private static final String DEFAULT_CLOSE_TIME = "17:00";
 
 	private static final String DEFAULT_TIMEZONE = "Asia/Gaza";
+
+	/* queue status concepts, matched in SQL so the queue module is not a dependency of this one */
+	private static final String IN_SERVICE_STATUS_UUID = "ca7494ae-437f-4fd0-8aae-b88b9a2ba47d";
+
+	private static final String FINISHED_SERVICE_STATUS_UUID = "b559fb77-4e1e-4285-b9b7-1d03e0ba983f";
 
 	@Override
 	public void execute() {
@@ -90,6 +99,7 @@ public class AutoCloseVisitsTask extends AbstractTask {
 		TransactionTemplate tx = new TransactionTemplate(
 		        Context.getRegisteredComponent("transactionManager", PlatformTransactionManager.class));
 		VisitService visitService = Context.getVisitService();
+		DbSessionFactory sessionFactory = Context.getRegisteredComponent("dbSessionFactory", DbSessionFactory.class);
 		List<Integer> openVisitIds = tx.execute(status -> visitService
 		        .getVisits(null, null, null, null, null, cutoff, null, null, null, false, false).stream()
 		        .map(Visit::getVisitId).collect(Collectors.toList()));
@@ -103,7 +113,10 @@ public class AutoCloseVisitsTask extends AbstractTask {
 		int closed = 0;
 		for (Integer visitId : openVisitIds) {
 			try {
-				tx.executeWithoutResult(status -> visitService.endVisit(visitService.getVisit(visitId), stopDatetime));
+				tx.executeWithoutResult(status -> {
+					finishInServiceQueueEntries(sessionFactory, visitId, stopDatetime);
+					visitService.endVisit(visitService.getVisit(visitId), stopDatetime);
+				});
 				closed++;
 			}
 			catch (Exception e) {
@@ -111,6 +124,25 @@ public class AutoCloseVisitsTask extends AbstractTask {
 			}
 		}
 		log.info("Auto-closed {} of {} visit(s)", closed, openVisitIds.size());
+	}
+
+	/**
+	 * Marks the visit's open queue entries that are still "In Service" as "Finished Service". Runs
+	 * in the same transaction as ending the visit, so the two happen together or not at all.
+	 */
+	private void finishInServiceQueueEntries(DbSessionFactory sessionFactory, Integer visitId, Date changedAt) {
+		Integer changedBy = Context.getAuthenticatedUser() == null ? null : Context.getAuthenticatedUser().getUserId();
+		int finished = sessionFactory.getCurrentSession()
+		        .createSQLQuery("update queue_entry set status = (select concept_id from concept where uuid = :finished),"
+		                + " changed_by = :user, date_changed = :changedAt"
+		                + " where visit_id = :visitId and voided = 0 and ended_at is null"
+		                + " and status = (select concept_id from concept where uuid = :inService)")
+		        .setParameter("finished", FINISHED_SERVICE_STATUS_UUID).setParameter("inService", IN_SERVICE_STATUS_UUID)
+		        .setParameter("user", changedBy, IntegerType.INSTANCE).setParameter("changedAt", changedAt)
+		        .setParameter("visitId", visitId).executeUpdate();
+		if (finished > 0) {
+			log.debug("Marked {} in-service queue entry(ies) of visit {} as finished", finished, visitId);
+		}
 	}
 
 	/**
