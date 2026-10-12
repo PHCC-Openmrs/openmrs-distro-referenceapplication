@@ -1,0 +1,4 @@
+Uuid,Void/Retire,Fully specified name:en,Short name:en,Description:en,Data class,Data type,Answers,Units,Allow decimals
+417c6929-7fc4-4de1-8eef-c35ee0333562,FALSE,High risk,,Overall risk assessment of a patient at triage: high risk,Misc,N/A,,,
+11ecf94f-b075-4a32-9fd6-ccba47c0514c,FALSE,Low risk,,Overall risk assessment of a patient at triage: low risk,Misc,N/A,,,
+cda459bc-6034-4e73-8e02-904837550a85,FALSE,Overall risk,,Overall risk assessment recorded with vitals,Question,Coded,417c6929-7fc4-4de1-8eef-c35ee0333562;11ecf94f-b075-4a32-9fd6-ccba47c0514c,,
