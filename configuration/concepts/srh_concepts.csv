@@ -24,3 +24,4 @@ f0438e22-6224-4d50-8646-7b1845b122f8,FALSE,SRH STI and Gynaecology Notes,,Free-t
 0ea3ad8b-1e24-461a-b421-093b078af199,FALSE,SRH Family Planning Visit Type,,Whether this is a new or a follow-up family planning visit,Finding,Text,,,
 11b4fb9c-97f1-4ca8-bfe6-63e769cee6fb,FALSE,SRH Family Planning Kind of Contraception,,Contraceptive method provided or discussed at the family planning visit,Finding,Text,,,
 b1285f61-04ac-40a2-903f-994d2e2151c9,FALSE,SRH Family Planning Notes,,Free-text notes recorded against the family planning visit,Finding,Text,,,
+d2c7f668-6b1e-4582-aef3-5df79c45fb84,FALSE,SRH ANC Visit,,Antenatal care (ANC) visit status recorded in the SRH assessment,Finding,Text,,,
