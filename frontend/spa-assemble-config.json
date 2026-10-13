@@ -36,7 +36,7 @@
     "@openmrs/esm-patient-registration-app": "file:/app/openmrs-esm-patient-registration-app-11.1.0.tgz",
     "@openmrs/esm-patient-search-app": "11.1.0",
     "@openmrs/esm-patient-task-list-app": "12.3.4",
-    "@openmrs/esm-patient-tests-app": "12.3.4",
+    "@openmrs/esm-patient-tests-app": "file:/app/openmrs-esm-patient-tests-app-12.3.4.tgz",
     "@openmrs/esm-patient-vitals-app": "file:/app/openmrs-esm-patient-vitals-app-12.3.4.tgz",
     "@openmrs/esm-patient-procedures-app": "12.3.4",
     "@openmrs/esm-primary-navigation-app": "file:/app/openmrs-esm-primary-navigation-app-10.0.0.tgz",

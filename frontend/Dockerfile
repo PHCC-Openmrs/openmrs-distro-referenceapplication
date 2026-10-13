@@ -127,8 +127,9 @@ RUN corepack enable && \
     (cd packages/esm-bed-management-app && npm pack --pack-destination /app)
 
 # Build @openmrs/esm-patient-chart-app, @openmrs/esm-patient-programs-app,
-# @openmrs/esm-patient-medications-app, @openmrs/esm-patient-orders-app, AND
-# @openmrs/esm-patient-conditions-app from our fork instead of the published "next"
+# @openmrs/esm-patient-medications-app, @openmrs/esm-patient-orders-app,
+# @openmrs/esm-patient-conditions-app, AND @openmrs/esm-patient-tests-app
+# from our fork instead of the published "next"
 # package. esm-patient-chart-app is just the dashboard-shell package -- it does NOT
 # depend on the others, so each widget package must be built and packed separately,
 # and spa-assemble-config.json must point each at its own tarball (not "next") or
@@ -147,6 +148,7 @@ RUN corepack enable && \
     yarn workspace @openmrs/esm-patient-notes-app run build && \
     yarn workspace @openmrs/esm-patient-immunizations-app run build && \
     yarn workspace @openmrs/esm-patient-nursing-app run build && \
+    yarn workspace @openmrs/esm-patient-tests-app run build && \
     (cd packages/esm-patient-chart-app && npm pack --pack-destination /app) && \
     (cd packages/esm-patient-programs-app && npm pack --pack-destination /app) && \
     (cd packages/esm-patient-medications-app && npm pack --pack-destination /app) && \
@@ -156,7 +158,8 @@ RUN corepack enable && \
     (cd packages/esm-patient-allergies-app && npm pack --pack-destination /app) && \
     (cd packages/esm-patient-notes-app && npm pack --pack-destination /app) && \
     (cd packages/esm-patient-immunizations-app && npm pack --pack-destination /app) && \
-    (cd packages/esm-patient-nursing-app && npm pack --pack-destination /app)
+    (cd packages/esm-patient-nursing-app && npm pack --pack-destination /app) && \
+    (cd packages/esm-patient-tests-app && npm pack --pack-destination /app)
 
 # Build @openmrs/esm-dispensing-app from our fork instead of the published "next"
 # package, so the auto-complete-on-dispense and dispensed-quantity fixes ship.
