@@ -10,7 +10,12 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.type.IntegerType;
+import org.openmrs.Patient;
+import org.openmrs.PatientProgram;
+import org.openmrs.Program;
 import org.openmrs.Visit;
+import org.openmrs.VisitAttribute;
+import org.openmrs.api.ProgramWorkflowService;
 import org.openmrs.api.VisitService;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
@@ -25,7 +30,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  * service queues overnight. Before a visit is ended, any of its queue entries still "In Service"
  * are marked "Finished Service", so the patient leaves the queue as served rather than mid-service.
  * The queue module's "Auto Close Visit Queue Entries" task then ends their queue entries within a
- * minute.
+ * minute. The program enrollments the start-visit form opened for the visit's "Service" selections
+ * are completed too, exactly as the SPA does when a user ends a visit by hand (see
+ * {@link #completeServiceEnrollments}).
  * <p>
  * The closing time is evaluated in the clinic's own timezone rather than the server's (which is
  * UTC), so it stays at the same wall-clock time across daylight saving changes. That's why this
@@ -58,6 +65,9 @@ public class AutoCloseVisitsTask extends AbstractTask {
 	private static final String IN_SERVICE_STATUS_UUID = "ca7494ae-437f-4fd0-8aae-b88b9a2ba47d";
 
 	private static final String FINISHED_SERVICE_STATUS_UUID = "b559fb77-4e1e-4285-b9b7-1d03e0ba983f";
+
+	/* the "Service" visit attribute type set by the SPA start-visit form (comma-separated program uuids) */
+	static final String SERVICE_VISIT_ATTRIBUTE_TYPE_UUID = "487b03fe-8034-4e95-ab67-bac9f2d7a27b";
 
 	@Override
 	public void execute() {
@@ -99,6 +109,7 @@ public class AutoCloseVisitsTask extends AbstractTask {
 		TransactionTemplate tx = new TransactionTemplate(
 		        Context.getRegisteredComponent("transactionManager", PlatformTransactionManager.class));
 		VisitService visitService = Context.getVisitService();
+		ProgramWorkflowService programService = Context.getProgramWorkflowService();
 		DbSessionFactory sessionFactory = Context.getRegisteredComponent("dbSessionFactory", DbSessionFactory.class);
 		List<Integer> openVisitIds = tx.execute(status -> visitService
 		        .getVisits(null, null, null, null, null, cutoff, null, null, null, false, false).stream()
@@ -115,7 +126,8 @@ public class AutoCloseVisitsTask extends AbstractTask {
 			try {
 				tx.executeWithoutResult(status -> {
 					finishInServiceQueueEntries(sessionFactory, visitId, stopDatetime);
-					visitService.endVisit(visitService.getVisit(visitId), stopDatetime);
+					Visit visit = visitService.endVisit(visitService.getVisit(visitId), stopDatetime);
+					completeServiceEnrollments(programService, visit, stopDatetime);
 				});
 				closed++;
 			}
@@ -142,6 +154,45 @@ public class AutoCloseVisitsTask extends AbstractTask {
 		        .setParameter("visitId", visitId).executeUpdate();
 		if (finished > 0) {
 			log.debug("Marked {} in-service queue entry(ies) of visit {} as finished", finished, visitId);
+		}
+	}
+
+	/**
+	 * Completes the program enrollment(s) that the start-visit form opened for the visit, mirroring
+	 * what the SPA does when a visit is ended by hand (esm-patient-programs-app's
+	 * completeVisitServiceEnrollment): for each program in the visit's "Service" attribute, the
+	 * patient's most recently enrolled still-open enrollment is completed at the visit's stop time
+	 * (or at its enrollment time, if that is later, as enrollments can't end before they begin). A
+	 * visit without a Service attribute is left alone. Runs in the same transaction as ending the
+	 * visit.
+	 */
+	private void completeServiceEnrollments(ProgramWorkflowService programService, Visit visit, Date stopDatetime) {
+		Patient patient = visit.getPatient();
+		for (VisitAttribute attribute : visit.getActiveAttributes()) {
+			if (!SERVICE_VISIT_ATTRIBUTE_TYPE_UUID.equals(attribute.getAttributeType().getUuid())
+			        || StringUtils.isBlank(attribute.getValueReference())) {
+				continue;
+			}
+			for (String programUuid : attribute.getValueReference().split(",")) {
+				Program program = StringUtils.isBlank(programUuid) ? null
+				        : programService.getProgramByUuid(programUuid.trim());
+				if (program == null) {
+					continue;
+				}
+				PatientProgram latestOpen = null;
+				for (PatientProgram enrollment : programService.getPatientPrograms(patient, program, null, null, null, null,
+				    false)) {
+					if (enrollment.getDateCompleted() == null && (latestOpen == null
+					        || enrollment.getDateEnrolled().after(latestOpen.getDateEnrolled()))) {
+						latestOpen = enrollment;
+					}
+				}
+				if (latestOpen != null) {
+					latestOpen.setDateCompleted(stopDatetime.before(latestOpen.getDateEnrolled())
+					        ? latestOpen.getDateEnrolled() : stopDatetime);
+					programService.savePatientProgram(latestOpen);
+				}
+			}
 		}
 	}
 
