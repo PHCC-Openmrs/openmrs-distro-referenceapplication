@@ -66,6 +66,10 @@
         <description>Able to approve stock operations</description>
     </privilege>
     <privilege>
+        <name>Task: stockmanagement.stockoperations.cancel</name>
+        <description>Able to cancel stock operations that are submitted for approval</description>
+    </privilege>
+    <privilege>
         <name>Task: stockmanagement.stockoperations.receiveitems</name>
         <description>Able to receive dispatched stock items</description>
     </privilege>

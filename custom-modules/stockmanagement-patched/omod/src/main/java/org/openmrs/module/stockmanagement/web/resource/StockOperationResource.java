@@ -385,6 +385,9 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 
         boolean canEdit = stockOperationDTO.isUpdateable();
         boolean canApprove = stockOperationDTO.isApproveable();
+        // Only a SUBMITTED operation is approveable, and that is the one state where cancelling
+        // needs its own privilege rather than the mutate one.
+        boolean canCancel = stockOperationDTO.isApproveable();
         boolean canReceiveItems = stockOperationDTO.canReceiveItems();
         boolean canDisplayReceivedItems = stockOperationDTO.canDisplayReceivedItems();
         boolean isRequisitionAndCanIssueStock = stockOperationDTO.isRequisitionAndCanIssueStock();
@@ -397,7 +400,8 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
                     Context.getAuthenticatedUser(),
                     Context.getLocationService().getLocationByUuid(stockOperationDTO.getAtLocationUuid()),
                     getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
-                    Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE, Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE)
+                    Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE, Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE,
+                            Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_CANCEL)
             );
 
             if(canEdit) {
@@ -406,6 +410,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
                 userHasEditPermissions = Boolean.valueOf(privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)));
             }
             canApprove = canApprove && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE));
+            canCancel = canCancel && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_CANCEL));
         }
 
         if (canReceiveItems || isRequisitionAndCanIssueStock) {
@@ -461,6 +466,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
         simpleObject.add("canEdit", canEdit);
         simpleObject.add("canEditBeforeApproval", canEditBeforeApproval);
         simpleObject.add("canApprove", canApprove);
+        simpleObject.add("canCancel", canCancel);
         simpleObject.add("canReceiveItems", canReceiveItems);
         simpleObject.add("canDisplayReceivedItems", canDisplayReceivedItems);
         simpleObject.add("isRequisitionAndCanIssueStock", isRequisitionAndCanIssueStock);

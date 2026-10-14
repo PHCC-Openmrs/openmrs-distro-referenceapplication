@@ -46,7 +46,9 @@ const StockoperationActions: React.FC<Props> = ({ stockOperation, stockOperation
   return (
     <>
       {((!stockOperation.permission?.canEdit &&
-        (stockOperation.permission?.canApprove || stockOperation.permission?.canReceiveItems)) ||
+        (stockOperation.permission?.canApprove ||
+          stockOperation.permission?.canCancel ||
+          stockOperation.permission?.canReceiveItems)) ||
         stockOperation.permission?.canEdit ||
         StockOperationTypeHasPrint(operationType) ||
         (stockOperation?.permission?.isRequisitionAndCanIssueStock ?? false) ||
@@ -69,8 +71,12 @@ const StockoperationActions: React.FC<Props> = ({ stockOperation, stockOperation
 
                 <StockOperationRejectButton operation={stockOperation} />
                 <StockOperationReturnButton operation={stockOperation} />
-                <StockOperationCancelButton operation={stockOperation} />
               </>
+            )}
+
+            {/* Cancelling a submitted operation has its own privilege, separate from approve/reject/return. */}
+            {!stockOperation.permission?.canEdit && stockOperation.permission?.canCancel && (
+              <StockOperationCancelButton operation={stockOperation} />
             )}
 
             {!stockOperation.permission?.canEdit && stockOperation.permission?.canReceiveItems && (

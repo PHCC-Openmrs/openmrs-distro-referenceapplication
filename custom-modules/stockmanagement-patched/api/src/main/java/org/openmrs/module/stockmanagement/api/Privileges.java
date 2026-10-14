@@ -57,6 +57,11 @@ public class Privileges {
 	public static final String TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE = "Task: stockmanagement.stockoperations.approve";
 	
 	/**
+	 * Task: stockmanagement.stockoperations.cancel: Able to cancel stock operations that are submitted for approval
+	 */
+	public static final String TASK_STOCKMANAGEMENT_STOCKOPERATIONS_CANCEL = "Task: stockmanagement.stockoperations.cancel";
+	
+	/**
 	 * Task: stockmanagement.stockoperations.receiveitems: Able to receive dispatched stock items
 	 */
 	public static final String TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS = "Task: stockmanagement.stockoperations.receiveitems";
@@ -96,6 +101,7 @@ public class Privileges {
 	    TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE, APP_STOCKMANAGEMENT_USERROLESCOPES,
 	    TASK_STOCKMANAGEMENT_USERROLESCOPES_MUTATE, APP_STOCKMANAGEMENT_STOCKOPERATIONS,
 	    TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE, TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE,
+	    TASK_STOCKMANAGEMENT_STOCKOPERATIONS_CANCEL,
 	    TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS, APP_STOCKMANAGEMENT_STOCKSOURCES,
 	    TASK_STOCKMANAGEMENT_STOCKSOURCES_MUTATE, APP_STOCKMANAGEMENT_STOCKOPERATIONTYPE, TASK_STOCKMANAGEMENT_PARTY_READ,
 	    APP_STOCKMANAGEMENT_REPORTS, TASK_STOCKMANAGEMENT_REPORTS_MUTATE);

@@ -1644,7 +1644,9 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 privelege = Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE;
                 target = StockOperationPrivelegeTarget.AtLocation;
             } else if (stockOperation.getStatus() == StockOperationStatus.SUBMITTED) {
-                privelege = Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE;
+                // Cancelling a submitted operation has its own privilege, so it can be granted
+                // (e.g. to whoever submitted the request) without also allowing approve/reject/return.
+                privelege = Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_CANCEL;
                 target = StockOperationPrivelegeTarget.AtLocation;
             } else {
                 privelege = UUID.randomUUID().toString();
