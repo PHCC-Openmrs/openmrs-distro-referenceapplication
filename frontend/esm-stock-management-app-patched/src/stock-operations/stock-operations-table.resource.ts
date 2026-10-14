@@ -1,4 +1,5 @@
-import { type StockOperationFilter, useStockOperations } from './stock-operations.resource';
+import { type StockOperationFilter } from './stock-operations.resource';
+import { useFetchAllPages } from '../core/api/useFetchAllPages';
 import { type StockOperationDTO } from '../core/api/types/stockOperation/StockOperationDTO';
 import { formatDisplayDate } from '../core/utils/datetimeUtils';
 import { parseExternalReference } from './external-reference.utils';
@@ -41,7 +42,13 @@ function getSearchableText(operation: StockOperationDTO): string {
 }
 
 export function useStockOperationPages(filter: StockOperationFilter, searchTerm = '') {
-  const { items, isLoading, error } = useStockOperations(filter);
+  // The server returns only its default page (50 rows) when no limit is sent, while the table
+  // paginates client-side, so load every page up front - otherwise pages past the first 50 rows
+  // repeat the same rows even though the total says there are more.
+  const { items: allOperations, isLoading, error } = useFetchAllPages<StockOperationDTO, StockOperationFilter>(
+    '/stockmanagement/stockoperation',
+    filter,
+  );
 
   const pageSizes = [10, 20, 30, 40, 50];
   const [currentPageSize, setPageSize] = useState(10);
@@ -51,13 +58,13 @@ export function useStockOperationPages(filter: StockOperationFilter, searchTerm 
   const searchedItems = useMemo(() => {
     const terms = searchTerm.trim().toLowerCase().split(/\s+/).filter(Boolean);
     if (!terms.length) {
-      return items.results;
+      return allOperations;
     }
-    return items.results?.filter((operation) => {
+    return allOperations.filter((operation) => {
       const text = getSearchableText(operation);
       return terms.every((term) => text.includes(term));
     });
-  }, [items.results, searchTerm]);
+  }, [allOperations, searchTerm]);
 
   const { goTo, results: paginatedItems, currentPage } = usePagination(searchedItems, currentPageSize);
 
@@ -127,7 +134,7 @@ export function useStockOperationPages(filter: StockOperationFilter, searchTerm 
 
   return {
     items: paginatedItems,
-    totalItems: searchTerm.trim() ? searchedItems?.length ?? 0 : items?.totalCount,
+    totalItems: searchedItems?.length ?? 0,
     currentPage,
     currentPageSize,
     paginatedItems,
