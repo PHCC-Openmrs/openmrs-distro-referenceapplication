@@ -27,6 +27,7 @@ WHERE o.voided = 0
   AND (:gender IS NULL OR p.gender = :gender)
   AND (:startDate IS NULL OR e.encounter_datetime >= :startDate)
   AND (:endDate IS NULL OR e.encounter_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
+  AND (:locationUuid IS NULL OR e.location_id = (SELECT location_id FROM location WHERE uuid = :locationUuid))
   AND (
     :ageGroup IS NULL
     OR (:ageGroup = '0-4'   AND TIMESTAMPDIFF(YEAR, p.birthdate, e.encounter_datetime) BETWEEN 0  AND 4)

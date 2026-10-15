@@ -14,10 +14,12 @@ public interface RhActivityReportDAO {
 	/**
 	 * @param startDate only include activity on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only include activity through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include SRH encounters and pediatric enrolments at this location, or null for all
+	 *            locations
 	 * @return one row per countable event, each a 4-element array matching the column order of
 	 *         queries/rh_activity_report_events.sql: indicatorKey, patientId, ageGroup, gender
 	 */
-	List<Object[]> getEvents(Date startDate, Date endDate) throws DAOException;
+	List<Object[]> getEvents(Date startDate, Date endDate, String locationUuid) throws DAOException;
 
 	/**
 	 * @param patientIds the patients to look up; must not be empty

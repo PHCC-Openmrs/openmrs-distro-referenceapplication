@@ -23,23 +23,25 @@ public class HibernateLabTestReportDAO implements LabTestReportDAO {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public List<Object[]> getSummaryRows(Date startDate, Date endDate) throws DAOException {
+	public List<Object[]> getSummaryRows(Date startDate, Date endDate, String locationUuid) throws DAOException {
 		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(SUMMARY_REPORT_SQL);
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
 		return query.list();
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Object[]> getPatientsForCell(Integer testConceptId, String gender, String ageGroup, Date startDate,
-	        Date endDate) throws DAOException {
+	        Date endDate, String locationUuid) throws DAOException {
 		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(PATIENTS_FOR_CELL_SQL);
 		query.setParameter("testConceptId", testConceptId);
 		query.setParameter("gender", gender);
 		query.setParameter("ageGroup", ageGroup);
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
 		return query.list();
 	}
 }

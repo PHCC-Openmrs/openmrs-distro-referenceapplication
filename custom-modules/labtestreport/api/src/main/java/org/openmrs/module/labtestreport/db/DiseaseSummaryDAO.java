@@ -16,18 +16,22 @@ public interface DiseaseSummaryDAO {
 	/**
 	 * @param startDate only include diagnoses on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only include diagnoses through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include diagnoses recorded at this location (a condition counts at the location of
+	 *            the visit open when it was recorded), or null for all locations
 	 * @return one row per category/diagnosis combination, each an 18-element array matching the
 	 *         column order of queries/disease_summary_report.sql
 	 */
-	List<Object[]> getSummaryRows(Date startDate, Date endDate) throws DAOException;
+	List<Object[]> getSummaryRows(Date startDate, Date endDate, String locationUuid) throws DAOException;
 
 	/**
 	 * @param startDate only include diagnoses on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only include diagnoses through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include diagnoses recorded at this location (a condition counts at the location of
+	 *            the visit open when it was recorded), or null for all locations
 	 * @return one row per EWARS diagnosis, each a 13-element array matching the column order of
 	 *         queries/ewars_report.sql
 	 */
-	List<Object[]> getEwarsRows(Date startDate, Date endDate) throws DAOException;
+	List<Object[]> getEwarsRows(Date startDate, Date endDate, String locationUuid) throws DAOException;
 
 	/**
 	 * @param diagnosisConceptId concept id of the diagnosis to match
@@ -35,11 +39,13 @@ public interface DiseaseSummaryDAO {
 	 * @param ageGroup one of "0-4", "5-14", "15-18", "19-49", "50-65", "65+", or null to match any age
 	 * @param startDate only include diagnoses on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only include diagnoses through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include diagnoses recorded at this location (a condition counts at the location of
+	 *            the visit open when it was recorded), or null for all locations
 	 * @return one row per distinct patient, each a 5-element array matching the column order of
 	 *         queries/patients_for_diagnosis_cell.sql
 	 */
 	List<Object[]> getPatientsForDiagnosisCell(Integer diagnosisConceptId, String gender, String ageGroup, Date startDate,
-	        Date endDate) throws DAOException;
+	        Date endDate, String locationUuid) throws DAOException;
 
 	/**
 	 * Same as {@link #getPatientsForDiagnosisCell} but for an EWARS row label, which may map to several concepts.
@@ -47,5 +53,5 @@ public interface DiseaseSummaryDAO {
 	 * @see queries/patients_for_ewars_cell.sql
 	 */
 	List<Object[]> getPatientsForEwarsCell(String diagnosisLabel, String gender, String ageGroup, Date startDate,
-	        Date endDate) throws DAOException;
+	        Date endDate, String locationUuid) throws DAOException;
 }

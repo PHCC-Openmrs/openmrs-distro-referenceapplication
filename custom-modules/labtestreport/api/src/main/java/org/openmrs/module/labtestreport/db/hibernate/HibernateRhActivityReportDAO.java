@@ -24,10 +24,11 @@ public class HibernateRhActivityReportDAO implements RhActivityReportDAO {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public List<Object[]> getEvents(Date startDate, Date endDate) throws DAOException {
+	public List<Object[]> getEvents(Date startDate, Date endDate, String locationUuid) throws DAOException {
 		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(EVENTS_SQL);
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
 		return query.list();
 	}
 

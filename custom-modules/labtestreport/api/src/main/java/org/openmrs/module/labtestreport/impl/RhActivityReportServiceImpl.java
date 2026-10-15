@@ -62,7 +62,7 @@ public class RhActivityReportServiceImpl extends BaseOpenmrsService implements R
 	}
 
 	@Override
-	public List<RhActivityReportRow> getReport(Date startDate, Date endDate) {
+	public List<RhActivityReportRow> getReport(Date startDate, Date endDate, String locationUuid) {
 		Map<String, RhActivityReportRow> rowsByKey = new LinkedHashMap<>();
 		for (RowDefinition definition : ROWS) {
 			RhActivityReportRow row = new RhActivityReportRow();
@@ -78,7 +78,7 @@ public class RhActivityReportServiceImpl extends BaseOpenmrsService implements R
 			rowsByKey.put(definition.key, row);
 		}
 
-		for (Object[] event : dao.getEvents(startDate, endDate)) {
+		for (Object[] event : dao.getEvents(startDate, endDate, locationUuid)) {
 			RhActivityReportRow row = rowsByKey.get((String) event[0]);
 			if (row == null) {
 				continue;
@@ -93,9 +93,9 @@ public class RhActivityReportServiceImpl extends BaseOpenmrsService implements R
 
 	@Override
 	public List<PatientRow> getPatientsForCell(String indicatorKey, String gender, String ageGroup, Date startDate,
-	        Date endDate) {
+	        Date endDate, String locationUuid) {
 		Set<Integer> patientIds = new LinkedHashSet<>();
-		for (Object[] event : dao.getEvents(startDate, endDate)) {
+		for (Object[] event : dao.getEvents(startDate, endDate, locationUuid)) {
 			if (indicatorKey.equals(event[0]) && (ageGroup == null || ageGroup.equals(event[2]))
 			        && (gender == null || gender.equals(event[3]))) {
 				patientIds.add(((Number) event[1]).intValue());

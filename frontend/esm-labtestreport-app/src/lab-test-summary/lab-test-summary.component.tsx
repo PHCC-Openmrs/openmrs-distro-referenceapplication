@@ -9,6 +9,7 @@ import KpiTiles from '../reports-shell/kpi-tiles.component';
 import MonthCompareControls from '../reports-shell/month-compare-controls.component';
 import ComparisonSummaryTable from '../reports-shell/comparison-summary-table.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
+import LocationFilter from '../reports-shell/location-filter.component';
 import { buildKpiExportSheet, buildComparisonExportSheet, type ExportSheet } from '../reports-shell/export-utils';
 import { useMonthComparison } from '../reports-shell/month-compare';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
@@ -114,6 +115,7 @@ export default function LabTestSummaryReport() {
   const [selection, setSelection] = useState<Selection | null>(null);
   const [searchText, setSearchText] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [locationUuid, setLocationUuid] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState<Set<number>>(new Set());
   const [viewMode, setViewMode] = useState<'table' | 'graph'>('table');
   const compare = useMonthComparison();
@@ -121,10 +123,11 @@ export default function LabTestSummaryReport() {
   const primaryStartDate = compare.enabled ? compare.primary.startDate : appliedDates.startDate;
   const primaryEndDate = compare.enabled ? compare.primary.endDate : appliedDates.endDate;
 
-  const { rows, isLoading } = useSummaryReport(primaryStartDate, primaryEndDate);
+  const { rows, isLoading } = useSummaryReport(primaryStartDate, primaryEndDate, locationUuid || undefined);
   const { rows: compareRowsRaw, isLoading: compareLoading } = useSummaryReport(
     compare.comparison.startDate,
     compare.comparison.endDate,
+    locationUuid || undefined,
     compare.enabled,
   );
   const { patients, isLoading: patientsLoading } = useDrilldown(selection);
@@ -264,6 +267,7 @@ export default function LabTestSummaryReport() {
       gender,
       startDate: primaryStartDate,
       endDate: primaryEndDate,
+      locationUuid: locationUuid || undefined,
       category,
       testLabel,
       ageGroupLabel,
@@ -331,6 +335,7 @@ export default function LabTestSummaryReport() {
         )}
 
         <div className={pageStyles.filterTile}>
+          <LocationFilter id="labTestSummaryLocationFilter" value={locationUuid} onChange={setLocationUuid} />
           <div className={pageStyles.filterField} style={{ minWidth: '16rem' }}>
             <Search
               size="md"

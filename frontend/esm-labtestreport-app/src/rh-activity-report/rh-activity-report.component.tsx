@@ -5,6 +5,7 @@ import { navigate, openmrsFetch } from '@openmrs/esm-framework';
 import useSWR from 'swr';
 import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
+import LocationFilter from '../reports-shell/location-filter.component';
 import type { ExportSheet } from '../reports-shell/export-utils';
 import pageStyles from '../reports-shell/reports-page.scss';
 import type { PatientRow } from '../disease-summary/disease-summary.resource';
@@ -30,10 +31,11 @@ const AGE_GENDER_COLUMNS = AGE_GROUPS.flatMap((ageGroup) => [
   { key: `${ageGroup}_F`, ageGroup, genderCode: 'F', gender: 'Female' },
 ]);
 
-function useRhActivityReport(startDate?: string, endDate?: string) {
+function useRhActivityReport(startDate?: string, endDate?: string, locationUuid?: string) {
   const search = new URLSearchParams();
   if (startDate) search.set('startDate', startDate);
   if (endDate) search.set('endDate', endDate);
+  if (locationUuid) search.set('locationUuid', locationUuid);
   const query = search.toString();
   const url = `/module/labtestreport/api/rh-activity-report.json${query ? `?${query}` : ''}`;
   const { data, isLoading } = useSWR<{ data: RhActivityRow[] }, Error>(url, openmrsFetch);
@@ -48,6 +50,7 @@ interface Selection {
   cellLabel?: string;
   startDate?: string;
   endDate?: string;
+  locationUuid?: string;
 }
 
 function useRhActivityDrilldown(selection: Selection | null) {
@@ -58,6 +61,7 @@ function useRhActivityDrilldown(selection: Selection | null) {
     if (selection.gender) search.set('gender', selection.gender);
     if (selection.startDate) search.set('startDate', selection.startDate);
     if (selection.endDate) search.set('endDate', selection.endDate);
+    if (selection.locationUuid) search.set('locationUuid', selection.locationUuid);
   }
   const url = selection ? `/module/labtestreport/api/rh-activity-drilldown.json?${search.toString()}` : null;
   const { data, isLoading } = useSWR<{ data: PatientRow[] }, Error>(url, openmrsFetch);
@@ -69,7 +73,8 @@ export default function RhActivityReport() {
   const [startDateInput, setStartDateInput] = useState('');
   const [endDateInput, setEndDateInput] = useState('');
   const [applied, setApplied] = useState<{ startDate?: string; endDate?: string }>({});
-  const { rows, isLoading } = useRhActivityReport(applied.startDate, applied.endDate);
+  const [locationUuid, setLocationUuid] = useState('');
+  const { rows, isLoading } = useRhActivityReport(applied.startDate, applied.endDate, locationUuid || undefined);
   const [selection, setSelection] = useState<Selection | null>(null);
   const { patients, isLoading: patientsLoading } = useRhActivityDrilldown(selection);
 
@@ -98,6 +103,7 @@ export default function RhActivityReport() {
       gender: column?.genderCode,
       cellLabel: column ? `${column.ageGroup} ${column.gender}` : undefined,
       ...applied,
+      locationUuid: locationUuid || undefined,
     });
 
   const countCell = (row: RhActivityRow, value: number, column?: (typeof AGE_GENDER_COLUMNS)[number]) => {
@@ -159,6 +165,7 @@ export default function RhActivityReport() {
               onChange={(e) => setEndDateInput(clampToToday(e.target.value))}
             />
           </div>
+          <LocationFilter id="rhActivityLocationFilter" value={locationUuid} onChange={setLocationUuid} />
           <Button
             size="md"
             onClick={() => setApplied({ startDate: startDateInput || undefined, endDate: endDateInput || undefined })}

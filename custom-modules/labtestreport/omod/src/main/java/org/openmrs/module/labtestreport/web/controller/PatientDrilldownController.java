@@ -45,7 +45,7 @@ public class PatientDrilldownController {
 	        @RequestParam(value = "endDate", required = false) Date endDate) {
 
 		List<PatientRow> patients = Context.getService(LabTestReportService.class).getPatientsForCell(testConceptId,
-		    gender, ageGroup, startDate, endDate);
+		    gender, ageGroup, startDate, endDate, null);
 
 		SimpleDateFormat dateFormat = new SimpleDateFormat(SummaryReportController.DATE_FORMAT);
 		ModelMap model = new ModelMap();

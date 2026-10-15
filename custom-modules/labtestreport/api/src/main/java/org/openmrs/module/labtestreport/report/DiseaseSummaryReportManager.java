@@ -83,6 +83,8 @@ public class DiseaseSummaryReportManager extends BaseReportManager {
 	 * since the O3 Reports web preview just renders whatever columns the dataset returns.
 	 */
 	private static String buildPreviewSql() {
+		// The base query also filters by :locationUuid, which this report doesn't declare; pin it to NULL
+		// (all locations) so it isn't left in the SQL as literal text - see StockLedgerReportManager.
 		return "SELECT category AS `Category`, diagnosisLabel AS `Diagnosis`, totalCases AS `Total Cases`, "
 		        + "age_0_4_male AS `0-4 M`, age_0_4_female AS `0-4 F`, "
 		        + "age_5_14_male AS `5-14 M`, age_5_14_female AS `5-14 F`, "
@@ -91,6 +93,6 @@ public class DiseaseSummaryReportManager extends BaseReportManager {
 		        + "age_50_65_male AS `50-65 M`, age_50_65_female AS `50-65 F`, "
 		        + "age_65_plus_male AS `65+ M`, age_65_plus_female AS `65+ F`, "
 		        + "total AS `Total` "
-		        + "FROM (" + SqlResources.load("disease_summary_report.sql") + ") base";
+		        + "FROM (" + SqlResources.load("disease_summary_report.sql").replace(":locationUuid", "NULL") + ") base";
 	}
 }

@@ -44,6 +44,7 @@ qualifying_orders AS (
     AND (o.fulfiller_status IS NULL OR o.fulfiller_status <> 'DECLINED')
     AND (:startDate IS NULL OR e.encounter_datetime >= :startDate)
     AND (:endDate IS NULL OR e.encounter_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
+    AND (:locationUuid IS NULL OR e.location_id = (SELECT location_id FROM location WHERE uuid = :locationUuid))
 )
 SELECT
   tm.category_concept_id AS categoryConceptId,

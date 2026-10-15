@@ -10,10 +10,11 @@ public interface RhActivityReportService extends OpenmrsService {
 	/**
 	 * @param startDate only count activity on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only count activity through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only count SRH encounters and pediatric enrolments at this location, or null for all locations
 	 * @return the Reproductive Health Activity Report: one row per indicator, in paper-form order, with the
 	 *         "Total number of patients seen across all RH services" row last
 	 */
-	List<RhActivityReportRow> getReport(Date startDate, Date endDate);
+	List<RhActivityReportRow> getReport(Date startDate, Date endDate, String locationUuid);
 
 	/**
 	 * Drills down into a single report cell to list the patients behind its count.
@@ -23,8 +24,9 @@ public interface RhActivityReportService extends OpenmrsService {
 	 * @param ageGroup one of "0-4", "5-14", "15-18", "19-49", "50-65", "65+", or null to match any age
 	 * @param startDate only include activity on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only include activity through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include SRH encounters and pediatric enrolments at this location, or null for all locations
 	 * @return each matching patient once, even if they count towards the cell more than once
 	 */
 	List<PatientRow> getPatientsForCell(String indicatorKey, String gender, String ageGroup, Date startDate,
-	        Date endDate);
+	        Date endDate, String locationUuid);
 }

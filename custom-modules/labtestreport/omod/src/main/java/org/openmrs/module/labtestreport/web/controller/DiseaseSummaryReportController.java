@@ -44,7 +44,7 @@ public class DiseaseSummaryReportController {
 	        @RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate) {
 		List<DiseaseSummaryRow> rows = Context.getService(DiseaseSummaryService.class).getSummaryReport(startDate,
-		    endDate);
+		    endDate, null);
 		SummaryRowGrouping.applyDiseaseCategoryRowSpans(rows);
 
 		List<SummaryReportController.Column> columns = new ArrayList<>();

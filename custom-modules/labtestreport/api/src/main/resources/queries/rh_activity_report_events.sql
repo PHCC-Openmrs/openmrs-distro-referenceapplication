@@ -11,6 +11,9 @@
 --     program during the period, aged at their first such enrolment.
 --   * totalPatients -- one event per unique patient with any SRH section recorded during the
 --     period, aged at their first such encounter.
+--
+-- With a location selected, SRH encounters are matched on the encounter's location and pediatric
+-- enrolments on the enrolment's location.
 WITH srh_indicator_map AS (
   -- SRH Assessment > ANC
   SELECT 'ancFirstVisitBeforeFirstTrimester' AS indicator_key, 'd2c7f668-6b1e-4582-aef3-5df79c45fb84' AS concept_uuid, 'First antenatal visit < 1st trimester' AS value_text
@@ -51,6 +54,7 @@ srh_encounters AS (
   WHERE e.voided = 0
     AND (:startDate IS NULL OR e.encounter_datetime >= :startDate)
     AND (:endDate IS NULL OR e.encounter_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
+    AND (:locationUuid IS NULL OR e.location_id = (SELECT location_id FROM location WHERE uuid = :locationUuid))
 ),
 events AS (
   -- DISTINCT so an encounter that somehow carries the same answer twice still counts as one visit.
@@ -67,6 +71,7 @@ events AS (
   WHERE pp.voided = 0
     AND (:startDate IS NULL OR pp.date_enrolled >= :startDate)
     AND (:endDate IS NULL OR pp.date_enrolled < DATE_ADD(:endDate, INTERVAL 1 DAY))
+    AND (:locationUuid IS NULL OR pp.location_id = (SELECT location_id FROM location WHERE uuid = :locationUuid))
   GROUP BY pp.patient_id
   UNION ALL
   SELECT 'totalPatients', NULL, se.patient_id, MIN(se.encounter_datetime)

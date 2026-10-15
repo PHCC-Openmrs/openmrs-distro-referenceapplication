@@ -19,9 +19,9 @@ public class LabTestReportServiceImpl extends BaseOpenmrsService implements LabT
 	}
 
 	@Override
-	public List<SummaryRow> getSummaryReport(Date startDate, Date endDate) {
+	public List<SummaryRow> getSummaryReport(Date startDate, Date endDate, String locationUuid) {
 		List<SummaryRow> rows = new ArrayList<>();
-		for (Object[] r : dao.getSummaryRows(startDate, endDate)) {
+		for (Object[] r : dao.getSummaryRows(startDate, endDate, locationUuid)) {
 			SummaryRow row = new SummaryRow();
 			row.setCategoryConceptId(toInteger(r[0]));
 			row.setCategory((String) r[1]);
@@ -48,9 +48,9 @@ public class LabTestReportServiceImpl extends BaseOpenmrsService implements LabT
 
 	@Override
 	public List<PatientRow> getPatientsForCell(Integer testConceptId, String gender, String ageGroup, Date startDate,
-	        Date endDate) {
+	        Date endDate, String locationUuid) {
 		List<PatientRow> rows = new ArrayList<>();
-		for (Object[] r : dao.getPatientsForCell(testConceptId, gender, ageGroup, startDate, endDate)) {
+		for (Object[] r : dao.getPatientsForCell(testConceptId, gender, ageGroup, startDate, endDate, locationUuid)) {
 			PatientRow row = new PatientRow();
 			row.setPatientId(toInteger(r[0]));
 			row.setPatientUuid((String) r[1]);

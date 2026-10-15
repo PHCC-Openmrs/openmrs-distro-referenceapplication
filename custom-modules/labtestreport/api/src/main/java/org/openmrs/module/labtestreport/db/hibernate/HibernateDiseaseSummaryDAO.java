@@ -27,45 +27,49 @@ public class HibernateDiseaseSummaryDAO implements DiseaseSummaryDAO {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public List<Object[]> getSummaryRows(Date startDate, Date endDate) throws DAOException {
+	public List<Object[]> getSummaryRows(Date startDate, Date endDate, String locationUuid) throws DAOException {
 		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(SUMMARY_REPORT_SQL);
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
 		return query.list();
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public List<Object[]> getEwarsRows(Date startDate, Date endDate) throws DAOException {
+	public List<Object[]> getEwarsRows(Date startDate, Date endDate, String locationUuid) throws DAOException {
 		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(EWARS_REPORT_SQL);
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
 		return query.list();
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Object[]> getPatientsForDiagnosisCell(Integer diagnosisConceptId, String gender, String ageGroup,
-	        Date startDate, Date endDate) throws DAOException {
+	        Date startDate, Date endDate, String locationUuid) throws DAOException {
 		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(PATIENTS_FOR_CELL_SQL);
 		query.setParameter("diagnosisConceptId", diagnosisConceptId);
 		query.setParameter("gender", gender);
 		query.setParameter("ageGroup", ageGroup);
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
 		return query.list();
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Object[]> getPatientsForEwarsCell(String diagnosisLabel, String gender, String ageGroup, Date startDate,
-	        Date endDate) throws DAOException {
+	        Date endDate, String locationUuid) throws DAOException {
 		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(PATIENTS_FOR_EWARS_CELL_SQL);
 		query.setParameter("diagnosisLabel", diagnosisLabel);
 		query.setParameter("gender", gender);
 		query.setParameter("ageGroup", ageGroup);
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
 		return query.list();
 	}
 }

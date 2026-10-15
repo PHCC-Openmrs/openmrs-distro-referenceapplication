@@ -10,9 +10,10 @@ public interface LabTestReportService extends OpenmrsService {
 	/**
 	 * @param startDate only include orders on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only include orders through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include orders placed in an encounter at this location, or null for all locations
 	 * @return the full lab test summary report: one row per category/lab-test combination
 	 */
-	List<SummaryRow> getSummaryReport(Date startDate, Date endDate);
+	List<SummaryRow> getSummaryReport(Date startDate, Date endDate, String locationUuid);
 
 	/**
 	 * Drills down into a single summary report cell to list the patients behind its count.
@@ -22,7 +23,8 @@ public interface LabTestReportService extends OpenmrsService {
 	 * @param ageGroup one of "0-4", "5-14", "15-18", "19-49", "50-65", "65+", or null to match any age
 	 * @param startDate only include orders on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only include orders through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include orders placed in an encounter at this location, or null for all locations
 	 */
 	List<PatientRow> getPatientsForCell(Integer testConceptId, String gender, String ageGroup, Date startDate,
-	        Date endDate);
+	        Date endDate, String locationUuid);
 }

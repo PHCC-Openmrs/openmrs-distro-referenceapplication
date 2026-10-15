@@ -43,7 +43,7 @@ public class DiseaseDrilldownController {
 	        @RequestParam(value = "endDate", required = false) Date endDate) {
 
 		List<PatientRow> patients = Context.getService(DiseaseSummaryService.class).getPatientsForCell(
-		    diagnosisConceptId, gender, ageGroup, startDate, endDate);
+		    diagnosisConceptId, gender, ageGroup, startDate, endDate, null);
 
 		SimpleDateFormat dateFormat = new SimpleDateFormat(SummaryReportController.DATE_FORMAT);
 		ModelMap model = new ModelMap();

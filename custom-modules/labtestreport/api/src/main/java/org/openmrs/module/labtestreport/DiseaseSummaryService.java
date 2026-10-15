@@ -10,16 +10,20 @@ public interface DiseaseSummaryService extends OpenmrsService {
 	/**
 	 * @param startDate only include diagnoses on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only include diagnoses through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include diagnoses recorded at this location (a condition counts at the location of
+	 *            the visit open when it was recorded), or null for all locations
 	 * @return the full disease surveillance summary report: one row per category/diagnosis combination
 	 */
-	List<DiseaseSummaryRow> getSummaryReport(Date startDate, Date endDate);
+	List<DiseaseSummaryRow> getSummaryReport(Date startDate, Date endDate, String locationUuid);
 
 	/**
 	 * @param startDate only include diagnoses on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only include diagnoses through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include diagnoses recorded at this location (a condition counts at the location of
+	 *            the visit open when it was recorded), or null for all locations
 	 * @return the EWARS weekly report: one row per fixed EWARS diagnosis (in report order), with no category
 	 */
-	List<DiseaseSummaryRow> getEwarsReport(Date startDate, Date endDate);
+	List<DiseaseSummaryRow> getEwarsReport(Date startDate, Date endDate, String locationUuid);
 
 	/**
 	 * Drills down into a single summary report cell to list the patients behind its count.
@@ -29,11 +33,13 @@ public interface DiseaseSummaryService extends OpenmrsService {
 	 * @param ageGroup one of "0-4", "5-14", "15-18", "19-49", "50-65", "65+", or null to match any age
 	 * @param startDate only include diagnoses on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only include diagnoses through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only include diagnoses recorded at this location (a condition counts at the location of
+	 *            the visit open when it was recorded), or null for all locations
 	 */
 	List<PatientRow> getPatientsForCell(Integer diagnosisConceptId, String gender, String ageGroup, Date startDate,
-	        Date endDate);
+	        Date endDate, String locationUuid);
 
 	/** Patients behind an EWARS report cell, identified by the row's diagnosis label. */
 	List<PatientRow> getPatientsForEwarsCell(String diagnosisLabel, String gender, String ageGroup, Date startDate,
-	        Date endDate);
+	        Date endDate, String locationUuid);
 }

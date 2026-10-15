@@ -29,6 +29,7 @@ export interface DrilldownParams {
   ageGroup?: string;
   startDate?: string;
   endDate?: string;
+  locationUuid?: string;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
@@ -42,8 +43,10 @@ function buildQuery(params: Record<string, string | number | undefined>): string
   return query ? `?${query}` : '';
 }
 
-export function useSummaryReport(startDate?: string, endDate?: string, enabled: boolean = true) {
-  const url = enabled ? `/module/labtestreport/api/summary.json${buildQuery({ startDate, endDate })}` : null;
+export function useSummaryReport(startDate?: string, endDate?: string, locationUuid?: string, enabled: boolean = true) {
+  const url = enabled
+    ? `/module/labtestreport/api/summary.json${buildQuery({ startDate, endDate, locationUuid })}`
+    : null;
   const { data, error, isLoading } = useSWR<{ data: SummaryRow[] }, Error>(url, openmrsFetch);
   return { rows: data?.data ?? [], error, isLoading };
 }

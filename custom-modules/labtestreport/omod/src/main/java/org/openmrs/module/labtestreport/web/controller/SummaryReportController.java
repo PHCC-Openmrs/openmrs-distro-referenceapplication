@@ -46,7 +46,7 @@ public class SummaryReportController {
 	public ModelAndView showReport(
 	        @RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate) {
-		List<SummaryRow> rows = Context.getService(LabTestReportService.class).getSummaryReport(startDate, endDate);
+		List<SummaryRow> rows = Context.getService(LabTestReportService.class).getSummaryReport(startDate, endDate, null);
 		SummaryRowGrouping.applyCategoryRowSpans(rows);
 
 		List<Column> columns = new ArrayList<>();

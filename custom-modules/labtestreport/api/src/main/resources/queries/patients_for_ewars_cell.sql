@@ -41,12 +41,21 @@ SELECT DISTINCT
   pi_nid.identifier            AS nationalId,
   pa_phone.value                AS phoneNumber
 FROM (
-  SELECT ed.diagnosis_coded AS concept_id, ed.patient_id, e.encounter_datetime AS event_date
+  SELECT ed.diagnosis_coded AS concept_id, ed.patient_id, e.encounter_datetime AS event_date, e.location_id
   FROM encounter_diagnosis ed
   JOIN encounter e ON e.encounter_id = ed.encounter_id
   WHERE ed.voided = 0
   UNION ALL
-  SELECT cd.condition_coded, cd.patient_id, COALESCE(cd.onset_date, cd.date_created)
+  -- Conditions aren't tied to an encounter, so they're placed at the location of the visit the
+  -- patient had open when the condition was recorded (NULL if none, i.e. only counted under all locations).
+  SELECT cd.condition_coded, cd.patient_id, COALESCE(cd.onset_date, cd.date_created),
+    (SELECT v.location_id
+       FROM visit v
+      WHERE v.patient_id = cd.patient_id AND v.voided = 0
+        AND v.date_started <= cd.date_created
+        AND (v.date_stopped IS NULL OR v.date_stopped >= cd.date_created)
+      ORDER BY v.date_started DESC
+      LIMIT 1)
   FROM conditions cd
   WHERE cd.voided = 0 AND cd.condition_coded IS NOT NULL
 ) ed
@@ -64,6 +73,7 @@ WHERE ed.concept_id IN (SELECT concept_id FROM ewars_concepts WHERE label = :dia
   AND (:gender IS NULL OR p.gender = :gender)
   AND (:startDate IS NULL OR ed.event_date >= :startDate)
   AND (:endDate IS NULL OR ed.event_date < DATE_ADD(:endDate, INTERVAL 1 DAY))
+  AND (:locationUuid IS NULL OR ed.location_id = (SELECT location_id FROM location WHERE uuid = :locationUuid))
   AND (
     :ageGroup IS NULL
     OR (:ageGroup = '0-4'   AND TIMESTAMPDIFF(YEAR, p.birthdate, ed.event_date) BETWEEN 0  AND 4)

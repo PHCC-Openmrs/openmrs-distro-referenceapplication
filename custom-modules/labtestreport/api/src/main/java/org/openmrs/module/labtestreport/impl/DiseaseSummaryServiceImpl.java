@@ -19,9 +19,9 @@ public class DiseaseSummaryServiceImpl extends BaseOpenmrsService implements Dis
 	}
 
 	@Override
-	public List<DiseaseSummaryRow> getSummaryReport(Date startDate, Date endDate) {
+	public List<DiseaseSummaryRow> getSummaryReport(Date startDate, Date endDate, String locationUuid) {
 		List<DiseaseSummaryRow> rows = new ArrayList<>();
-		for (Object[] r : dao.getSummaryRows(startDate, endDate)) {
+		for (Object[] r : dao.getSummaryRows(startDate, endDate, locationUuid)) {
 			DiseaseSummaryRow row = new DiseaseSummaryRow();
 			row.setCategoryConceptId(toInteger(r[0]));
 			row.setCategory((String) r[1]);
@@ -47,11 +47,11 @@ public class DiseaseSummaryServiceImpl extends BaseOpenmrsService implements Dis
 	}
 
 	@Override
-	public List<DiseaseSummaryRow> getEwarsReport(Date startDate, Date endDate) {
+	public List<DiseaseSummaryRow> getEwarsReport(Date startDate, Date endDate, String locationUuid) {
 		String[] keys = { "0-4_M", "0-4_F", "5-14_M", "5-14_F", "15-18_M", "15-18_F", "19-49_M", "19-49_F", "50-65_M",
 		        "50-65_F", "65+_M", "65+_F" };
 		List<DiseaseSummaryRow> rows = new ArrayList<>();
-		for (Object[] r : dao.getEwarsRows(startDate, endDate)) {
+		for (Object[] r : dao.getEwarsRows(startDate, endDate, locationUuid)) {
 			DiseaseSummaryRow row = new DiseaseSummaryRow();
 			row.setDiagnosisLabel((String) r[0]);
 			for (int i = 0; i < keys.length; i++) {
@@ -65,14 +65,16 @@ public class DiseaseSummaryServiceImpl extends BaseOpenmrsService implements Dis
 
 	@Override
 	public List<PatientRow> getPatientsForCell(Integer diagnosisConceptId, String gender, String ageGroup,
-	        Date startDate, Date endDate) {
-		return toPatientRows(dao.getPatientsForDiagnosisCell(diagnosisConceptId, gender, ageGroup, startDate, endDate));
+	        Date startDate, Date endDate, String locationUuid) {
+		return toPatientRows(dao.getPatientsForDiagnosisCell(diagnosisConceptId, gender, ageGroup, startDate, endDate,
+		    locationUuid));
 	}
 
 	@Override
 	public List<PatientRow> getPatientsForEwarsCell(String diagnosisLabel, String gender, String ageGroup,
-	        Date startDate, Date endDate) {
-		return toPatientRows(dao.getPatientsForEwarsCell(diagnosisLabel, gender, ageGroup, startDate, endDate));
+	        Date startDate, Date endDate, String locationUuid) {
+		return toPatientRows(dao.getPatientsForEwarsCell(diagnosisLabel, gender, ageGroup, startDate, endDate,
+		    locationUuid));
 	}
 
 	private static List<PatientRow> toPatientRows(List<Object[]> results) {
