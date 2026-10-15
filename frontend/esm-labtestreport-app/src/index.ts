@@ -36,6 +36,11 @@ export const diseaseSummaryReport = getAsyncLifecycle(
 
 export const ewarsReport = getAsyncLifecycle(() => import('./ewars-report/ewars-report.component'), options);
 
+export const rhActivityReport = getAsyncLifecycle(
+  () => import('./rh-activity-report/rh-activity-report.component'),
+  options,
+);
+
 export const stockReportsHome = getAsyncLifecycle(
   () => import('./stock-reports-home/stock-reports-home.component'),
   options,

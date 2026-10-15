@@ -34,6 +34,7 @@ import org.openmrs.module.labtestreport.PatientEncounterSummaryRow;
 import org.openmrs.module.labtestreport.PatientRow;
 import org.openmrs.module.labtestreport.ReferralFormReportService;
 import org.openmrs.module.labtestreport.ReferralFormRow;
+import org.openmrs.module.labtestreport.RhActivityReportService;
 import org.openmrs.module.labtestreport.SrhReportRow;
 import org.openmrs.module.labtestreport.SrhReportService;
 import org.openmrs.module.labtestreport.StockAdjustmentRow;
@@ -211,6 +212,25 @@ public class LabTestReportRestController {
 	public ResponseEntity<String> ewarsReport(@RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
 		return jsonResponse(Context.getService(DiseaseSummaryService.class).getEwarsReport(startDate, endDate));
+	}
+
+	@RequestMapping(value = "/rh-activity-report.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> rhActivityReport(@RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		return jsonResponse(Context.getService(RhActivityReportService.class).getReport(startDate, endDate));
+	}
+
+	@RequestMapping(value = "/rh-activity-drilldown.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> rhActivityDrilldown(@RequestParam("indicatorKey") String indicatorKey,
+	        @RequestParam(value = "gender", required = false) String gender,
+	        @RequestParam(value = "ageGroup", required = false) String ageGroup,
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+		List<PatientRow> rows = Context.getService(RhActivityReportService.class).getPatientsForCell(indicatorKey,
+		    gender, ageGroup, startDate, endDate);
+		return jsonResponse(rows);
 	}
 
 	@RequestMapping(value = "/disease-drilldown.json", method = RequestMethod.GET)

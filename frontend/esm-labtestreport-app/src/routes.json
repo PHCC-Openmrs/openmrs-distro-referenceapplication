@@ -71,6 +71,10 @@
       "route": "ewars-report"
     },
     {
+      "component": "rhActivityReport",
+      "route": "rh-activity-report"
+    },
+    {
       "component": "stockReportsHome",
       "route": "stock-reports-home"
     },

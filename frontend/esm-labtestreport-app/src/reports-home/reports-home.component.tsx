@@ -89,6 +89,15 @@ export default function ReportsHome() {
           description: t('ewarsReportTileDesc', 'EWARS priority diagnoses by age group and gender.'),
           route: 'ewars-report',
         },
+        {
+          key: 'rh-activity-report',
+          title: t('rhActivityReportTitle', 'Reproductive Health Activity Report'),
+          description: t(
+            'rhActivityReportTileDesc',
+            'Antenatal, postnatal, gynaecology, referral and family planning activity from the SRH sections, plus pediatric enrolments, by age group and gender.',
+          ),
+          route: 'rh-activity-report',
+        },
       ],
     },
     {
