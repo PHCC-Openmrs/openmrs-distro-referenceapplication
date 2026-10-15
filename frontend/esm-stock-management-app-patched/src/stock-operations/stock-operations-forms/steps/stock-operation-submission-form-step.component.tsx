@@ -15,6 +15,7 @@ import { type StockOperationDTO } from '../../../core/api/types/stockOperation/S
 import { type StockOperationItemDTO } from '../../../core/api/types/stockOperation/StockOperationItemDTO';
 import { type StockOperationItemDtoSchema } from '../../validation-schema';
 import { buildExternalReference } from '../../external-reference.utils';
+import { buildRemarksWithOtherReason } from '../../other-reason.utils';
 import useOperationTypePermisions from '../hooks/useOperationTypePermisions';
 import styles from '../stock-operation-form.scss';
 
@@ -112,6 +113,13 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
           purchaseOrderNo: undefined,
           purchaseRequestNo: undefined,
           projectFundCode: undefined,
+          // The backend has no field for a typed reason either, so an "Other" reason's text goes in
+          // front of the remarks.
+          remarks: formData.reasonIsOther
+            ? buildRemarksWithOtherReason(formData.otherReason, formData.remarks)
+            : formData.remarks,
+          reasonIsOther: undefined,
+          otherReason: undefined,
           stockOperationItems: [
             ...formData.stockOperationItems.map((item) => ({
               ...item,

@@ -5,6 +5,7 @@ import { type StockOperationDTO } from '../../../core/api/types/stockOperation/S
 import { useStockOperationTypes } from '../../../stock-lookups/stock-lookups.resource';
 import StockoperationActions from '../../stock-operation-actions.component';
 import StockOperationLinks from '../../stock-operation-links.component';
+import { getOperationReasonDisplay } from '../../other-reason.utils';
 import StockItemsTable from './stock-items-table';
 import styles from './stock-operation-expanded-row.scss';
 import StockOpertationStatus from './stock-operations-status';
@@ -91,7 +92,7 @@ const StockOperationExpandedRow: React.FC<StockOperationExpandedRowProps> = (pro
             <div>
               <span className={styles.textHeading}>{t('reason', 'Reason')}:</span>
               <div className={styles.statusDescriptions}>
-                <span className={styles.text}>{props.model.reasonName}</span>
+                <span className={styles.text}>{getOperationReasonDisplay(props.model, t('other', 'Other'))}</span>
               </div>
             </div>
           )}

@@ -21,7 +21,7 @@ import { OperationType, type StockOperationType } from '../../../core/api/types/
 import { type StockOperationItemDtoSchema } from '../../validation-schema';
 import useOperationTypePermisions from '../hooks/useOperationTypePermisions';
 import useParties from '../hooks/useParties';
-import StockOperationReasonSelector from '../input-components/stock-operation-reason-selector.component';
+import StockOperationReasonField from '../input-components/stock-operation-reason-field.component';
 import UsersSelector from '../input-components/users-selector.component';
 import styles from '../stock-operation-form.scss';
 
@@ -53,6 +53,12 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
     [stockOperationType],
   );
   const handleNext = async () => {
+    // The schema-level check for this only runs once every other part of the form is valid, so
+    // it is also enforced here to flag a missing reason while still on this step.
+    if (form.getValues('reasonIsOther') && !form.getValues('otherReason')?.trim()) {
+      form.setError('otherReason', { message: t('otherReasonRequired', 'Please specify the reason') });
+      return;
+    }
     const valid = await form.trigger([
       'responsiblePersonUuid',
       'operationDate',
@@ -60,6 +66,7 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
       'sourceUuid',
       'destinationUuid',
       'reasonUuid',
+      'otherReason',
       'responsiblePersonOther',
       'purchaseOrderNo',
       'purchaseRequestNo',
@@ -260,7 +267,7 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
       <UsersSelector />
       {operationTypePermision.requiresStockAdjustmentReason && (
         <Column>
-          <StockOperationReasonSelector stockOperationType={stockOperationType?.operationType} />
+          <StockOperationReasonField stockOperationType={stockOperationType?.operationType} />
         </Column>
       )}
       <Column>
