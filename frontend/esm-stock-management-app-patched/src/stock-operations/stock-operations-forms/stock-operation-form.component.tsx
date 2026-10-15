@@ -22,6 +22,11 @@ import {
   type StockOperationItemDtoSchema,
 } from '../validation-schema';
 import { parseExternalReference } from '../external-reference.utils';
+import {
+  isOtherReasonName,
+  operationTypeSupportsOtherReason,
+  parseRemarksWithOtherReason,
+} from '../other-reason.utils';
 import useOperationTypePermisions from './hooks/useOperationTypePermisions';
 import BaseOperationDetailsFormStep from './steps/base-operation-details-form-step';
 import ReceivedItems from './steps/received-items.component';
@@ -75,6 +80,12 @@ const StockOperationForm: React.FC<StockOperationFormProps> = ({
   const { autoPopulateResponsiblePerson } = useConfig<ConfigObject>();
   const { error, items: _stockOperation, isLoading } = useStockOperationAndItems(stockRequisitionUuid);
 
+  // For an "Other" reason on Adjustment/Disposal the reason text lives at the front of the remarks.
+  const { otherReason: savedOtherReason, remarks: savedRemarks } =
+    operationTypeSupportsOtherReason(stockOperationType?.operationType) && isOtherReasonName(stockOperation?.reasonName)
+      ? parseRemarksWithOtherReason(stockOperation?.remarks)
+      : { otherReason: '', remarks: stockOperation?.remarks ?? '' };
+
   const form = useForm<StockOperationItemDtoSchema>({
     defaultValues: {
       responsiblePersonUuid:
@@ -82,7 +93,8 @@ const StockOperationForm: React.FC<StockOperationFormProps> = ({
         (stockOperation?.responsiblePersonOther ? otherUser.uuid : undefined) ?? // if other resp person exist, default other user uuid
         (autoPopulateResponsiblePerson ? defaultLoggedUserUuid : undefined), //Else default login user if configured
       operationDate: stockOperation?.operationDate ? parseDate(String(stockOperation.operationDate)) : today(),
-      remarks: stockOperation?.remarks ?? '',
+      remarks: savedRemarks,
+      otherReason: savedOtherReason,
       ...parseExternalReference(stockOperation?.externalReference),
 
       operationTypeUuid: stockOperation?.operationTypeUuid ?? stockOperationType?.uuid,
@@ -232,6 +244,7 @@ const StockOperationForm: React.FC<StockOperationFormProps> = ({
         'sourceUuid',
         'destinationUuid',
         'reasonUuid',
+        'otherReason',
         'responsiblePersonOther',
       ],
       ['stockOperationItems'],

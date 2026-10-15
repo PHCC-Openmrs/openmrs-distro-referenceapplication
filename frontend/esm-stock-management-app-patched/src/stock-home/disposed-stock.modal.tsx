@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@carbon/react';
 import { useTranslation } from 'react-i18next';
+import { getReasonDisplayName } from '../stock-operations/other-reason.utils';
 
 const DisposedStockModal = ({ closeModal, disposedStock }) => {
   const { t } = useTranslation();
@@ -41,7 +42,7 @@ const DisposedStockModal = ({ closeModal, disposedStock }) => {
                 {disposedStock.map((item, index) =>
                   item?.stockOperationItems?.map((stock, stockIndex) => (
                     <TableRow key={`${index}-${stockIndex}`}>
-                      <TableCell>{item?.reasonName || 'N/A'}</TableCell>
+                      <TableCell>{getReasonDisplayName(item?.reasonName, t('other', 'Other')) || 'N/A'}</TableCell>
                       <TableCell>{item?.sourceName || 'N/A'}</TableCell>
                       <TableCell>{stock?.stockItemName || 'N/A'}</TableCell>
                       <TableCell>{stock?.stockItemPackagingUOMName || 'N/A'}</TableCell>

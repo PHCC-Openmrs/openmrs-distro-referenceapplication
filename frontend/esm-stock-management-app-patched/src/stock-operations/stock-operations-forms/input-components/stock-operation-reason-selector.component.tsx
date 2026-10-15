@@ -7,6 +7,7 @@ import { type ConfigObject } from '../../../config-schema';
 import { type Concept } from '../../../core/api/types/concept/Concept';
 import { useConcept } from '../../../stock-lookups/stock-lookups.resource';
 import { OperationType } from '../../../core/api/types/stockOperation/StockOperationType';
+import { getReasonDisplayName, operationTypeSupportsOtherReason } from '../../other-reason.utils';
 
 type StockOperationReasonSelectorProps = {
   stockOperationType: string;
@@ -24,6 +25,7 @@ const StockOperationReasonSelector: React.FC<StockOperationReasonSelectorProps> 
     items: { answers: reasons },
   } = useConcept(operationReason);
   const { t } = useTranslation();
+  const showMiscellaneousAsOther = operationTypeSupportsOtherReason(stockOperationType);
   if (isLoading) return <SelectSkeleton role="progressbar" />;
 
   if (error)
@@ -51,7 +53,13 @@ const StockOperationReasonSelector: React.FC<StockOperationReasonSelectorProps> 
           items={reasons}
           initialSelectedItem={reasons?.find((p) => p.uuid === field.value)}
           selectedItem={reasons.find((p) => p.uuid === field.value)}
-          itemToString={(item?: Concept) => (item && item?.display ? `${item?.display}` : '')}
+          itemToString={(item?: Concept) =>
+            item && item?.display
+              ? showMiscellaneousAsOther
+                ? getReasonDisplayName(item.display, t('other', 'Other'))
+                : `${item?.display}`
+              : ''
+          }
           onChange={(data: { selectedItem?: Concept }) => {
             field.onChange(data?.selectedItem?.uuid);
           }}

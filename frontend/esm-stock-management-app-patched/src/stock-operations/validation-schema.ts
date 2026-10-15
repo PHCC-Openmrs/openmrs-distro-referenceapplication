@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { StockOperationStatusTypes } from '../core/api/types/stockOperation/StockOperationStatus';
 import { OperationType } from '../core/api/types/stockOperation/StockOperationType';
 import { buildExternalReference, EXTERNAL_REFERENCE_MAX_LENGTH } from './external-reference.utils';
+import { buildRemarksWithOtherReason, REMARKS_MAX_LENGTH } from './other-reason.utils';
 
 export const stockItemPackagingUOMDTOSchema = z.object({
   id: z.string().nullish(),
@@ -201,6 +202,9 @@ export const createStockOperationItemDtoSchema = (t: TranslateFn = defaultTransl
         message: t('responsiblePersonRequired', 'Responsible Person Required'),
       }),
     responsiblePersonOther: z.string().nullish(),
+    // Set while the "Other" reason is selected; its text is stored in the remarks on save.
+    reasonIsOther: z.boolean().nullish(),
+    otherReason: z.string().nullish(),
     remarks: z.string().nullish(),
     purchaseOrderNo: z.string().nullish(),
     purchaseRequestNo: z.string().nullish(),
@@ -231,6 +235,27 @@ const withExternalReferenceLengthCheck = <T extends z.ZodTypeAny>(schema: T) =>
     },
   );
 
+// When the "Other" reason is selected its text is required, and (stored in the remarks) must fit
+// the remarks column together with them.
+const withOtherReasonCheck = <T extends z.ZodTypeAny>(schema: T, t: TranslateFn) =>
+  schema
+    .refine(
+      (data: { reasonIsOther?: boolean | null; otherReason?: string | null }) =>
+        !data.reasonIsOther || !!data.otherReason?.trim(),
+      {
+        message: t('otherReasonRequired', 'Please specify the reason'),
+        path: ['otherReason'],
+      },
+    )
+    .refine(
+      (data: { reasonIsOther?: boolean | null; otherReason?: string | null; remarks?: string | null }) =>
+        !data.reasonIsOther || buildRemarksWithOtherReason(data.otherReason, data.remarks).length <= REMARKS_MAX_LENGTH,
+      {
+        message: t('otherReasonTooLong', 'The reason and remarks together are too long'),
+        path: ['otherReason'],
+      },
+    );
+
 export type StockOperationItemDtoSchema = z.infer<typeof stockOperationItemDtoSchema>;
 
 export type StockOperationFormData = z.infer<typeof stockOperationSchema>;
@@ -256,14 +281,17 @@ export const getStockOperationFormSchema = (operation: OperationType, t: Transla
     case OperationType.STOCK_TAKE_OPERATION_TYPE:
     case OperationType.ADJUSTMENT_OPERATION_TYPE:
     case OperationType.DISPOSED_OPERATION_TYPE:
-      return withExternalReferenceLengthCheck(
-        dtoSchema.omit({ destinationUuid: true }).merge(
-          z.object({
-            stockOperationItems: getStockOperationItemFormSchema(operation, t)
-              .array()
-              .nonempty(t('mustAddAtLeastOneStockItem', 'You must add atleast one stock item')),
-          }),
+      return withOtherReasonCheck(
+        withExternalReferenceLengthCheck(
+          dtoSchema.omit({ destinationUuid: true }).merge(
+            z.object({
+              stockOperationItems: getStockOperationItemFormSchema(operation, t)
+                .array()
+                .nonempty(t('mustAddAtLeastOneStockItem', 'You must add atleast one stock item')),
+            }),
+          ),
         ),
+        t,
       );
     case OperationType.TRANSFER_OUT_OPERATION_TYPE:
     case OperationType.STOCK_ISSUE_OPERATION_TYPE:
