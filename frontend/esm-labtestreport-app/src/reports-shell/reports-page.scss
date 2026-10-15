@@ -76,6 +76,11 @@
     font-weight: 600;
     text-align: center;
     white-space: nowrap;
+  }
+
+  // Stick the whole header, not each cell, so multi-row headers (age group
+  // row + M/F row) stay stacked instead of collapsing onto top: 0.
+  thead {
     position: sticky;
     top: 0;
     z-index: 1;
