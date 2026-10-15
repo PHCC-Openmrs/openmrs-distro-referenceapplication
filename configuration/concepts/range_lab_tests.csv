@@ -1,0 +1,4 @@
+Uuid,Void/Retire,Fully specified name:en,Description:en,Data class,Data type,Answers,Members,Units,Allow decimals,Absolute low,Absolute high
+c0eb98e9-dae8-4b82-8b11-20d87c63eac1,FALSE,Range Test Lower,Lower value of the Range Test result range,Test,Numeric,,,,TRUE,80,200
+6ae28db0-135b-4443-a330-e9b4ea45f6c2,FALSE,Range Test Upper,Upper value of the Range Test result range,Test,Numeric,,,,TRUE,80,200
+4881482b-0cc7-4201-8ce9-39f00e1fd5a4,FALSE,Range Test,"Result entered as a range: lower and upper value, each 80-200",LabSet,N/A,,c0eb98e9-dae8-4b82-8b11-20d87c63eac1;6ae28db0-135b-4443-a330-e9b4ea45f6c2,,,,
