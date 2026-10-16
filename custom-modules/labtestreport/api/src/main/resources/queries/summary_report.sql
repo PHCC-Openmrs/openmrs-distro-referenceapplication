@@ -1,24 +1,31 @@
+-- Categories are the members of the "Lab Test Report Categories" set and the lab tests are the members
+-- of each category (see provisioning/lab_test_report_categories.sql); sort_weight gives the row order.
 WITH categories AS (
   SELECT
     c.concept_id,
-    cn.name AS category_name
-  FROM concept c
-  JOIN concept_class cc ON cc.concept_class_id = c.class_id
-  JOIN concept_name cn  ON cn.concept_id = c.concept_id
-                        AND cn.locale = 'en'
-                        AND cn.concept_name_type = 'FULLY_SPECIFIED'
-                        AND cn.voided = 0
+    cn.name AS category_name,
+    root_cs.sort_weight AS category_sort
+  FROM concept root
+  JOIN concept_set root_cs ON root_cs.concept_set = root.concept_id
+  JOIN concept c           ON c.concept_id = root_cs.concept_id
+  JOIN concept_name cn     ON cn.concept_id = c.concept_id
+                           AND cn.locale = 'en'
+                           AND cn.concept_name_type = 'FULLY_SPECIFIED'
+                           AND cn.voided = 0
+  WHERE root.uuid = '4ffb5b34-ac87-4887-90b0-d23159dd3397'
     AND c.retired = 0
 ),
 test_map AS (
   SELECT
     cat.category_name AS category,
     cat.concept_id AS category_concept_id,
+    cat.category_sort,
     test_cn.name AS test_label,
-    cs.concept_set AS test_concept_id
+    cs.concept_id AS test_concept_id,
+    cs.sort_weight AS test_sort
   FROM categories cat
-  JOIN concept_set cs ON cs.concept_id = cat.concept_id
-  JOIN concept_name test_cn ON test_cn.concept_id = cs.concept_set
+  JOIN concept_set cs ON cs.concept_set = cat.concept_id
+  JOIN concept_name test_cn ON test_cn.concept_id = cs.concept_id
                             AND test_cn.locale = 'en'
                             AND test_cn.concept_name_type = 'FULLY_SPECIFIED'
                             AND test_cn.voided = 0
@@ -67,5 +74,5 @@ SELECT
   COUNT(qo.age_group)      AS total
 FROM test_map tm
 LEFT JOIN qualifying_orders qo ON qo.concept_id = tm.test_concept_id
-GROUP BY tm.category_concept_id, tm.category, tm.test_concept_id, tm.test_label
-ORDER BY tm.category, tm.test_label
+GROUP BY tm.category_concept_id, tm.category, tm.category_sort, tm.test_concept_id, tm.test_label, tm.test_sort
+ORDER BY tm.category_sort, tm.category, tm.test_sort, tm.test_label
