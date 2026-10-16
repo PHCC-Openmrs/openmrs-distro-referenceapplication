@@ -247,19 +247,39 @@ export function createStockItem(item: StockItemFormData) {
   });
 }
 
+// Mirrors StockItemResource.getUpdatableProperties(). The edit form is seeded with the full
+// stock item, so display-only fields (categoryName, preferredVendorName, ...) go stale as soon
+// as the matching *Uuid is changed and the backend rejects them as "not allowed to be set".
+const updatableStockItemProperties = [
+  'hasExpiration',
+  'preferredVendorUuid',
+  'purchasePrice',
+  'purchasePriceUoMUuid',
+  'dispensingUnitUuid',
+  'dispensingUnitPackagingUoMUuid',
+  'defaultStockOperationsUoMUuid',
+  'categoryUuid',
+  'commonName',
+  'acronym',
+  'reorderLevel',
+  'reorderLevelUoMUuid',
+  'expiryNotice',
+] as const;
+
 // updateStockItem
 export function updateStockItem(stockItemUuid: string, item: StockItemFormData) {
   const apiUrl = `${restBaseUrl}/stockmanagement/stockitem/${stockItemUuid}`;
   const abortController = new AbortController();
-  delete item.isDrug;
-  delete item.dateCreated;
+  const body = Object.fromEntries(
+    updatableStockItemProperties.filter((key) => key in item).map((key) => [key, item[key]]),
+  );
   return openmrsFetch<StockItemDTO>(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     signal: abortController.signal,
-    body: item,
+    body,
   });
 }
 
