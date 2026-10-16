@@ -17,10 +17,12 @@ public interface CmamFollowUpDAO {
 	 * @param ageGroup which age group's report to run
 	 * @param startDate only consider CMAM encounters on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only consider CMAM encounters through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only count patients whose most recent CMAM encounter was at this location, or null for all locations
 	 * @return one row per (dimension, category), each a 4-element array matching the column order
 	 *         of queries/cmam_summary_report.sql (or cmam_summary_report_above5.sql)
 	 */
-	List<Object[]> getSummaryRows(CmamAgeGroup ageGroup, Date startDate, Date endDate) throws DAOException;
+	List<Object[]> getSummaryRows(CmamAgeGroup ageGroup, Date startDate, Date endDate, String locationUuid)
+	        throws DAOException;
 
 	/**
 	 * @param ageGroup which age group's report to run
@@ -28,10 +30,11 @@ public interface CmamFollowUpDAO {
 	 * @param categoryConceptId the specific answer concept within that dimension
 	 * @param startDate only consider CMAM encounters on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only consider CMAM encounters through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only list patients whose most recent CMAM encounter was at this location, or null for all locations
 	 * @return one row per patient whose most recent CMAM encounter has that answer for that
 	 *         dimension, each a 12-element array matching the column order of
 	 *         queries/cmam_patients_for_category.sql (or cmam_patients_for_category_above5.sql)
 	 */
 	List<Object[]> getPatientsForCategory(CmamAgeGroup ageGroup, String dimensionConceptUuid,
-	        Integer categoryConceptId, Date startDate, Date endDate) throws DAOException;
+	        Integer categoryConceptId, Date startDate, Date endDate, String locationUuid) throws DAOException;
 }

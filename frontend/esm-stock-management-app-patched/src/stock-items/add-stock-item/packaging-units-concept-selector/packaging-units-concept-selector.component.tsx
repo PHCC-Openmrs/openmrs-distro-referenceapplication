@@ -14,6 +14,8 @@ interface PackagingUnitsConceptSelectorProps<T> {
   placeholder?: string;
   invalid?: boolean;
   invalidText?: ReactNode;
+  // Packaging units already defined on the stock item, hidden so the same unit can't be added twice
+  excludedUuids?: string[];
 
   // Control
   controllerName: string;
@@ -29,6 +31,8 @@ const PackagingUnitsConceptSelector = <T,>(props: PackagingUnitsConceptSelectorP
     isLoading,
   } = useConcept(packingUnitsUUID);
 
+  const availableUnits = (dispensingUnits ?? []).filter((unit) => !props.excludedUuids?.includes(unit.uuid));
+
   if (isLoading) return <TextInputSkeleton />;
 
   return (
@@ -43,7 +47,7 @@ const PackagingUnitsConceptSelector = <T,>(props: PackagingUnitsConceptSelectorP
           items={
             props.row?.packagingUomUuid !== undefined
               ? [
-                  ...(dispensingUnits.some((x) => x.uuid === props.row?.packagingUomUuid)
+                  ...(availableUnits.some((x) => x.uuid === props.row?.packagingUomUuid)
                     ? []
                     : [
                         {
@@ -51,9 +55,9 @@ const PackagingUnitsConceptSelector = <T,>(props: PackagingUnitsConceptSelectorP
                           display: props.row?.packagingUomName,
                         },
                       ]),
-                  ...(dispensingUnits ?? []),
+                  ...availableUnits,
                 ]
-              : dispensingUnits || []
+              : availableUnits
           }
           onChange={(data: { selectedItem: { uuid: string; display: string } }) => {
             props.onPackageUnitChange?.(data?.selectedItem);

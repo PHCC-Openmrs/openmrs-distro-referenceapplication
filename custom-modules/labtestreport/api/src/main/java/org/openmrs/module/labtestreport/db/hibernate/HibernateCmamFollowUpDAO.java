@@ -30,18 +30,20 @@ public class HibernateCmamFollowUpDAO implements CmamFollowUpDAO {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public List<Object[]> getSummaryRows(CmamAgeGroup ageGroup, Date startDate, Date endDate) throws DAOException {
+	public List<Object[]> getSummaryRows(CmamAgeGroup ageGroup, Date startDate, Date endDate, String locationUuid)
+	        throws DAOException {
 		String sql = ageGroup == CmamAgeGroup.ABOVE_5 ? CMAM_SUMMARY_SQL_ABOVE5 : CMAM_SUMMARY_SQL_UNDER5;
 		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(sql);
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
 		return query.list();
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Object[]> getPatientsForCategory(CmamAgeGroup ageGroup, String dimensionConceptUuid,
-	        Integer categoryConceptId, Date startDate, Date endDate) throws DAOException {
+	        Integer categoryConceptId, Date startDate, Date endDate, String locationUuid) throws DAOException {
 		String sql = ageGroup == CmamAgeGroup.ABOVE_5 ? CMAM_PATIENTS_FOR_CATEGORY_SQL_ABOVE5
 		        : CMAM_PATIENTS_FOR_CATEGORY_SQL_UNDER5;
 		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(sql);
@@ -49,6 +51,7 @@ public class HibernateCmamFollowUpDAO implements CmamFollowUpDAO {
 		query.setParameter("categoryConceptId", categoryConceptId);
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
+		query.setParameter("locationUuid", locationUuid);
 		return query.list();
 	}
 }

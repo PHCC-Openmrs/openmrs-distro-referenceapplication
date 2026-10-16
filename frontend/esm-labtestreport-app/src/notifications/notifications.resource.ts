@@ -8,6 +8,7 @@ export type NotificationType =
   | 'PATIENT_REGISTERED'
   | 'PATIENT_QUEUED'
   | 'STOCK_OPERATION'
+  | 'STOCK_CHANGE'
   | 'LOW_STOCK'
   | 'STOCK_EXPIRY'
   | 'GENERAL';
@@ -70,6 +71,7 @@ export function getNotificationLink(notification: Notification): string | null {
     case 'PATIENT_QUEUED':
       return '${openmrsSpaBase}/home/service-queues';
     case 'STOCK_OPERATION':
+    case 'STOCK_CHANGE':
       return '${openmrsSpaBase}/stock-management/operations';
     case 'LOW_STOCK':
     case 'STOCK_EXPIRY':

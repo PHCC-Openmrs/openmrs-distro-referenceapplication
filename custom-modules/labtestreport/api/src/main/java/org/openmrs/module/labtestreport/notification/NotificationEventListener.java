@@ -36,11 +36,14 @@ public class NotificationEventListener implements EventListener {
 
 	private static final String STOCK_OPERATION = "org.openmrs.module.stockmanagement.api.model.StockOperation";
 
+	/** every change to stock quantities is written as one of these */
+	private static final String STOCK_ITEM_TRANSACTION = "org.openmrs.module.stockmanagement.api.model.StockItemTransaction";
+
 	/** event topics are "ACTION:fully.qualified.ClassName", one per concrete class */
 	public static final List<String> TOPICS = Arrays.asList(topic(CREATED, TestOrder.class.getName()),
 	    topic(UPDATED, TestOrder.class.getName()), topic(CREATED, DrugOrder.class.getName()),
 	    topic(CREATED, Patient.class.getName()), topic(CREATED, QUEUE_ENTRY), topic(CREATED, STOCK_OPERATION),
-	    topic(UPDATED, STOCK_OPERATION));
+	    topic(UPDATED, STOCK_OPERATION), topic(CREATED, STOCK_ITEM_TRANSACTION));
 
 	private final DaemonToken daemonToken;
 
@@ -82,6 +85,8 @@ public class NotificationEventListener implements EventListener {
 			service.notifyPatientQueued(uuid);
 		} else if (topic.endsWith(":" + STOCK_OPERATION)) {
 			service.notifyStockOperationChanged(uuid);
+		} else if (topic.equals(topic(CREATED, STOCK_ITEM_TRANSACTION))) {
+			service.notifyStockQuantityChanged(uuid);
 		}
 	}
 

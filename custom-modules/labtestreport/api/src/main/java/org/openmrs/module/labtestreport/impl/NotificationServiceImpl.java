@@ -1,13 +1,16 @@
 package org.openmrs.module.labtestreport.impl;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -82,6 +85,9 @@ public class NotificationServiceImpl extends BaseOpenmrsService implements Notif
 	private static final String LOW_STOCK_TEXT_PREFIX = "Stock alert:";
 
 	private static final String STOCK_OPERATION_TEXT = ": Stock Operation ";
+
+	/** items a stock change notification names before summing up the rest as "and N more" */
+	private static final int MAX_LISTED_STOCK_CHANGES = 5;
 
 	private NotificationDAO dao;
 
@@ -277,6 +283,87 @@ public class NotificationServiceImpl extends BaseOpenmrsService implements Notif
 		// the user who just acted on it already knows
 		removeUser(recipients, "SUBMITTED".equals(status) ? op[5] : op[7]);
 		create(NotificationType.STOCK_OPERATION, key, null, location, message, recipients, 14);
+	}
+
+	@Override
+	@Transactional
+	public void notifyStockQuantityChanged(String stockItemTransactionUuid) {
+		Object[] tx = dao.getStockItemTransaction(stockItemTransactionUuid);
+		if (tx == null) {
+			return;
+		}
+		int transactionId = toInt(tx[0]);
+		String operationUuid = (String) tx[1];
+		Integer locationId = toInt(tx[2]);
+
+		/*
+		 * one save of an operation writes a transaction per line, each its own event: a notification
+		 * covers the operation's transactions at the location up to the id ending its key, so the rest of
+		 * the save is skipped while a later movement (e.g. the reversal when a dispatched issue is
+		 * cancelled) notifies again
+		 */
+		String keyPrefix = operationUuid + ":" + locationId + ":";
+		String markerPrefix = "[n:" + NotificationType.STOCK_CHANGE + ":" + keyPrefix;
+		Pattern coveredUpTo = Pattern.compile(Pattern.quote(markerPrefix) + "(\\d+)\\]");
+		int notifiedUpTo = 0;
+		for (Alert alert : dao.getAlertsContaining(markerPrefix)) {
+			String covered = firstGroup(coveredUpTo, alert.getText());
+			if (covered != null) {
+				notifiedUpTo = Math.max(notifiedUpTo, Integer.parseInt(covered));
+			}
+		}
+		if (transactionId <= notifiedUpTo) {
+			return;
+		}
+		Object[] op = dao.getStockOperation(operationUuid);
+		List<Object[]> rows = dao.getStockItemTransactions(operationUuid, locationId, notifiedUpTo);
+		if (op == null || rows.isEmpty()) {
+			return;
+		}
+
+		// batches of one item are summed; "item\0unit" -> net quantity
+		Map<String, BigDecimal> netByItem = new LinkedHashMap<>();
+		boolean dispensed = false;
+		for (Object[] row : rows) {
+			String item = row[1] + "\0" + (row[3] == null ? "" : row[3]);
+			netByItem.merge(item, (BigDecimal) row[2], BigDecimal::add);
+			dispensed |= row[4] != null;
+		}
+		List<String> changes = new ArrayList<>();
+		for (Map.Entry<String, BigDecimal> entry : netByItem.entrySet()) {
+			if (entry.getValue().signum() != 0) {
+				String[] item = entry.getKey().split("\0", -1);
+				changes.add(item[0] + " " + signed(entry.getValue()) + (item[1].isEmpty() ? "" : " " + item[1]));
+			}
+		}
+		if (changes.isEmpty()) {
+			return;
+		}
+
+		Object[] last = rows.get(rows.size() - 1);
+		User actor = last[5] == null ? null : Context.getUserService().getUser(toInt(last[5]));
+		Location location = Context.getLocationService().getLocation(locationId);
+		String listed = changes.size() <= MAX_LISTED_STOCK_CHANGES ? String.join(", ", changes)
+		        : String.join(", ", changes.subList(0, MAX_LISTED_STOCK_CHANGES)) + " and "
+		                + (changes.size() - MAX_LISTED_STOCK_CHANGES) + " more";
+		String message = (dispensed ? "Stock dispensed" : "Stock updated")
+		        + (location == null ? "" : " at " + location.getName()) + ": " + listed + " (" + op[2] + " " + op[1]
+		        + (actor == null ? "" : ", by " + userName(actor)) + ")";
+
+		Set<User> recipients = new LinkedHashSet<>();
+		for (Integer userId : dao.getStockUserIds(locationId)) {
+			User user = Context.getUserService().getUser(userId);
+			if (user != null && !user.getRetired()) {
+				recipients.add(user);
+			}
+		}
+		removeUser(recipients, last[5]);
+		create(NotificationType.STOCK_CHANGE, keyPrefix + toInt(last[0]), null, location, message, recipients, 7);
+	}
+
+	private static String signed(BigDecimal quantity) {
+		String plain = quantity.stripTrailingZeros().toPlainString();
+		return quantity.signum() > 0 ? "+" + plain : plain;
 	}
 
 	@Override

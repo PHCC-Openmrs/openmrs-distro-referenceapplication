@@ -84,7 +84,9 @@ public class CmamFollowUpReportManager extends BaseReportManager {
 	 * whatever columns the dataset returns.
 	 */
 	private static String buildPreviewSql() {
+		// The base query also filters by :locationUuid, which this report doesn't declare; pin it to NULL
+		// (all locations) so it isn't left in the SQL as literal text - see DiseaseSummaryReportManager.
 		return "SELECT dimension AS `Dimension`, category AS `Category`, total AS `Number of Children` "
-		        + "FROM (" + SqlResources.load("cmam_summary_report.sql") + ") base";
+		        + "FROM (" + SqlResources.load("cmam_summary_report.sql").replace(":locationUuid", "NULL") + ") base";
 	}
 }

@@ -54,6 +54,14 @@ public interface NotificationService extends OpenmrsService {
 	void notifyStockOperationChanged(String stockOperationUuid);
 
 	/**
+	 * Tells users whose stock management role scope covers the location that stock quantities there
+	 * changed: one notification per operation and movement (all lines of one save together, batches of
+	 * an item summed), listing each item's net change. Covers every operation that moves stock,
+	 * dispensing included.
+	 */
+	void notifyStockQuantityChanged(String stockItemTransactionUuid);
+
+	/**
 	 * @return the authenticated user's unread, unexpired notifications of the session location (those
 	 *         that happened there or at a location inside it, plus any that carry no location), newest
 	 *         first

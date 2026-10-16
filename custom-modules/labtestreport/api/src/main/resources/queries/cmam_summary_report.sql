@@ -1,5 +1,5 @@
 WITH cmam_encounters AS (
-  SELECT e.encounter_id, e.patient_id, e.encounter_datetime,
+  SELECT e.encounter_id, e.patient_id, e.encounter_datetime, e.location_id,
     ROW_NUMBER() OVER (PARTITION BY e.patient_id ORDER BY e.encounter_datetime DESC, e.encounter_id DESC) AS rn
   FROM encounter e
   JOIN form f ON f.form_id = e.form_id
@@ -24,6 +24,9 @@ latest_encounters AS (
       WHERE pp.patient_id = ce.patient_id AND pp.voided = 0
         AND pp.program_id = (SELECT program_id FROM program WHERE uuid = '2433ebba-8ffb-11f1-a103-1afee95a890c')
     )
+    -- Attribute each patient to the location of their most recent CMAM encounter (picked above by
+    -- rn = 1), so filtering by location shows their current status where it was last recorded.
+    AND (:locationUuid IS NULL OR ce.location_id = (SELECT location_id FROM location WHERE uuid = :locationUuid))
 )
 SELECT 'currentDiagnosis' AS dimension, c.concept_id AS categoryConceptId, cn.name AS category, COUNT(*) AS total
 FROM latest_encounters le

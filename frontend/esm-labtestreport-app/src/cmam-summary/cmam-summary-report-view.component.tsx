@@ -4,6 +4,7 @@ import { Modal, InlineLoading, Button } from '@carbon/react';
 import { navigate } from '@openmrs/esm-framework';
 import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
+import LocationFilter from '../reports-shell/location-filter.component';
 import { type ExportSheet } from '../reports-shell/export-utils';
 import pageStyles from '../reports-shell/reports-page.scss';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
@@ -56,8 +57,15 @@ export default function CmamSummaryReportView({
   const [startDateInput, setStartDateInput] = useState('');
   const [endDateInput, setEndDateInput] = useState('');
   const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>({});
+  // Location applies immediately (like Disease Summary), unlike the date range which waits for Filter.
+  const [locationUuid, setLocationUuid] = useState('');
 
-  const { rows, isLoading } = useCmamSummaryReport(ageGroup, appliedDates.startDate, appliedDates.endDate);
+  const { rows, isLoading } = useCmamSummaryReport(
+    ageGroup,
+    appliedDates.startDate,
+    appliedDates.endDate,
+    locationUuid || undefined,
+  );
 
   const [selection, setSelection] = useState<Selection | null>(null);
   const { patients, isLoading: patientsLoading } = useCmamDrilldown(
@@ -68,6 +76,7 @@ export default function CmamSummaryReportView({
           categoryConceptId: selection.categoryConceptId,
           startDate: appliedDates.startDate,
           endDate: appliedDates.endDate,
+          locationUuid: locationUuid || undefined,
         }
       : null,
   );
@@ -187,6 +196,7 @@ export default function CmamSummaryReportView({
           <Button size="md" onClick={applyFilter}>
             {t('filter', 'Filter')}
           </Button>
+          <LocationFilter id="cmamLocationFilter" value={locationUuid} onChange={setLocationUuid} />
         </div>
 
         <ExportButtons

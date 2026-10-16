@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@carbon/react';
-import { Save } from '@carbon/react/icons';
+import { Add, Save, TrashCan } from '@carbon/react/icons';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormProvider, useForm, useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -49,6 +49,12 @@ const PackagingUnits: React.FC<PackagingUnitsProps> = ({ stockItemUuid, handleTa
     factor: 0,
     packagingUomName: '',
   });
+
+  // The blank "new unit" row is only shown on demand once the item already has units;
+  // showing it by default led users to fill it in instead of editing the existing row,
+  // creating duplicate packaging units on save.
+  const [isAddingUnit, setIsAddingUnit] = useState(false);
+  const showNewUnitRow = isAddingUnit || items.length === 0;
 
   useEffect(() => {
     setStockItemUuid(stockItemUuid);
@@ -88,8 +94,29 @@ const PackagingUnits: React.FC<PackagingUnitsProps> = ({ stockItemUuid, handleTa
     resolver: zodResolver(packageUnitSchema),
   });
 
+  const resetNewUnit = () => {
+    setNewUnit({
+      factor: 0,
+      packagingUomUuid: undefined,
+      packagingUomName: '',
+    });
+  };
+
   const handleSavePackageUnits = () => {
     const { reset } = packageUnitForm;
+
+    const isNewUnitTouched = Boolean(newUnit.packagingUomUuid) || newUnit.factor > 0;
+    if (showNewUnitRow && isNewUnitTouched && !hasValidNewUnit) {
+      showSnackbar({
+        title: t('savePackagingUnitErrorTitle', 'Package Unit'),
+        subtitle: t(
+          'newPackagingUnitIncomplete',
+          'Select a packaging unit and enter a pack size greater than 0, or remove the new row',
+        ),
+        kind: 'error',
+      });
+      return;
+    }
 
     const newPayload = newUnit
       ? {
@@ -106,29 +133,27 @@ const PackagingUnits: React.FC<PackagingUnitsProps> = ({ stockItemUuid, handleTa
     });
 
     // Create new unit
-    const createPromises = newPayload.packagingUomUuid
-      ? createStockItemPackagingUnit(newPayload).then(
-          () => {
-            showSnackbar({
-              title: t('savePackingUnitTitle', 'Package Unit'),
-              subtitle: t('savePackingUnitMessage', 'Package Unit saved successfully'),
-              kind: 'success',
-            });
-            setNewUnit({
-              factor: 0,
-              packagingUomUuid: undefined,
-              packagingUomName: '',
-            }); // Reset new unit
-          },
-          () => {
-            showSnackbar({
-              title: t('savePackagingUnitErrorTitle', 'Package Unit'),
-              subtitle: t('savePackagingUnitErrorMessage', 'Error saving package unit'),
-              kind: 'error',
-            });
-          },
-        )
-      : Promise.resolve({ status: 'no-create' });
+    const createPromises =
+      showNewUnitRow && hasValidNewUnit
+        ? createStockItemPackagingUnit(newPayload).then(
+            () => {
+              showSnackbar({
+                title: t('savePackingUnitTitle', 'Package Unit'),
+                subtitle: t('savePackingUnitMessage', 'Package Unit saved successfully'),
+                kind: 'success',
+              });
+              resetNewUnit();
+              setIsAddingUnit(false);
+            },
+            () => {
+              showSnackbar({
+                title: t('savePackagingUnitErrorTitle', 'Package Unit'),
+                subtitle: t('savePackagingUnitErrorMessage', 'Error saving package unit'),
+                kind: 'error',
+              });
+            },
+          )
+        : Promise.resolve({ status: 'no-create' });
 
     // Update existing units
     const updatePromises = updatedUnits.map((unit) =>
@@ -184,6 +209,11 @@ const PackagingUnits: React.FC<PackagingUnitsProps> = ({ stockItemUuid, handleTa
     });
   };
 
+  const handleRemoveNewUnitRow = () => {
+    resetNewUnit();
+    setIsAddingUnit(false);
+  };
+
   const onFactorFieldUpdate = (row: StockItemPackagingUOMDTO, value: string | number) => {
     const qtyValue = typeof value === 'number' ? value : parseFloat(value);
 
@@ -200,7 +230,7 @@ const PackagingUnits: React.FC<PackagingUnitsProps> = ({ stockItemUuid, handleTa
         rows={
           [
             ...items.map((item, idx) => ({ ...item, id: item.uuid || `item-${idx}` })),
-            { id: 'new-row' },
+            ...(showNewUnitRow ? [{ id: 'new-row' }] : []),
           ] as CustomTableRow[]
         }
         headers={tableHeaders as any}
@@ -242,18 +272,27 @@ const PackagingUnits: React.FC<PackagingUnitsProps> = ({ stockItemUuid, handleTa
                     onChange={(value) => onFactorFieldUpdate(row, value)}
                   />
                 ))}
-                <PackagingUnitRow
-                  row={newUnit || {}}
-                  id="new-package-unit"
-                  isEditing
-                  onChangePackageUnit={(value) => handleNewUnitPackageUnitChange(value)}
-                  onChange={(value) => handleNewUnitFactorChange(value)}
-                />
+                {showNewUnitRow && (
+                  <PackagingUnitRow
+                    row={newUnit || {}}
+                    id="new-package-unit"
+                    isEditing
+                    excludedPackagingUomUuids={items.map((item) => item.packagingUomUuid)}
+                    onChangePackageUnit={(value) => handleNewUnitPackageUnitChange(value)}
+                    onChange={(value) => handleNewUnitFactorChange(value)}
+                    onRemove={items.length > 0 ? handleRemoveNewUnitRow : undefined}
+                  />
+                )}
               </TableBody>
             </Table>
           </TableContainer>
         )}
       </DataTable>
+      {!showNewUnitRow && (
+        <Button kind="ghost" renderIcon={Add} onClick={() => setIsAddingUnit(true)}>
+          {t('addPackagingUnit', 'Add packaging unit')}
+        </Button>
+      )}
       <div className={styles.packageUnitsBtn}>
         <Button kind="secondary" onClick={handleCancelPackagingUnits}>
           {getCoreTranslation('cancel')}
@@ -282,7 +321,9 @@ const PackagingUnitRow: React.FC<{
   id?: string;
   onChange?: (value: string | number) => void;
   onChangePackageUnit?: (value: { uuid: string; display: string }) => void;
-}> = ({ isEditing, row, id, onChange, onChangePackageUnit }) => {
+  onRemove?: () => void;
+  excludedPackagingUomUuids?: string[];
+}> = ({ isEditing, row, id, onChange, onChangePackageUnit, onRemove, excludedPackagingUomUuids }) => {
   const { t } = useTranslation();
   const {
     control,
@@ -302,6 +343,7 @@ const PackagingUnitRow: React.FC<{
               placeholder={t('packagingUnitFilterPlaceholder', 'Filter')}
               control={control}
               onPackageUnitChange={(concept) => onChangePackageUnit(concept)}
+              excludedUuids={excludedPackagingUomUuids}
               invalid={!!errors.packagingUomUuid}
             />
           ) : (
@@ -322,7 +364,22 @@ const PackagingUnitRow: React.FC<{
           />
         </TableCell>
         <TableCell>
-          <DeletePackagingUnitActionButton row={row} />
+          {isEditing ? (
+            onRemove && (
+              <Button
+                type="button"
+                size="sm"
+                kind="ghost"
+                className="clear-padding-margin"
+                iconDescription={t('remove', 'Remove')}
+                hasIconOnly
+                renderIcon={TrashCan}
+                onClick={onRemove}
+              />
+            )
+          ) : (
+            <DeletePackagingUnitActionButton row={row} />
+          )}
         </TableCell>
       </TableRow>
     </>

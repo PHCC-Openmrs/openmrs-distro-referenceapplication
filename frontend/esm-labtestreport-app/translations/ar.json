@@ -12,6 +12,7 @@
   "notificationTypeMedicationOrder": "طلب دواء",
   "notificationTypePatientQueued": "الطابور",
   "notificationTypePatientRegistered": "مريض جديد",
+  "notificationTypeStockChange": "تحديث المخزون",
   "notificationTypeStockExpiry": "مخزون قارب على الانتهاء",
   "notificationTypeStockOperation": "عملية مخزون",
   "reports": "التقارير"

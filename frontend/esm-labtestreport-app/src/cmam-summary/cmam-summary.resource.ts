@@ -33,6 +33,7 @@ export interface CmamDrilldownParams {
   categoryConceptId: number;
   startDate?: string;
   endDate?: string;
+  locationUuid?: string;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
@@ -46,8 +47,13 @@ function buildQuery(params: Record<string, string | number | undefined>): string
   return query ? `?${query}` : '';
 }
 
-export function useCmamSummaryReport(ageGroup: CmamAgeGroup, startDate?: string, endDate?: string) {
-  const url = `/module/labtestreport/api/cmam-summary.json${buildQuery({ ageGroup, startDate, endDate })}`;
+export function useCmamSummaryReport(
+  ageGroup: CmamAgeGroup,
+  startDate?: string,
+  endDate?: string,
+  locationUuid?: string,
+) {
+  const url = `/module/labtestreport/api/cmam-summary.json${buildQuery({ ageGroup, startDate, endDate, locationUuid })}`;
   const { data, error, isLoading } = useSWR<{ data: CmamSummaryRow[] }, Error>(url, openmrsFetch);
   return { rows: data?.data ?? [], error, isLoading };
 }

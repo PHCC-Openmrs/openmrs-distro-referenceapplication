@@ -20,9 +20,10 @@ public class CmamFollowUpServiceImpl extends BaseOpenmrsService implements CmamF
 	}
 
 	@Override
-	public List<CmamSummaryRow> getSummaryReport(CmamAgeGroup ageGroup, Date startDate, Date endDate) {
+	public List<CmamSummaryRow> getSummaryReport(CmamAgeGroup ageGroup, Date startDate, Date endDate,
+	        String locationUuid) {
 		List<CmamSummaryRow> rows = new ArrayList<>();
-		for (Object[] r : dao.getSummaryRows(ageGroup, startDate, endDate)) {
+		for (Object[] r : dao.getSummaryRows(ageGroup, startDate, endDate, locationUuid)) {
 			CmamSummaryRow row = new CmamSummaryRow();
 			row.setDimension((String) r[0]);
 			row.setCategoryConceptId(toInteger(r[1]));
@@ -35,10 +36,10 @@ public class CmamFollowUpServiceImpl extends BaseOpenmrsService implements CmamF
 
 	@Override
 	public List<CmamPatientRow> getPatientsForCategory(CmamAgeGroup ageGroup, String dimensionConceptUuid,
-	        Integer categoryConceptId, Date startDate, Date endDate) {
+	        Integer categoryConceptId, Date startDate, Date endDate, String locationUuid) {
 		List<CmamPatientRow> rows = new ArrayList<>();
 		for (Object[] r : dao.getPatientsForCategory(ageGroup, dimensionConceptUuid, categoryConceptId, startDate,
-		    endDate)) {
+		    endDate, locationUuid)) {
 			CmamPatientRow row = new CmamPatientRow();
 			row.setPatientId(toInteger(r[0]));
 			row.setPatientUuid((String) r[1]);

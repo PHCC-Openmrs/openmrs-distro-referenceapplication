@@ -395,9 +395,10 @@ public class LabTestReportRestController {
 	@ResponseBody
 	public ResponseEntity<String> cmamSummary(@RequestParam(value = "ageGroup", required = false) String ageGroup,
 	        @RequestParam(value = "startDate", required = false) Date startDate,
-	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
 		List<CmamSummaryRow> rows = Context.getService(CmamFollowUpService.class)
-		        .getSummaryReport(parseCmamAgeGroup(ageGroup), startDate, endDate);
+		        .getSummaryReport(parseCmamAgeGroup(ageGroup), startDate, endDate, locationUuid);
 		return jsonResponse(rows);
 	}
 
@@ -427,14 +428,15 @@ public class LabTestReportRestController {
 	public ResponseEntity<String> cmamDrilldown(@RequestParam(value = "ageGroup", required = false) String ageGroup,
 	        @RequestParam("dimension") String dimension, @RequestParam("categoryConceptId") Integer categoryConceptId,
 	        @RequestParam(value = "startDate", required = false) Date startDate,
-	        @RequestParam(value = "endDate", required = false) Date endDate) throws JsonProcessingException {
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
 		String dimensionConceptUuid = CMAM_DIMENSION_CONCEPT_UUIDS.get(dimension);
 		if (dimensionConceptUuid == null) {
 			throw new IllegalArgumentException("Unknown CMAM dimension: " + dimension);
 		}
 		List<CmamPatientRow> rows = Context.getService(CmamFollowUpService.class)
 		        .getPatientsForCategory(parseCmamAgeGroup(ageGroup), dimensionConceptUuid, categoryConceptId, startDate,
-		            endDate);
+		            endDate, locationUuid);
 		return jsonResponse(rows);
 	}
 

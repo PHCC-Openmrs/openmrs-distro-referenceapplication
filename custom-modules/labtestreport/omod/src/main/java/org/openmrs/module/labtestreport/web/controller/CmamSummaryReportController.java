@@ -42,7 +42,7 @@ public class CmamSummaryReportController {
 	public ModelAndView showReport(@RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate) {
 		List<CmamSummaryRow> rows = Context.getService(CmamFollowUpService.class).getSummaryReport(CmamAgeGroup.UNDER_5,
-		    startDate, endDate);
+		    startDate, endDate, null);
 
 		Map<String, List<CmamSummaryRow>> byDimension = new LinkedHashMap<>();
 		byDimension.put("currentDiagnosis", new ArrayList<>());

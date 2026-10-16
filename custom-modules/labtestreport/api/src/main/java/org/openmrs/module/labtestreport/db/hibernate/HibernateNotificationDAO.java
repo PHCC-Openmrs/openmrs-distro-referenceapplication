@@ -1,5 +1,6 @@
 package org.openmrs.module.labtestreport.db.hibernate;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -81,5 +82,62 @@ public class HibernateNotificationDAO implements NotificationDAO {
 		                + "   where ot.user_role_scope_id = s.user_role_scope_id and ot.voided = 0"
 		                + "   and ot.operation_type_id = :operationTypeId))")
 		        .setParameter("locationId", locationId).setParameter("operationTypeId", operationTypeId).list();
+	}
+
+	@Override
+	public Object[] getStockItemTransaction(String stockItemTransactionUuid) throws DAOException {
+		return (Object[]) sessionFactory.getCurrentSession()
+		        .createSQLQuery("select t.stock_item_transaction_id, so.uuid as operation_uuid, p.location_id"
+		                + " from stockmgmt_stock_item_transaction t"
+		                + " join stockmgmt_stock_operation so on so.stock_operation_id = t.stock_operation_id"
+		                + " join stockmgmt_party p on p.party_id = t.party_id"
+		                + " where t.uuid = :uuid and p.location_id is not null")
+		        .setParameter("uuid", stockItemTransactionUuid).uniqueResult();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Object[]> getStockItemTransactions(String stockOperationUuid, Integer locationId,
+	        Integer afterTransactionId) throws DAOException {
+		return sessionFactory.getCurrentSession()
+		        .createSQLQuery("select t.stock_item_transaction_id, coalesce(si.common_name, d.name, cn.name) as item_name,"
+		                + " t.quantity, ucn.name as uom_name, t.patient_id, t.creator"
+		                + " from stockmgmt_stock_item_transaction t"
+		                + " join stockmgmt_stock_operation so on so.stock_operation_id = t.stock_operation_id"
+		                + " join stockmgmt_party p on p.party_id = t.party_id"
+		                + " join stockmgmt_stock_item si on si.stock_item_id = t.stock_item_id"
+		                + " left join drug d on d.drug_id = si.drug_id"
+		                + " left join concept_name cn on cn.concept_id = si.concept_id and cn.locale = 'en'"
+		                + "   and cn.locale_preferred = 1 and cn.voided = 0"
+		                + " left join stockmgmt_stock_item_packaging_uom u"
+		                + "   on u.stock_item_packaging_uom_id = t.stock_item_packaging_uom_id"
+		                + " left join concept_name ucn on ucn.concept_id = u.packaging_uom_id and ucn.locale = 'en'"
+		                + "   and ucn.locale_preferred = 1 and ucn.voided = 0"
+		                + " where so.uuid = :operationUuid and p.location_id = :locationId"
+		                + " and t.stock_item_transaction_id > :after"
+		                + " order by t.stock_item_transaction_id")
+		        .setParameter("operationUuid", stockOperationUuid).setParameter("locationId", locationId)
+		        .setParameter("after", afterTransactionId).list();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Integer> getStockUserIds(Integer locationId) throws DAOException {
+		List<Number> ids = sessionFactory.getCurrentSession()
+		        .createSQLQuery("select distinct s.user_id"
+		                + " from stockmgmt_user_role_scope s"
+		                + " join stockmgmt_user_role_scope_location sl on sl.user_role_scope_id = s.user_role_scope_id"
+		                + "   and sl.voided = 0"
+		                + " where s.voided = 0 and s.enabled = 1"
+		                + " and (s.is_permanent = 1 or (s.active_from <= now() and s.active_to >= now()))"
+		                + " and (sl.location_id = :locationId or (sl.enable_descendants = 1 and exists ("
+		                + "   select 1 from stockmgmt_location_tree lt"
+		                + "   where lt.parent_location_id = sl.location_id and lt.child_location_id = :locationId)))")
+		        .setParameter("locationId", locationId).list();
+		List<Integer> result = new ArrayList<>();
+		for (Number id : ids) {
+			result.add(id.intValue());
+		}
+		return result;
 	}
 }

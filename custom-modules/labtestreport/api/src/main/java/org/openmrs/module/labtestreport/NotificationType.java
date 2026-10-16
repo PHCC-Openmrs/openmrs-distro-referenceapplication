@@ -11,6 +11,8 @@ public enum NotificationType {
 	PATIENT_REGISTERED,
 	PATIENT_QUEUED,
 	STOCK_OPERATION,
+	/** an item's quantity at a location went up or down (any operation, dispensing included) */
+	STOCK_CHANGE,
 	/** stock management's own stock rule alerts */
 	LOW_STOCK,
 	/** stock management's own batch expiry alerts */

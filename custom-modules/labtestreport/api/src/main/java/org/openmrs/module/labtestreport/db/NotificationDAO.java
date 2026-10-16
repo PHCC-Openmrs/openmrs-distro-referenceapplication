@@ -49,4 +49,25 @@ public interface NotificationDAO {
 	 *         the operation type (scopes that list no operation types cover all of them)
 	 */
 	List<Object[]> getStockRoleScopes(Integer locationId, Integer operationTypeId) throws DAOException;
+
+	/**
+	 * @return {transaction id, stock operation uuid, location id}, or null if the transaction does not
+	 *         exist or belongs to no operation or location
+	 */
+	Object[] getStockItemTransaction(String stockItemTransactionUuid) throws DAOException;
+
+	/**
+	 * @return {transaction id, item name, quantity (in the transaction's packaging unit), packaging
+	 *         unit name, patient id, creator user id} for every transaction of the operation at the
+	 *         location with an id above {@code afterTransactionId}, oldest first
+	 */
+	List<Object[]> getStockItemTransactions(String stockOperationUuid, Integer locationId, Integer afterTransactionId)
+	        throws DAOException;
+
+	/**
+	 * @return ids of the users with an enabled, currently active stock management role scope (of any
+	 *         role or operation type) that covers the location, directly or through a parent scoped with
+	 *         descendants
+	 */
+	List<Integer> getStockUserIds(Integer locationId) throws DAOException;
 }

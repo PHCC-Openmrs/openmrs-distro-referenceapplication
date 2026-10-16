@@ -260,6 +260,7 @@
   "notificationTypeMedicationOrder": "Medication order",
   "notificationTypePatientQueued": "Queue",
   "notificationTypePatientRegistered": "New patient",
+  "notificationTypeStockChange": "Stock updated",
   "notificationTypeStockExpiry": "Expiring stock",
   "notificationTypeStockOperation": "Stock operation",
   "notYetDispensed": "Not Yet Dispensed",

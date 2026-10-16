@@ -44,7 +44,7 @@ public class CmamDrilldownController {
 	        @RequestParam(value = "endDate", required = false) Date endDate) {
 
 		List<CmamPatientRow> patients = Context.getService(CmamFollowUpService.class).getPatientsForCategory(
-		    CmamAgeGroup.UNDER_5, dimensionConceptUuid, categoryConceptId, startDate, endDate);
+		    CmamAgeGroup.UNDER_5, dimensionConceptUuid, categoryConceptId, startDate, endDate, null);
 
 		SimpleDateFormat dateFormat = new SimpleDateFormat(SummaryReportController.DATE_FORMAT);
 		ModelMap model = new ModelMap();

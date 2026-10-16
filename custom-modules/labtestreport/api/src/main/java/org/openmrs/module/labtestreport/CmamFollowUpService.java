@@ -11,10 +11,11 @@ public interface CmamFollowUpService extends OpenmrsService {
 	 * @param ageGroup which age group's report to run
 	 * @param startDate only consider CMAM encounters on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only consider CMAM encounters through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only count patients whose most recent CMAM encounter was at this location, or null for all locations
 	 * @return counts of patients in that age group, by their most recent CMAM encounter's Current
 	 *         Diagnosis, Child Last Status and Alert Status
 	 */
-	List<CmamSummaryRow> getSummaryReport(CmamAgeGroup ageGroup, Date startDate, Date endDate);
+	List<CmamSummaryRow> getSummaryReport(CmamAgeGroup ageGroup, Date startDate, Date endDate, String locationUuid);
 
 	/**
 	 * @param ageGroup which age group's report to run
@@ -22,9 +23,10 @@ public interface CmamFollowUpService extends OpenmrsService {
 	 * @param categoryConceptId the specific answer concept within that dimension
 	 * @param startDate only consider CMAM encounters on/after this date (inclusive), or null for no lower bound
 	 * @param endDate only consider CMAM encounters through the end of this date (inclusive), or null for no upper bound
+	 * @param locationUuid only list patients whose most recent CMAM encounter was at this location, or null for all locations
 	 * @return the patients in that age group whose most recent CMAM encounter has that answer for
 	 *         that dimension
 	 */
 	List<CmamPatientRow> getPatientsForCategory(CmamAgeGroup ageGroup, String dimensionConceptUuid,
-	        Integer categoryConceptId, Date startDate, Date endDate);
+	        Integer categoryConceptId, Date startDate, Date endDate, String locationUuid);
 }

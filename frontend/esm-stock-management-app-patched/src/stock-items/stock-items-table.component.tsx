@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  Button,
   DataTable,
   DataTableSkeleton,
   IconButton,
@@ -20,14 +21,22 @@ import {
   TableToolbarSearch,
   Tile,
 } from '@carbon/react';
-import { Edit } from '@carbon/react/icons';
-import { ErrorState, isDesktop, restBaseUrl, useSession, userHasAccess } from '@openmrs/esm-framework';
+import { Download, Edit } from '@carbon/react/icons';
+import {
+  ErrorState,
+  isDesktop,
+  restBaseUrl,
+  showSnackbar,
+  useSession,
+  userHasAccess,
+} from '@openmrs/esm-framework';
 import { useHandleMutate } from '../utils';
 import { launchAddOrEditStockItemWorkspace } from './stock-item.utils';
 import { ResourceRepresentation } from '../core/api/api';
 import { useDebounce } from '../core/hooks/debounce-hook';
 import { useStockItemsPages } from './stock-items-table.resource';
 import { useStockItemQuantities } from './stock-item-quantities.resource';
+import { downloadStockItemsAsExcel } from './export-stock-items';
 import AddStockItemActionButton from './add-stock-item/add-stock-action-button.component';
 import AddStockItemsBulktImportActionButton from './add-bulk-stock-item/add-stock-items-bulk-import-action-button.component';
 import DeleteStockItemActionButton from './delete-stock-item-action-button.component';
@@ -76,7 +85,11 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
   const [currentPageSize, setPageSize] = useState(10);
 
   const stockItemUuids = useMemo(() => items?.map((item) => item.uuid) ?? [], [items]);
-  const { quantityByItem, quantityMetaByItem } = useStockItemQuantities(stockItemUuids, sessionLocation?.uuid);
+  const {
+    quantityByItem,
+    quantityMetaByItem,
+    isLoading: isLoadingQuantities,
+  } = useStockItemQuantities(stockItemUuids, sessionLocation?.uuid);
 
   const [columnFilters, setColumnFilters] = useState<StockItemColumnFilters>(EMPTY_COLUMN_FILTERS);
 
@@ -125,6 +138,25 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [columnFilters, isDrug]);
+
+  const handleDownload = () => {
+    try {
+      downloadStockItemsAsExcel({
+        items: filteredItems ?? [],
+        quantityByItem,
+        quantityMetaByItem,
+        getStockStatus,
+        locationName: sessionLocation?.display,
+        t,
+      });
+    } catch (e) {
+      showSnackbar({
+        kind: 'error',
+        title: t('downloadFailed', 'Download failed'),
+        subtitle: e instanceof Error ? e.message : String(e),
+      });
+    }
+  };
 
   const handleSearch = (query: string) => {
     setSearchInput(query);
@@ -291,6 +323,14 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
                   onChange={setColumnFilters}
                 />
                 <AddStockItemsBulktImportActionButton />
+                <Button
+                  kind="ghost"
+                  renderIcon={Download}
+                  disabled={isLoading || isLoadingQuantities || !filteredItems?.length}
+                  onClick={handleDownload}
+                >
+                  {t('download', 'Download')}
+                </Button>
                 <TableToolbarMenu data-testid="stock-items-menu">
                   <TableToolbarAction className={styles.toolbarAction} onClick={handleRefresh}>
                     {t('refresh', 'Refresh')}
