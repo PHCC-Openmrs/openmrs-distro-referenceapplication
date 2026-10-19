@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InlineLoading, Button, ContentSwitcher, Search, Switch, Tag, NumberInput } from '@carbon/react';
 import { ChevronDown, ChevronRight } from '@carbon/react/icons';
-import { navigate } from '@openmrs/esm-framework';
+import { navigate, useLocations } from '@openmrs/esm-framework';
 import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import SimpleBarChart from '../reports-shell/simple-bar-chart.component';
 import KpiTiles from '../reports-shell/kpi-tiles.component';
@@ -20,6 +20,8 @@ import {
   type PatientEncounterDetailRow,
   type PatientEncounterSummaryRow,
 } from './patient-encounter-summary.resource';
+
+const LOCATION_TAG = 'Login Location';
 
 // `serviceType` (on both endpoints) and `location` (summary only) are comma-joined lists -- a
 // visit can be recorded for more than one service, and a patient can visit more than one
@@ -224,9 +226,18 @@ export default function PatientEncounterSummaryReport() {
     [compare.enabled, compareDetailRows, comparePatientById, filters],
   );
 
+  // Every login location is offered even when it has no visits in the period, so the filter
+  // doesn't shrink with the data; visit locations outside that tag are still merged in.
+  const allLocations = useLocations(LOCATION_TAG);
   const locationOptions = useMemo(
-    () => uniqueSorted(detailRows.map((row) => row.locationName).filter(Boolean)),
-    [detailRows],
+    () =>
+      uniqueSorted(
+        [
+          ...(allLocations ?? []).map((location) => location.display),
+          ...detailRows.map((row) => row.locationName),
+        ].filter(Boolean),
+      ),
+    [allLocations, detailRows],
   );
   const serviceTypeOptions = useMemo(
     () => uniqueSorted(detailRows.flatMap((row) => splitCommaList(row.serviceType))),
