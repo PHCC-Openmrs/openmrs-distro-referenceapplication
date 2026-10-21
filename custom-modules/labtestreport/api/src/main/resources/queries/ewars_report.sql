@@ -1,26 +1,21 @@
 WITH ewars_map AS (
-  SELECT 1  AS sort_order, 'Acute Respiratory Infections' AS label, 'Acute (Upper) Respiratory infection' AS concept_name
-  UNION ALL SELECT 1,  'Acute Respiratory Infections', 'Acute (Lower) Respiratory infection (suspected Pneumonia)'
-  UNION ALL SELECT 1,  'Acute Respiratory Infections', 'Acute respiratory infection'
-  UNION ALL SELECT 2,  'Acute watery Diarrhea',        'Acute Diarrhea (Report)'
+   SELECT 1  AS sort_order, 'Acute Respiratory Infections' AS label, 'Acute Respiratory Infections' AS concept_name
   UNION ALL SELECT 2,  'Acute watery Diarrhea',        'Acute Watery Diarrhea'
-  UNION ALL SELECT 3,  'Acute Flaccid Paralysis',      'Acute Flaccid Paralysis (AFP)'
+  UNION ALL SELECT 3,  'Acute flaccid paralysis',      'Acute Flaccid Paralysis'
+  UNION ALL SELECT 3,  'Acute Flaccid Paralysis (AFP)',      'Acute Flaccid Paralysis'
   UNION ALL SELECT 4,  'Suspected Cholera',            'Suspected Cholera'
   UNION ALL SELECT 5,  'Suspected Measles',            'Suspected Measles'
   UNION ALL SELECT 6,  'Suspected Mumps',              'Suspected Mumps'
   UNION ALL SELECT 7,  'Suspected Diphtheria',         'Suspected Diptheria'
   UNION ALL SELECT 8,  'Acute Jaundice Syndrome',      'Acute Jaundice Syndrome'
-  UNION ALL SELECT 9,  'Suspected tetanus',            'Suspected Neonatal Tetanus'
+  UNION ALL SELECT 9,  'Suspected Neonatal Tetanus',            'Suspected Neonatal Tetanus'
   UNION ALL SELECT 10, 'Suspected Shigellosis',        'Suspected Shigellosis'
-  UNION ALL SELECT 11, 'Suspected Meningitis',         'Suspected Meningitis (Report)'
   UNION ALL SELECT 11, 'Suspected Meningitis',         'Suspected Meningitis'
   UNION ALL SELECT 12, 'Suspected Tuberculosis',       'Suspected Tuberculosis'
-  UNION ALL SELECT 13, 'Suspected chickenpox',         'Chicken Pox'
-  UNION ALL SELECT 13, 'Suspected chickenpox',         'Suspected Chickenpox'
-  UNION ALL SELECT 14, 'Ectoparasitic skin disease',   'Skin Diseases (scabies, chicken pox, lice, etc.)'
-  UNION ALL SELECT 14, 'Ectoparasitic skin disease',   'Ectoparasitic Skin Disease'
+  UNION ALL SELECT 13, 'Suspected Chickenpox',         'Suspected Chickenpox'
+  UNION ALL SELECT 14, 'Ectoparasitic Skin Disease',   'Ectoparasitic Skin Disease'
   UNION ALL SELECT 15, 'Suspected Impetigo',           'Suspected Impetigo'
-  UNION ALL SELECT 16, 'Unusual Event',                'Unusual Event'
+  UNION ALL SELECT 16, 'Unusual Communicable Disease/Event',                'Unusual Communicable Disease/Event'
 ),
 ewars_concepts AS (
   SELECT em.sort_order, em.label, cn.concept_id

@@ -7,7 +7,12 @@ import { useStockInventory } from './stock-home-inventory-expiry.resource';
 import { useStockInventoryItems } from './stock-home-inventory-items.resource';
 import { useStockBatchQuantities } from './stock-home-batch-quantities.resource';
 import { useStockLevelHistory } from './stock-home-level-history.resource';
-import { computeExpiringStockHistory, computeDisposedStockHistory } from './stock-home-metric-history.utils';
+import {
+  computeExpiringStockHistory,
+  computeDisposedStockHistory,
+  daysUntilExpiry,
+  isExpiringWithinWindow,
+} from './stock-home-metric-history.utils';
 import { type StockOperationFilter } from '../stock-operations/stock-operations.resource';
 import useStockList from './useStockList';
 import MetricsCard from '../core/components/card/metrics-card-component';
@@ -49,17 +54,11 @@ const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
   // hold any of shouldn't count as this location's "expiring stock".
   mergedArray = mergedArray.filter((item) => item.hasExpiration && item.quantity > 0);
 
-  const filteredData = mergedArray.filter((item) => {
-    // Stock items commonly have no configured notice period; falling back to 0 would only
-    // flag items that are already overdue, hiding ones expiring soon (e.g. in 3 days). Default
-    // to the same 180-day window the card itself uses (see sixMonthsExpiryStocks below).
-    const expiryNotice = item.expiryNotice ?? 180;
-    const expirationDate = new Date(item.expiration);
-    const differenceInDays = Math.ceil((expirationDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
-    return differenceInDays <= expiryNotice || differenceInDays < 0;
-  });
+  // Headline: everything expiring within 180 days, including batches already past expiry.
+  const filteredData = mergedArray.filter((item) => isExpiringWithinWindow(item, currentDate));
 
-  const sixMonthsExpiryStocks = filteredData.filter((stock) => stock.hasExpiration && stock.expiryNotice <= 180);
+  // "In 6 months" sub-count: the ones that haven't expired yet.
+  const sixMonthsExpiryStocks = filteredData.filter((item) => daysUntilExpiry(item.expiration, currentDate) >= 0);
 
   const { items } = useDisposalList({
     v: ResourceRepresentation.Full,

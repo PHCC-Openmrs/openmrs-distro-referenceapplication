@@ -6,10 +6,24 @@ function daysAgoDate(daysAgo: number) {
   return date;
 }
 
+/**
+ * Fixed "expiring soon" window. Deliberately not the stock item's expiryNotice: the stock item form
+ * stored days-until-a-picked-date there, so many items carry notices of 700+ days and flagged
+ * batches expiring years out.
+ */
+export const EXPIRY_WINDOW_DAYS = 180;
+
 interface ExpiringBatch {
-  hasExpiration: boolean;
-  expiryNotice: number;
   expiration: Date | string;
+}
+
+export function daysUntilExpiry(expiration: Date | string, asOf: Date = new Date()) {
+  return Math.ceil((new Date(expiration).getTime() - asOf.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/** Expires within the window, or has already expired. */
+export function isExpiringWithinWindow(batch: ExpiringBatch, asOf: Date = new Date()) {
+  return daysUntilExpiry(batch.expiration, asOf) <= EXPIRY_WINDOW_DAYS;
 }
 
 /**
@@ -20,12 +34,7 @@ interface ExpiringBatch {
 export function computeExpiringStockHistory(batches: Array<ExpiringBatch>) {
   const points = SNAPSHOT_DAYS_AGO.map((daysAgo) => {
     const asOf = daysAgoDate(daysAgo);
-    const count = batches.filter((batch) => {
-      const expiryNotice = batch.expiryNotice || 0;
-      const expirationDate = new Date(batch.expiration);
-      const differenceInDays = Math.ceil((expirationDate.getTime() - asOf.getTime()) / (1000 * 60 * 60 * 24));
-      return differenceInDays <= expiryNotice || differenceInDays < 0;
-    }).length;
+    const count = batches.filter((batch) => isExpiringWithinWindow(batch, asOf)).length;
     return { daysAgo, count };
   });
 
