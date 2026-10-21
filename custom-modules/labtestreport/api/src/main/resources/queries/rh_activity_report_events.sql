@@ -12,8 +12,9 @@
 --     assessment.
 --   * pediatricCases -- one event per unique patient enrolled in the Pediatric Consultation
 --     program during the period, aged at their first such enrolment.
---   * totalPatients -- one event per unique patient with any SRH section recorded during the
---     period, aged at their first such encounter.
+--   * totalPatients -- one event per unique patient seen across any of the above during the
+--     period: an SRH section recorded, a high-risk assessment or a pediatric enrolment. Aged at
+--     their first such event.
 --
 -- With a location selected, SRH and risk-assessment encounters are matched on the encounter's
 -- location and pediatric enrolments on the enrolment's location.
@@ -59,7 +60,7 @@ srh_encounters AS (
     AND (:endDate IS NULL OR e.encounter_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
     AND (:locationUuid IS NULL OR e.location_id = (SELECT location_id FROM location WHERE uuid = :locationUuid))
 ),
-events AS (
+indicator_events AS (
   -- DISTINCT so an encounter that somehow carries the same answer twice still counts as one visit.
   SELECT DISTINCT im.indicator_key, se.encounter_id, se.patient_id, se.encounter_datetime AS event_date
   FROM srh_encounters se
@@ -104,10 +105,18 @@ events AS (
     AND (:endDate IS NULL OR pp.date_enrolled < DATE_ADD(:endDate, INTERVAL 1 DAY))
     AND (:locationUuid IS NULL OR pp.location_id = (SELECT location_id FROM location WHERE uuid = :locationUuid))
   GROUP BY pp.patient_id
+),
+events AS (
+  SELECT indicator_key, encounter_id, patient_id, event_date FROM indicator_events
   UNION ALL
-  SELECT 'totalPatients', NULL, se.patient_id, MIN(se.encounter_datetime)
-  FROM srh_encounters se
-  GROUP BY se.patient_id
+  -- SRH encounters are included on their own so a visit with no mapped answer still counts.
+  SELECT 'totalPatients', NULL, seen.patient_id, MIN(seen.event_date)
+  FROM (
+    SELECT patient_id, encounter_datetime AS event_date FROM srh_encounters
+    UNION ALL
+    SELECT patient_id, event_date FROM indicator_events
+  ) seen
+  GROUP BY seen.patient_id
 )
 SELECT
   ev.indicator_key AS indicatorKey,
