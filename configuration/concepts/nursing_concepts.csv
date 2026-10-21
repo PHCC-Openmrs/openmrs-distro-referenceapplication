@@ -15,3 +15,27 @@ b9e461bc-432f-44df-82ae-e08e4c4ad7cf,FALSE,Nursing Monofilament,Monofilament,Mon
 bfeb3e24-1aab-42c3-beb1-33ab91fdbe7b,FALSE,Nursing IV Injection,IV Injection,The intravenous injection administered,Question,Text,,,
 99a79867-1b40-43ab-ac08-6483acfd3a46,FALSE,Nursing Oral Administration,Oral,The oral medication administered,Question,Text,,,
 992966a6-45b5-4b32-b515-b0a298881e35,FALSE,Nursing Nebulization,Nebulization,The nebulization administered,Question,Text,,,
+711d3e43-d841-4abd-911a-57fe7685d43e,FALSE,Hyoscine,,Hyoscine given by the nursing team,Drug,N/A,,,
+193c01f3-a659-4f8a-8ab8-8503b57efb9f,FALSE,Epinephrine (Nursing),,Epinephrine given by the nursing team,Drug,N/A,,,
+b0154237-4ed9-4bd4-80af-c8328a21d559,FALSE,Lidocaine (Nursing),,Lidocaine given by the nursing team,Drug,N/A,,,
+a74937f1-874d-4014-9a47-b28ffdd747bf,FALSE,Atropine sulphate,,Atropine sulphate given by the nursing team,Drug,N/A,,,
+9ca2c195-25bc-40ec-9ad0-04f5125f7cb3,FALSE,Solu Cortef,,Solu Cortef given by the nursing team,Drug,N/A,,,
+5636f1ad-4c11-4015-bca4-6ffffcb95830,FALSE,Diclofenac sodium (Nursing),,Diclofenac sodium given by the nursing team,Drug,N/A,,,
+3b43a06a-2755-4e72-9f48-aab22c48326e,FALSE,Metoclopramide (Nursing),,Metoclopramide given by the nursing team,Drug,N/A,,,
+f79a4568-c869-43ed-ad59-d952b0b1d691,FALSE,Dexamethasone (Nursing),,Dexamethasone given by the nursing team,Drug,N/A,,,
+d4f0502b-8137-4523-8e52-15ed0b8fa12b,FALSE,Diclofenac (Nursing),,Diclofenac given by the nursing team,Drug,N/A,,,
+c8f4f0b3-4a5d-4645-a6f1-96b8985f59f2,FALSE,Hydrocortisone (Nursing),,Hydrocortisone given by the nursing team,Drug,N/A,,,
+13c2786a-4334-414e-a0c0-79afcb5fceef,FALSE,Paracetamol Vial,,Paracetamol Vial given by the nursing team,Drug,N/A,,,
+c3a52a98-e750-4a2d-9930-5b5a708e41bd,FALSE,Enalapril 5mg (tab),,Enalapril 5mg (tab) given by the nursing team,Drug,N/A,,,
+e39ee31c-207e-4e78-8fda-a71bde7910f1,FALSE,Acetylsalicylic acid 75 mg (tab),,Acetylsalicylic acid 75 mg (tab) given by the nursing team,Drug,N/A,,,
+b65ae5c6-ef28-44fd-8584-256c56b2b36f,FALSE,Bisoprolol 5mg (tab),,Bisoprolol 5mg (tab) given by the nursing team,Drug,N/A,,,
+174512d0-e079-48d1-ac37-7b83e077400f,FALSE,Ipratropium (Nursing),,Ipratropium given by the nursing team,Drug,N/A,,,
+3c832b45-fcab-4367-84b6-443bd9b4390e,FALSE,Venoline,,Venoline given by the nursing team,Drug,N/A,,,
+9d317dc3-9e7c-4ca0-a195-fb5fb444057a,FALSE,Nursing IM Drug,IM Drug,The intramuscular injection drug given. Its answers are the options of the IM drug dropdown in the nursing form,Question,Coded,711d3e43-d841-4abd-911a-57fe7685d43e;193c01f3-a659-4f8a-8ab8-8503b57efb9f;b0154237-4ed9-4bd4-80af-c8328a21d559;a74937f1-874d-4014-9a47-b28ffdd747bf;9ca2c195-25bc-40ec-9ad0-04f5125f7cb3;5636f1ad-4c11-4015-bca4-6ffffcb95830;3b43a06a-2755-4e72-9f48-aab22c48326e;f79a4568-c869-43ed-ad59-d952b0b1d691;d4f0502b-8137-4523-8e52-15ed0b8fa12b,,
+8c449bc5-522e-4bc9-96a5-bf94a9598830,FALSE,Nursing IM Quantity,IM Quantity,The quantity of the intramuscular injection drug given,Question,Numeric,,,TRUE
+65bd62b4-cabb-4c43-bfae-4a39bff70ff5,FALSE,Nursing IV Drug,IV Drug,The intravenous injection drug given. Its answers are the options of the IV drug dropdown in the nursing form,Question,Coded,c8f4f0b3-4a5d-4645-a6f1-96b8985f59f2;13c2786a-4334-414e-a0c0-79afcb5fceef;711d3e43-d841-4abd-911a-57fe7685d43e;3b43a06a-2755-4e72-9f48-aab22c48326e,,
+ebab3ca6-66b3-4295-a524-2833bc17a636,FALSE,Nursing IV Quantity,IV Quantity,The quantity of the intravenous injection drug given,Question,Numeric,,,TRUE
+9a67de0d-0b5f-465b-b08a-43af10577ba1,FALSE,Nursing Oral Drug,Oral Drug,The oral medication drug given. Its answers are the options of the Oral drug dropdown in the nursing form,Question,Coded,c3a52a98-e750-4a2d-9930-5b5a708e41bd;e39ee31c-207e-4e78-8fda-a71bde7910f1;b65ae5c6-ef28-44fd-8584-256c56b2b36f,,
+3861a9c6-ded7-4b86-abb6-cd9de557ac43,FALSE,Nursing Oral Quantity,Oral Quantity,The quantity of the oral medication drug given,Question,Numeric,,,TRUE
+5ea5d0e1-453b-4414-9a6b-6033ebd44174,FALSE,Nursing Nebulization Drug,Nebulization Drug,The nebulization drug given. Its answers are the options of the Nebulization drug dropdown in the nursing form,Question,Coded,f79a4568-c869-43ed-ad59-d952b0b1d691;174512d0-e079-48d1-ac37-7b83e077400f;3c832b45-fcab-4367-84b6-443bd9b4390e,,
+393a7a86-abcb-4e40-9065-1e25a25867cd,FALSE,Nursing Nebulization Quantity,Nebulization Quantity,The quantity of the nebulization drug given,Question,Numeric,,,TRUE

@@ -13,6 +13,8 @@ export interface KpiTileDatum {
 
 interface KpiTilesProps {
   items: Array<KpiTileDatum>;
+  /** Fixes the number of tiles per row, so a long set of tiles wraps into even rows. */
+  columns?: number;
 }
 
 function CompareLine({ value, compareValue, compareLabel }: Required<Pick<KpiTileDatum, 'value' | 'compareValue'>> & {
@@ -47,9 +49,12 @@ function CompareLine({ value, compareValue, compareLabel }: Required<Pick<KpiTil
   );
 }
 
-export default function KpiTiles({ items }: KpiTilesProps) {
+export default function KpiTiles({ items, columns }: KpiTilesProps) {
   return (
-    <div className={styles.kpiGrid}>
+    <div
+      className={styles.kpiGrid}
+      style={columns ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}
+    >
       {items.map((item) => (
         <Tile key={item.label} className={styles.kpiTile}>
           <p className={styles.kpiLabel}>{item.label}</p>

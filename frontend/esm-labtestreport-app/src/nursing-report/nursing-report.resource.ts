@@ -20,12 +20,17 @@ export interface NursingReportRow {
   dressingGeneralNotes: string | null;
   spirometry: number | null;
   monofilament: number | null;
-  imInjection: string | null;
-  ivInjection: string | null;
-  oral: string | null;
-  nebulization: string | null;
   /** UUID of the ECG attachment recorded at this encounter, or null if no ECG was uploaded. */
   ecgAttachmentUuid: string | null;
+  /** The drug and quantity given for each procedure, as recorded by the nursing form's dropdown and quantity fields. */
+  imInjectionDrug: string | null;
+  imInjectionQuantity: number | null;
+  ivInjectionDrug: string | null;
+  ivInjectionQuantity: number | null;
+  oralDrug: string | null;
+  oralQuantity: number | null;
+  nebulizationDrug: string | null;
+  nebulizationQuantity: number | null;
 }
 
 export function useNursingReport(startDate?: string, endDate?: string, locationUuid?: string) {
