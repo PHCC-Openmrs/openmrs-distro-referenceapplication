@@ -54,6 +54,23 @@ public class NursingReportRow {
 	/** UUID of the ECG attachment recorded at this encounter, or null if no ECG was uploaded. */
 	private String ecgAttachmentUuid;
 
+	/** The drug (and quantity) given for each nursing procedure, as recorded by the dropdown + quantity fields. */
+	private String imInjectionDrug;
+
+	private Double imInjectionQuantity;
+
+	private String ivInjectionDrug;
+
+	private Double ivInjectionQuantity;
+
+	private String oralDrug;
+
+	private Double oralQuantity;
+
+	private String nebulizationDrug;
+
+	private Double nebulizationQuantity;
+
 	public Integer getPatientId() {
 		return patientId;
 	}
@@ -228,5 +245,69 @@ public class NursingReportRow {
 
 	public void setEcgAttachmentUuid(String ecgAttachmentUuid) {
 		this.ecgAttachmentUuid = ecgAttachmentUuid;
+	}
+
+	public String getImInjectionDrug() {
+		return imInjectionDrug;
+	}
+
+	public void setImInjectionDrug(String imInjectionDrug) {
+		this.imInjectionDrug = imInjectionDrug;
+	}
+
+	public Double getImInjectionQuantity() {
+		return imInjectionQuantity;
+	}
+
+	public void setImInjectionQuantity(Double imInjectionQuantity) {
+		this.imInjectionQuantity = imInjectionQuantity;
+	}
+
+	public String getIvInjectionDrug() {
+		return ivInjectionDrug;
+	}
+
+	public void setIvInjectionDrug(String ivInjectionDrug) {
+		this.ivInjectionDrug = ivInjectionDrug;
+	}
+
+	public Double getIvInjectionQuantity() {
+		return ivInjectionQuantity;
+	}
+
+	public void setIvInjectionQuantity(Double ivInjectionQuantity) {
+		this.ivInjectionQuantity = ivInjectionQuantity;
+	}
+
+	public String getOralDrug() {
+		return oralDrug;
+	}
+
+	public void setOralDrug(String oralDrug) {
+		this.oralDrug = oralDrug;
+	}
+
+	public Double getOralQuantity() {
+		return oralQuantity;
+	}
+
+	public void setOralQuantity(Double oralQuantity) {
+		this.oralQuantity = oralQuantity;
+	}
+
+	public String getNebulizationDrug() {
+		return nebulizationDrug;
+	}
+
+	public void setNebulizationDrug(String nebulizationDrug) {
+		this.nebulizationDrug = nebulizationDrug;
+	}
+
+	public Double getNebulizationQuantity() {
+		return nebulizationQuantity;
+	}
+
+	public void setNebulizationQuantity(Double nebulizationQuantity) {
+		this.nebulizationQuantity = nebulizationQuantity;
 	}
 }

@@ -26,6 +26,15 @@ export interface NursingReportRow {
   nebulization: string | null;
   /** UUID of the ECG attachment recorded at this encounter, or null if no ECG was uploaded. */
   ecgAttachmentUuid: string | null;
+  /** The drug and quantity given for each procedure; the text fields above hold older, free-text answers. */
+  imInjectionDrug: string | null;
+  imInjectionQuantity: number | null;
+  ivInjectionDrug: string | null;
+  ivInjectionQuantity: number | null;
+  oralDrug: string | null;
+  oralQuantity: number | null;
+  nebulizationDrug: string | null;
+  nebulizationQuantity: number | null;
 }
 
 export function useNursingReport(startDate?: string, endDate?: string, locationUuid?: string) {

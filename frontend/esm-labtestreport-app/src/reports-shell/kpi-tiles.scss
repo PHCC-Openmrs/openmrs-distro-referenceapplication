@@ -6,6 +6,8 @@
 }
 
 .kpiTile {
+  display: flex;
+  flex-direction: column;
   padding: 1rem 1.25rem;
 }
 
@@ -21,7 +23,8 @@
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--cds-text-primary, #161616);
-  margin: 0;
+  // Sit at the bottom of the tile, so values line up across a row even when a label wraps.
+  margin: auto 0 0;
 }
 
 .kpiCompare {

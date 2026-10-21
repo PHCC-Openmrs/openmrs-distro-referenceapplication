@@ -25,15 +25,39 @@ const SEARCHABLE_FIELDS: Array<keyof NursingReportRow> = [
   'ivInjection',
   'oral',
   'nebulization',
+  'imInjectionDrug',
+  'ivInjectionDrug',
+  'oralDrug',
+  'nebulizationDrug',
 ];
 
 const LOCATION_TAG = 'Login Location';
 
-/** The four medication-administration columns, so "any medication given" is defined in one place. */
-const MEDICATION_FIELDS: Array<keyof NursingReportRow> = ['imInjection', 'ivInjection', 'oral', 'nebulization'];
+/** The four nursing procedures: the drug dropdown field, and the older free-text field. */
+const PROCEDURES = [
+  { key: 'imInjection', drug: 'imInjectionDrug', quantity: 'imInjectionQuantity' },
+  { key: 'ivInjection', drug: 'ivInjectionDrug', quantity: 'ivInjectionQuantity' },
+  { key: 'oral', drug: 'oralDrug', quantity: 'oralQuantity' },
+  { key: 'nebulization', drug: 'nebulizationDrug', quantity: 'nebulizationQuantity' },
+] as const;
 
+type Procedure = (typeof PROCEDURES)[number];
+
+/** What was given for a procedure: the chosen drug, or the older free-text answer. */
+function procedureValue(row: NursingReportRow, procedure: Procedure): string | null {
+  return row[procedure.drug] || row[procedure.key];
+}
+
+/** Total quantity given for a procedure across the rows: every patient and visit, not a count of visits. */
+function totalQuantity(rows: Array<NursingReportRow>, procedure: Procedure): number {
+  const total = rows.reduce((sum, row) => sum + (row[procedure.quantity] ?? 0), 0);
+  // Quantities may be fractional (half a tablet): keep the sum free of floating-point noise.
+  return Math.round(total * 100) / 100;
+}
+
+/** "Any medication given" is defined in one place. */
 function hasAnyMedication(row: NursingReportRow): boolean {
-  return MEDICATION_FIELDS.some((field) => Boolean(row[field]));
+  return PROCEDURES.some((procedure) => Boolean(procedureValue(row, procedure)));
 }
 
 export default function NursingReport() {
@@ -101,6 +125,22 @@ export default function NursingReport() {
         label: t('ecgsRecorded', 'ECGs Recorded'),
         value: searchedRows.filter((row) => Boolean(row.ecgAttachmentUuid)).length,
       },
+      {
+        label: t('imInjections', 'IM Injections'),
+        value: totalQuantity(searchedRows, PROCEDURES[0]),
+      },
+      {
+        label: t('ivInjections', 'IV Injections'),
+        value: totalQuantity(searchedRows, PROCEDURES[1]),
+      },
+      {
+        label: t('oralMedications', 'Oral Medications'),
+        value: totalQuantity(searchedRows, PROCEDURES[2]),
+      },
+      {
+        label: t('nebulizations', 'Nebulizations'),
+        value: totalQuantity(searchedRows, PROCEDURES[3]),
+      },
     ],
     [t, searchedRows],
   );
@@ -124,9 +164,13 @@ export default function NursingReport() {
         t('spirometry', 'Spirometry'),
         t('monofilament', 'Monofilament'),
         t('imInjection', 'IM Injection'),
+        t('imInjectionQuantity', 'IM Injection Quantity'),
         t('ivInjection', 'IV Injection'),
+        t('ivInjectionQuantity', 'IV Injection Quantity'),
         t('oral', 'Oral'),
+        t('oralQuantity', 'Oral Quantity'),
         t('nebulization', 'Nebulization'),
+        t('nebulizationQuantity', 'Nebulization Quantity'),
         t('ecgRecorded', 'ECG Recorded'),
       ],
       rows: searchedRows.map((row) => [
@@ -144,10 +188,7 @@ export default function NursingReport() {
         row.dressingGeneralNotes ?? '',
         row.spirometry ?? '',
         row.monofilament ?? '',
-        row.imInjection ?? '',
-        row.ivInjection ?? '',
-        row.oral ?? '',
-        row.nebulization ?? '',
+        ...PROCEDURES.flatMap((procedure) => [procedureValue(row, procedure) ?? '', row[procedure.quantity] ?? '']),
         row.ecgAttachmentUuid ? t('yes', 'Yes') : t('no', 'No'),
       ]),
     }),
@@ -182,7 +223,7 @@ export default function NursingReport() {
           )}
         </p>
 
-        {!isLoading && <KpiTiles items={kpiItems} />}
+        {!isLoading && <KpiTiles items={kpiItems} columns={5} />}
 
         <div className={pageStyles.filterTile}>
           <div className={pageStyles.filterField}>
@@ -332,9 +373,13 @@ export default function NursingReport() {
                     onSort={toggleSort}
                   />
                   <th className="left">{t('imInjection', 'IM Injection')}</th>
+                  <th>{t('imQuantity', 'IM Qty')}</th>
                   <th className="left">{t('ivInjection', 'IV Injection')}</th>
+                  <th>{t('ivQuantity', 'IV Qty')}</th>
                   <th className="left">{t('oral', 'Oral')}</th>
+                  <th>{t('oralQty', 'Oral Qty')}</th>
                   <th className="left">{t('nebulization', 'Nebulization')}</th>
+                  <th>{t('nebulizationQty', 'Nebulization Qty')}</th>
                   <th>{t('ecgRecorded', 'ECG Recorded')}</th>
                 </tr>
               </thead>
@@ -360,16 +405,18 @@ export default function NursingReport() {
                     <td className="left">{row.dressingGeneralNotes || '--'}</td>
                     <td>{row.spirometry ?? '--'}</td>
                     <td>{row.monofilament ?? '--'}</td>
-                    <td className="left">{row.imInjection || '--'}</td>
-                    <td className="left">{row.ivInjection || '--'}</td>
-                    <td className="left">{row.oral || '--'}</td>
-                    <td className="left">{row.nebulization || '--'}</td>
+                    {PROCEDURES.map((procedure) => (
+                      <React.Fragment key={procedure.key}>
+                        <td className="left">{procedureValue(row, procedure) || '--'}</td>
+                        <td>{row[procedure.quantity] ?? '--'}</td>
+                      </React.Fragment>
+                    ))}
                     <td>{row.ecgAttachmentUuid ? t('yes', 'Yes') : '--'}</td>
                   </tr>
                 ))}
                 {sortedRows.length === 0 && (
                   <tr>
-                    <td colSpan={17} className={pageStyles.emptyState}>
+                    <td colSpan={21} className={pageStyles.emptyState}>
                       {t('noNursingRecordsForSelection', 'No nursing records found for this selection.')}
                     </td>
                   </tr>

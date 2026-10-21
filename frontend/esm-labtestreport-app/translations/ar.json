@@ -1,7 +1,16 @@
 {
+  "imInjectionQuantity": "كمية حقنة العضل",
+  "imInjections": "حقن العضل",
+  "imQuantity": "كمية العضل",
+  "ivInjectionQuantity": "كمية حقنة الوريد",
+  "ivInjections": "حقن الوريد",
+  "ivQuantity": "كمية الوريد",
   "loading": "جارٍ التحميل...",
   "manageReports": "إدارة التقارير",
   "markAllRead": "تحديد الكل كمقروء",
+  "nebulizationQty": "كمية البخاخ",
+  "nebulizationQuantity": "كمية جلسة البخاخ",
+  "nebulizations": "جلسات البخاخ",
   "noNotifications": "لا توجد إشعارات جديدة.",
   "notifications": "الإشعارات",
   "notificationsError": "تعذّر تحميل الإشعارات.",
@@ -15,5 +24,8 @@
   "notificationTypeStockChange": "تحديث المخزون",
   "notificationTypeStockExpiry": "مخزون قارب على الانتهاء",
   "notificationTypeStockOperation": "عملية مخزون",
+  "oralMedications": "الأدوية الفموية",
+  "oralQty": "كمية الفموي",
+  "oralQuantity": "كمية الدواء الفموي",
   "reports": "التقارير"
 }

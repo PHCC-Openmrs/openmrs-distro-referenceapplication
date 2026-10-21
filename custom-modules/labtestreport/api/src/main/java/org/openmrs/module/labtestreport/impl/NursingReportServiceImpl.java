@@ -44,6 +44,14 @@ public class NursingReportServiceImpl extends BaseOpenmrsService implements Nurs
 			row.setOral((String) r[19]);
 			row.setNebulization((String) r[20]);
 			row.setEcgAttachmentUuid((String) r[21]);
+			row.setImInjectionDrug((String) r[22]);
+			row.setImInjectionQuantity(toDouble(r[23]));
+			row.setIvInjectionDrug((String) r[24]);
+			row.setIvInjectionQuantity(toDouble(r[25]));
+			row.setOralDrug((String) r[26]);
+			row.setOralQuantity(toDouble(r[27]));
+			row.setNebulizationDrug((String) r[28]);
+			row.setNebulizationQuantity(toDouble(r[29]));
 			rows.add(row);
 		}
 		return rows;
