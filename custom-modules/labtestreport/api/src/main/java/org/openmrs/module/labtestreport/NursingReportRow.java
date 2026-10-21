@@ -43,14 +43,6 @@ public class NursingReportRow {
 
 	private Double monofilament;
 
-	private String imInjection;
-
-	private String ivInjection;
-
-	private String oral;
-
-	private String nebulization;
-
 	/** UUID of the ECG attachment recorded at this encounter, or null if no ECG was uploaded. */
 	private String ecgAttachmentUuid;
 
@@ -205,38 +197,6 @@ public class NursingReportRow {
 
 	public void setMonofilament(Double monofilament) {
 		this.monofilament = monofilament;
-	}
-
-	public String getImInjection() {
-		return imInjection;
-	}
-
-	public void setImInjection(String imInjection) {
-		this.imInjection = imInjection;
-	}
-
-	public String getIvInjection() {
-		return ivInjection;
-	}
-
-	public void setIvInjection(String ivInjection) {
-		this.ivInjection = ivInjection;
-	}
-
-	public String getOral() {
-		return oral;
-	}
-
-	public void setOral(String oral) {
-		this.oral = oral;
-	}
-
-	public String getNebulization() {
-		return nebulization;
-	}
-
-	public void setNebulization(String nebulization) {
-		this.nebulization = nebulization;
 	}
 
 	public String getEcgAttachmentUuid() {

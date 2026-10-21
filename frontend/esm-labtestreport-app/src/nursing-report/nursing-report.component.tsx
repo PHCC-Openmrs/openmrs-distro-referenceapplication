@@ -21,10 +21,6 @@ const SEARCHABLE_FIELDS: Array<keyof NursingReportRow> = [
   'phoneNumber',
   'typeOfWound',
   'ointments',
-  'imInjection',
-  'ivInjection',
-  'oral',
-  'nebulization',
   'imInjectionDrug',
   'ivInjectionDrug',
   'oralDrug',
@@ -33,7 +29,7 @@ const SEARCHABLE_FIELDS: Array<keyof NursingReportRow> = [
 
 const LOCATION_TAG = 'Login Location';
 
-/** The four nursing procedures: the drug dropdown field, and the older free-text field. */
+/** The four nursing procedures: the drug (dropdown) field and the quantity field of each. */
 const PROCEDURES = [
   { key: 'imInjection', drug: 'imInjectionDrug', quantity: 'imInjectionQuantity' },
   { key: 'ivInjection', drug: 'ivInjectionDrug', quantity: 'ivInjectionQuantity' },
@@ -43,9 +39,9 @@ const PROCEDURES = [
 
 type Procedure = (typeof PROCEDURES)[number];
 
-/** What was given for a procedure: the chosen drug, or the older free-text answer. */
+/** The drug chosen for a procedure. Free-text answers recorded before the dropdown are not shown. */
 function procedureValue(row: NursingReportRow, procedure: Procedure): string | null {
-  return row[procedure.drug] || row[procedure.key];
+  return row[procedure.drug];
 }
 
 /** Total quantity given for a procedure across the rows: every patient and visit, not a count of visits. */
