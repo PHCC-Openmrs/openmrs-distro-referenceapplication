@@ -3,17 +3,20 @@
 -- service pivots these into the age-group x gender grid, and filters the very same rows for a
 -- cell's drill-down, so a count and the patients behind it can never disagree.
 --
--- Three kinds of event:
+-- Four kinds of event:
 --   * SRH section answers -- every select-type SRH field stores its chosen option as free text
 --     (see srh_report.sql), so srh_indicator_map pairs each report row with the concept + option
 --     text that counts towards it. One event per encounter, i.e. per visit recorded.
+--   * highRiskPregnancies -- one event per unique woman marked "High risk" in the Vitals form's
+--     overall risk during the period while enrolled in the SRH program, aged at her first such
+--     assessment.
 --   * pediatricCases -- one event per unique patient enrolled in the Pediatric Consultation
 --     program during the period, aged at their first such enrolment.
 --   * totalPatients -- one event per unique patient with any SRH section recorded during the
 --     period, aged at their first such encounter.
 --
--- With a location selected, SRH encounters are matched on the encounter's location and pediatric
--- enrolments on the enrolment's location.
+-- With a location selected, SRH and risk-assessment encounters are matched on the encounter's
+-- location and pediatric enrolments on the enrolment's location.
 WITH srh_indicator_map AS (
   -- SRH Assessment > ANC
   SELECT 'ancFirstVisitBeforeFirstTrimester' AS indicator_key, 'd2c7f668-6b1e-4582-aef3-5df79c45fb84' AS concept_uuid, 'First antenatal visit < 1st trimester' AS value_text
@@ -62,7 +65,35 @@ events AS (
   FROM srh_encounters se
   JOIN obs o ON o.encounter_id = se.encounter_id AND o.voided = 0
   JOIN concept c ON c.concept_id = o.concept_id
-  JOIN srh_indicator_map im ON im.concept_uuid = c.uuid AND im.value_text = o.value_text
+  -- The server HTML-escapes free text on save ("<72 H" is stored as "&lt;72 H"), so decode the
+  -- < and > that the mapped option texts contain before matching.
+  JOIN srh_indicator_map im ON im.concept_uuid = c.uuid
+    AND im.value_text = REPLACE(REPLACE(o.value_text, '&lt;', '<'), '&gt;', '>')
+  UNION ALL
+  SELECT 'highRiskPregnancies', NULL, o.person_id, MIN(o.obs_datetime)
+  FROM obs o
+  JOIN concept rc ON rc.concept_id = o.concept_id
+    AND rc.uuid = 'cda459bc-6034-4e73-8e02-904837550a85' -- Overall risk
+  JOIN concept hc ON hc.concept_id = o.value_coded
+    AND hc.uuid = '417c6929-7fc4-4de1-8eef-c35ee0333562' -- High risk
+  JOIN encounter e ON e.encounter_id = o.encounter_id AND e.voided = 0
+  JOIN person w ON w.person_id = o.person_id AND w.gender = 'F'
+  WHERE o.voided = 0
+    AND (:startDate IS NULL OR o.obs_datetime >= :startDate)
+    AND (:endDate IS NULL OR o.obs_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
+    AND (:locationUuid IS NULL OR e.location_id = (SELECT location_id FROM location WHERE uuid = :locationUuid))
+    -- Enrolled in SRH on the day of the assessment (enrolling later that day still counts).
+    AND EXISTS (
+      SELECT 1
+      FROM patient_program pp
+      JOIN program pr ON pr.program_id = pp.program_id
+        AND pr.uuid = 'f73376c9-7bdf-44e5-ba97-ddf4db5bc9f9' -- Sexual Reproductive Health (SRH)
+      WHERE pp.patient_id = o.person_id
+        AND pp.voided = 0
+        AND pp.date_enrolled < DATE_ADD(DATE(o.obs_datetime), INTERVAL 1 DAY)
+        AND (pp.date_completed IS NULL OR pp.date_completed >= DATE(o.obs_datetime))
+    )
+  GROUP BY o.person_id
   UNION ALL
   SELECT 'pediatricCases', NULL, pp.patient_id, MIN(pp.date_enrolled)
   FROM patient_program pp

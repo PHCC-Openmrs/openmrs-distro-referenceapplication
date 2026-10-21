@@ -33,7 +33,7 @@ public class RhActivityReportServiceImpl extends BaseOpenmrsService implements R
 	    new RowDefinition("Antenatal Care", "ancThirdVisit", "Third antenatal visit"),
 	    new RowDefinition("Antenatal Care", "ancFourOrMoreVisits", "Four or more antenatal visits"),
 	    // Nothing on the SRH form records pregnancy risk yet.
-	    new RowDefinition("Antenatal Care", "highRiskPregnancies", "Number of high risk pregnancies detected", false),
+	    new RowDefinition("Antenatal Care", "highRiskPregnancies", "Number of high risk pregnancies detected"),
 	    new RowDefinition("Postnatal Care", "pncWithin72Hours",
 	            "Number of women and newborns receiving PNC within 72 hours of delivery"),
 	    new RowDefinition("Postnatal Care", "pncAfter72Hours",
