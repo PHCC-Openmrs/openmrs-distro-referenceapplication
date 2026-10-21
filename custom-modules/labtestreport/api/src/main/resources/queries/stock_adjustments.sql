@@ -37,8 +37,9 @@ SELECT
   rn.name                 AS reasonName,
   so.remarks              AS remarks,
   -- responsible_person points at users, not persons, and may be unset in favour of the free-text
-  -- responsible_person_other the form offers instead.
-  COALESCE(CONCAT_WS(' ', pn.given_name, pn.family_name), u.username, so.responsible_person_other)
+  -- responsible_person_other the form offers instead. CONCAT_WS yields '' rather than NULL when
+  -- every part is NULL, hence the NULLIF - without it the fallbacks would never be reached.
+  COALESCE(NULLIF(CONCAT_WS(' ', pn.given_name, pn.family_name), ''), u.username, so.responsible_person_other)
                           AS responsiblePerson
 FROM stockmgmt_stock_item_transaction sit
 JOIN stockmgmt_stock_item si ON si.stock_item_id = sit.stock_item_id
@@ -57,7 +58,14 @@ LEFT JOIN concept_name bun ON bun.concept_id = bulk.packaging_uom_id AND bun.loc
 LEFT JOIN concept rc ON rc.concept_id = so.reason_id
 LEFT JOIN concept_name rn ON rn.concept_id = so.reason_id AND rn.locale = 'en' AND rn.locale_preferred = 1
 LEFT JOIN users u ON u.user_id = so.responsible_person
-LEFT JOIN person_name pn ON pn.person_id = u.person_id AND pn.voided = 0 AND pn.preferred = 1
+-- Users created through the admin pages often have a single name never flagged preferred, so take
+-- the preferred one when it exists and otherwise any non-voided name, rather than requiring it.
+LEFT JOIN person_name pn ON pn.person_name_id = (
+  SELECT pn2.person_name_id FROM person_name pn2
+  WHERE pn2.person_id = u.person_id AND pn2.voided = 0
+  ORDER BY pn2.preferred DESC, pn2.person_name_id
+  LIMIT 1
+)
 WHERE si.voided = 0
   AND sot.operation_type = 'adjustment'
   AND so.status = 'COMPLETED'

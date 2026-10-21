@@ -70,6 +70,11 @@ export const stockExpiryRiskReport = getAsyncLifecycle(
   options,
 );
 
+export const stockBatchBalanceReport = getAsyncLifecycle(
+  () => import('./stock-batch-balance/stock-batch-balance.component'),
+  options,
+);
+
 export const stockDaysRemainingReport = getAsyncLifecycle(
   () => import('./stock-days-remaining/stock-days-remaining.component'),
   options,

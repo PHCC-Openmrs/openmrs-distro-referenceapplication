@@ -130,13 +130,6 @@
   margin-bottom: 1rem;
 }
 
-.alertStack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-}
-
 .categoryHeaderRow {
   cursor: pointer;
   background-color: var(--cds-layer-accent, #e0e0e0);

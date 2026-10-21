@@ -12,7 +12,12 @@ import { filterByItemAndSearch, distinctItemNames } from '../reports-shell/row-f
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
-import { useStockAdjustmentsReport, type AdjustmentPurpose, type StockAdjustmentRow } from './stock-adjustments.resource';
+import {
+  isOtherReasonName,
+  useStockAdjustmentsReport,
+  type AdjustmentPurpose,
+  type StockAdjustmentRow,
+} from './stock-adjustments.resource';
 
 const STOCK_LOCATION_TAG = 'Login Location';
 
@@ -22,6 +27,16 @@ type ItemTypeFilter = '' | 'drug' | 'other';
 function signedQuantity(row: StockAdjustmentRow): string {
   const formatted = formatQuantity(Math.abs(row.quantity), row.unitName, row.bulkUnitName, row.bulkFactor);
   return `${row.quantity < 0 ? '-' : '+'}${formatted}`;
+}
+
+// Named as the stock-management app names them: the Miscellaneous concept is offered there as
+// "Other", and an operation with typed text for it shows that text as its reason.
+function reasonLabel(reasonName: string | null | undefined, otherLabel: string): string {
+  return isOtherReasonName(reasonName) ? otherLabel : reasonName ?? '';
+}
+
+function reasonDisplay(row: StockAdjustmentRow, otherLabel: string): string {
+  return row.otherReason ?? reasonLabel(row.reasonName, otherLabel);
 }
 
 export default function StockAdjustmentsReport() {
@@ -97,9 +112,9 @@ export default function StockAdjustmentsReport() {
       itemType: (row: StockAdjustmentRow) => (row.isDrug ? 1 : 0),
       quantity: (row: StockAdjustmentRow) => row.quantity,
       purpose: (row: StockAdjustmentRow) => row.purpose,
-      reason: (row: StockAdjustmentRow) => row.reasonName ?? '',
+      reason: (row: StockAdjustmentRow) => reasonDisplay(row, t('other', 'Other')),
     }),
-    [],
+    [t],
   );
   const { sortedRows, sortKey, direction, toggleSort } = useSortableRows(
     rows,
@@ -145,7 +160,7 @@ export default function StockAdjustmentsReport() {
         row.unitName ?? '',
         ...bulkExportCells(row.bulkUnitName, row.bulkFactor),
         purposeLabel(row.purpose),
-        row.reasonName ?? '',
+        reasonDisplay(row, t('other', 'Other')),
         row.remarks ?? '',
         row.responsiblePerson ?? '',
         row.mismatched ? t('yes', 'Yes') : t('no', 'No'),
@@ -249,7 +264,7 @@ export default function StockAdjustmentsReport() {
               <SelectItem value="" text={t('allReasons', 'All reasons')} />
               {reasonOptions.map((reason) => (
                 <React.Fragment key={reason}>
-                  <SelectItem value={reason} text={reason} />
+                  <SelectItem value={reason} text={reasonLabel(reason, t('other', 'Other'))} />
                 </React.Fragment>
               ))}
             </Select>
@@ -395,7 +410,7 @@ export default function StockAdjustmentsReport() {
                         </span>
                       )}
                     </td>
-                    <td className="left">{row.reasonName ?? '—'}</td>
+                    <td className="left">{reasonDisplay(row, t('other', 'Other')) || '—'}</td>
                     <td className="left">{row.remarks ?? '—'}</td>
                     <td className="left">{row.responsiblePerson ?? '—'}</td>
                   </tr>

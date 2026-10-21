@@ -13,7 +13,6 @@ import org.openmrs.module.labtestreport.CmamAgeGroup;
 import org.openmrs.module.labtestreport.CmamFollowUpService;
 import org.openmrs.module.labtestreport.CmamPatientRow;
 import org.openmrs.module.labtestreport.CmamSummaryRow;
-import org.openmrs.module.labtestreport.DiseaseSummaryRow;
 import org.openmrs.module.labtestreport.DiseaseSummaryService;
 import org.openmrs.module.labtestreport.HealthPromotionReportService;
 import org.openmrs.module.labtestreport.HealthPromotionRow;
@@ -38,6 +37,7 @@ import org.openmrs.module.labtestreport.RhActivityReportService;
 import org.openmrs.module.labtestreport.SrhReportRow;
 import org.openmrs.module.labtestreport.SrhReportService;
 import org.openmrs.module.labtestreport.StockAdjustmentRow;
+import org.openmrs.module.labtestreport.StockBatchBalanceRow;
 import org.openmrs.module.labtestreport.StockBatchExpiryRow;
 import org.openmrs.module.labtestreport.StockDaysRemainingRow;
 import org.openmrs.module.labtestreport.StockFlowService;
@@ -205,10 +205,8 @@ public class LabTestReportRestController {
 	public ResponseEntity<String> diseaseSummary(@RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate,
 	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
-		List<DiseaseSummaryRow> rows = Context.getService(DiseaseSummaryService.class).getSummaryReport(startDate,
-		    endDate, locationUuid);
-		SummaryRowGrouping.applyDiseaseCategoryRowSpans(rows);
-		return jsonResponse(rows);
+		return jsonResponse(Context.getService(DiseaseSummaryService.class).getActivityReport(startDate, endDate,
+		    locationUuid));
 	}
 
 	@RequestMapping(value = "/ewars-report.json", method = RequestMethod.GET)
@@ -244,13 +242,13 @@ public class LabTestReportRestController {
 
 	@RequestMapping(value = "/disease-drilldown.json", method = RequestMethod.GET)
 	@ResponseBody
-	public ResponseEntity<String> diseaseDrilldown(@RequestParam("diagnosisConceptId") Integer diagnosisConceptId,
+	public ResponseEntity<String> diseaseDrilldown(@RequestParam("rowKey") String rowKey,
 	        @RequestParam(value = "gender", required = false) String gender,
 	        @RequestParam(value = "ageGroup", required = false) String ageGroup,
 	        @RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate,
 	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
-		List<PatientRow> rows = Context.getService(DiseaseSummaryService.class).getPatientsForCell(diagnosisConceptId,
+		List<PatientRow> rows = Context.getService(DiseaseSummaryService.class).getPatientsForActivityRow(rowKey,
 		    gender, ageGroup, startDate, endDate, locationUuid);
 		return jsonResponse(rows);
 	}
@@ -359,6 +357,14 @@ public class LabTestReportRestController {
 	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
 		List<StockBatchExpiryRow> rows = Context.getService(StockStatusService.class).getExpiryRisk(daysAhead,
 		    locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-batch-balance.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockBatchBalance(@RequestParam(value = "locationUuid", required = false) String locationUuid)
+	        throws JsonProcessingException {
+		List<StockBatchBalanceRow> rows = Context.getService(StockStatusService.class).getBatchBalance(locationUuid);
 		return jsonResponse(rows);
 	}
 

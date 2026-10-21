@@ -120,6 +120,15 @@ export default function StockReportsHome() {
       alertLoading: expiryLoading,
     },
     {
+      key: 'batch-balance',
+      title: t('stockBatchBalanceReportTitle', 'Batch Balance Report'),
+      description: t(
+        'stockBatchBalanceReportTileDesc',
+        'Quantity left in each batch of each item, per location.',
+      ),
+      route: 'stock-batch-balance-report',
+    },
+    {
       key: 'wastage',
       title: t('wastageReportTitle', 'Wastage / Disposal Report'),
       description: t(

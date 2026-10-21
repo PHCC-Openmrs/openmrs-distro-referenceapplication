@@ -103,6 +103,10 @@
       "route": "stock-expiry-risk-report"
     },
     {
+      "component": "stockBatchBalanceReport",
+      "route": "stock-batch-balance-report"
+    },
+    {
       "component": "stockDaysRemainingReport",
       "route": "stock-days-remaining-report"
     },

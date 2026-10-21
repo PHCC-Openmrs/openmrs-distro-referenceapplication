@@ -1,15 +1,28 @@
 import { openmrsFetch } from '@openmrs/esm-framework';
 import useSWR from 'swr';
 
-export interface DiseaseSummaryRow {
-  categoryConceptId: number;
-  category: string;
-  categoryRowSpan: number;
-  diagnosisConceptId: number;
-  diagnosisLabel: string;
-  totalCases: number;
+export type DiseaseActivityRowKind = 'DIAGNOSIS' | 'SUBTOTAL' | 'NOT_CAPTURED' | 'TOTAL';
+
+/**
+ * One line of the Primary Health Activity layout, in paper-template order. Diagnosis rows roll up
+ * every diagnosis the PHCC mapping sheet lists under them; NOT_CAPTURED rows are template rows that
+ * nothing in the system records yet; SUBTOTAL and TOTAL rows add up other rows.
+ */
+export interface DiseaseActivityRow {
+  group: string;
+  section: string | null;
+  rowKey: string;
+  number: string | null;
+  label: string;
+  kind: DiseaseActivityRowKind;
   counts: Record<string, number>;
   total: number;
+  /** The diagnoses counted under this row (a subtotal lists its member rows' diagnoses), sorted by name. */
+  diagnoses: Array<string>;
+}
+
+export interface DiseaseActivityReport {
+  rows: Array<DiseaseActivityRow>;
 }
 
 export interface PatientRow {
@@ -24,7 +37,7 @@ export interface PatientRow {
 }
 
 export interface DiseaseDrilldownParams {
-  diagnosisConceptId: number;
+  rowKey: string;
   gender?: string;
   ageGroup?: string;
   startDate?: string;
@@ -52,8 +65,8 @@ export function useDiseaseSummaryReport(
   const url = enabled
     ? `/module/labtestreport/api/disease-summary.json${buildQuery({ startDate, endDate, locationUuid })}`
     : null;
-  const { data, error, isLoading } = useSWR<{ data: DiseaseSummaryRow[] }, Error>(url, openmrsFetch);
-  return { rows: data?.data ?? [], error, isLoading };
+  const { data, error, isLoading } = useSWR<{ data: DiseaseActivityReport }, Error>(url, openmrsFetch);
+  return { rows: data?.data?.rows ?? [], error, isLoading };
 }
 
 export function useDiseaseDrilldown(params: DiseaseDrilldownParams | null) {

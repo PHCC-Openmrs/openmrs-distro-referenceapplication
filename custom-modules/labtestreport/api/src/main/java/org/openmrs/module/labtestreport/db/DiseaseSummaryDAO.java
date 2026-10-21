@@ -1,5 +1,6 @@
 package org.openmrs.module.labtestreport.db;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -54,4 +55,24 @@ public interface DiseaseSummaryDAO {
 	 */
 	List<Object[]> getPatientsForEwarsCell(String diagnosisLabel, String gender, String ageGroup, Date startDate,
 	        Date endDate, String locationUuid) throws DAOException;
+
+	/**
+	 * @param normalizedNames diagnosis names, already trimmed, whitespace-collapsed and lower-cased
+	 * @return every non-voided name of a non-retired concept matching one of them, as
+	 *         {normalizedName, conceptId, locale, conceptNameType} (see queries/resolve_concept_names.sql)
+	 */
+	List<Object[]> resolveConceptNames(Collection<String> normalizedNames) throws DAOException;
+
+	/**
+	 * @param conceptIds the diagnosis concepts the Primary Health Activity layout counts
+	 * @return one row per distinct {conceptId, patientId, eventDay, ageGroup, gender} recorded within the
+	 *         filters (see queries/disease_activity_events.sql)
+	 */
+	List<Object[]> getActivityEvents(Collection<Integer> conceptIds, Date startDate, Date endDate, String locationUuid)
+	        throws DAOException;
+
+	/**
+	 * @return display columns for the given patients, in the column order of {@link #getPatientsForDiagnosisCell}
+	 */
+	List<Object[]> getPatients(Collection<Integer> patientIds) throws DAOException;
 }

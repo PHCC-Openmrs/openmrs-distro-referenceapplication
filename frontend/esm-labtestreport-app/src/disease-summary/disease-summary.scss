@@ -1,0 +1,46 @@
+// Title block mirroring the PHCC paper template's header (report name, site, period).
+.reportHeader {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: var(--cds-text-secondary, #525252);
+
+  strong {
+    color: var(--cds-text-primary, #161616);
+  }
+
+  span + span::before {
+    content: '·';
+    margin: 0 0.5rem;
+  }
+}
+
+.numberCell {
+  width: 2.5rem;
+  color: var(--cds-text-secondary, #525252);
+}
+
+// Template row 5 (skin diseases) heads the rows below it; shown as their subtotal.
+.subtotalRow td {
+  font-style: italic;
+}
+
+.notCaptured {
+  color: var(--cds-text-disabled, #8d8d8d);
+  cursor: help;
+}
+
+.diagnosisListIntro {
+  margin: 0.5rem 0 1rem;
+  font-size: 0.875rem;
+  color: var(--cds-text-secondary, #525252);
+}
+
+.diagnosisList {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+
+  li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--cds-border-subtle, #e0e0e0);
+  }
+}

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.openmrs.api.impl.BaseOpenmrsService;
+import org.openmrs.module.labtestreport.StockBatchBalanceRow;
 import org.openmrs.module.labtestreport.StockBatchExpiryRow;
 import org.openmrs.module.labtestreport.StockDaysRemainingRow;
 import org.openmrs.module.labtestreport.StockFlowService;
@@ -46,6 +47,27 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 			row.setExpirationDate((Date) r[5]);
 			row.setRemainingQty(toDouble(r[6]));
 			row.setDaysUntilExpiry(toInteger(r[7]));
+			row.setUnitName((String) r[8]);
+			row.setBulkUnitName((String) r[9]);
+			row.setBulkFactor(toNullableDouble(r[10]));
+			rows.add(row);
+		}
+		return rows;
+	}
+
+	@Override
+	public List<StockBatchBalanceRow> getBatchBalance(String locationUuid) {
+		List<StockBatchBalanceRow> rows = new ArrayList<>();
+		for (Object[] r : dao.getBatchBalanceRows(locationUuid)) {
+			StockBatchBalanceRow row = new StockBatchBalanceRow();
+			row.setStockItemId(toInteger(r[0]));
+			row.setItemName((String) r[1]);
+			row.setLocationId(toInteger(r[2]));
+			row.setLocationName((String) r[3]);
+			row.setStockBatchId(toInteger(r[4]));
+			row.setBatchNo((String) r[5]);
+			row.setExpirationDate((Date) r[6]);
+			row.setQuantity(toDouble(r[7]));
 			row.setUnitName((String) r[8]);
 			row.setBulkUnitName((String) r[9]);
 			row.setBulkFactor(toNullableDouble(r[10]));

@@ -4,16 +4,13 @@ import {
   Modal,
   InlineLoading,
   Button,
-  Search,
-  Select,
-  SelectItem,
+  Checkbox,
   ContentSwitcher,
   Switch,
-  NumberInput,
-  InlineNotification,
+  Search,
 } from '@carbon/react';
 import { ChevronDown, ChevronRight } from '@carbon/react/icons';
-import { navigate } from '@openmrs/esm-framework';
+import { navigate, useLocations } from '@openmrs/esm-framework';
 import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import SimpleBarChart from '../reports-shell/simple-bar-chart.component';
 import KpiTiles from '../reports-shell/kpi-tiles.component';
@@ -24,103 +21,62 @@ import LocationFilter from '../reports-shell/location-filter.component';
 import { buildKpiExportSheet, buildComparisonExportSheet, type ExportSheet } from '../reports-shell/export-utils';
 import { useMonthComparison } from '../reports-shell/month-compare';
 import pageStyles from '../reports-shell/reports-page.scss';
+import styles from './disease-summary.scss';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
 import {
   useDiseaseSummaryReport,
   useDiseaseDrilldown,
+  type DiseaseActivityRow,
   type DiseaseDrilldownParams,
-  type DiseaseSummaryRow,
 } from './disease-summary.resource';
 
-const AGE_GENDER_COLUMNS: Array<{ ageGroup: string; gender: string; label: string }> = [
-  { ageGroup: '0-4', gender: 'M', label: '0-4 M' },
-  { ageGroup: '0-4', gender: 'F', label: '0-4 F' },
-  { ageGroup: '5-14', gender: 'M', label: '5-14 M' },
-  { ageGroup: '5-14', gender: 'F', label: '5-14 F' },
-  { ageGroup: '15-18', gender: 'M', label: '15-18 M' },
-  { ageGroup: '15-18', gender: 'F', label: '15-18 F' },
-  { ageGroup: '19-49', gender: 'M', label: '19-49 M' },
-  { ageGroup: '19-49', gender: 'F', label: '19-49 F' },
-  { ageGroup: '50-65', gender: 'M', label: '50-65 M' },
-  { ageGroup: '50-65', gender: 'F', label: '50-65 F' },
-  { ageGroup: '65+', gender: 'M', label: '65+ M' },
-  { ageGroup: '65+', gender: 'F', label: '65+ F' },
-];
+const AGE_GROUPS = ['0-4', '5-14', '15-18', '19-49', '50-65', '65+'];
+const AGE_GENDER_COLUMNS = AGE_GROUPS.flatMap((ageGroup) => [
+  { key: `${ageGroup}_M`, ageGroup, genderCode: 'M', gender: 'Male' },
+  { key: `${ageGroup}_F`, ageGroup, genderCode: 'F', gender: 'Female' },
+]);
+type AgeGenderColumn = (typeof AGE_GENDER_COLUMNS)[number];
+
+// Must match the row keys in the backend's DiseaseActivityLayout.
+const TOTAL_DISEASES_KEY = 'totalDiseases';
+const DISEASES_GROUP = 'Diseases';
+const NOT_CAPTURED = '—';
+const LOCATION_TAG = 'Login Location';
 
 interface Selection extends DiseaseDrilldownParams {
-  category: string;
-  diagnosisLabel: string;
-  ageGroupLabel?: string;
+  label: string;
+  cellLabel?: string;
 }
 
-interface CategoryGroup {
-  category: string;
-  categoryConceptId: number;
-  rows: DiseaseSummaryRow[];
-  totalCases: number;
-  grandTotal: number;
-  columnTotals: Record<string, number>;
+/** One table line: a section band or a report row. */
+type DisplayLine =
+  | { type: 'section'; section: string; total: number; rowCount: number }
+  | { type: 'row'; row: DiseaseActivityRow };
+
+/** Case totals per disease section (e.g. RESPIRATORY DISEASES), from the rows that count towards Total Diseases. */
+function summarizeSections(rows: Array<DiseaseActivityRow>) {
+  const totals = new Map<string, number>();
+  rows.forEach((row) => {
+    if (row.group === DISEASES_GROUP && row.section && row.kind === 'DIAGNOSIS') {
+      totals.set(row.section, (totals.get(row.section) ?? 0) + row.total);
+    }
+  });
+  return totals;
 }
 
-function summarize(rows: DiseaseSummaryRow[], searchText: string, categoryFilter: string) {
-  const search = searchText.trim().toLowerCase();
-  const filteredRows = rows.filter((row) => {
-    if (row.total === 0) {
-      return false;
-    }
-    if (categoryFilter && row.category !== categoryFilter) {
-      return false;
-    }
-    if (!search) {
-      return true;
-    }
-    return row.category.toLowerCase().includes(search) || row.diagnosisLabel.toLowerCase().includes(search);
-  });
-  const groupedRows = groupByCategory(filteredRows);
-  const columnTotals: Record<string, number> = {};
-  AGE_GENDER_COLUMNS.forEach((col) => (columnTotals[`${col.ageGroup}_${col.gender}`] = 0));
-  let totalCases = 0;
-  let grandTotal = 0;
-  filteredRows.forEach((row) => {
-    totalCases += row.totalCases;
-    grandTotal += row.total;
-    AGE_GENDER_COLUMNS.forEach((col) => {
-      const key = `${col.ageGroup}_${col.gender}`;
-      columnTotals[key] += row.counts?.[key] ?? 0;
-    });
-  });
-  const topCategory = groupedRows.reduce<CategoryGroup | null>(
-    (top, group) => (!top || group.totalCases > top.totalCases ? group : top),
-    null,
-  );
-  return { filteredRows, groupedRows, totals: { totalCases, grandTotal, columnTotals }, topCategory };
+function topEntry(entries: Array<[string, number]>): [string, number] | null {
+  return entries.reduce<[string, number] | null>((top, entry) => (!top || entry[1] > top[1] ? entry : top), null);
 }
 
-function groupByCategory(list: DiseaseSummaryRow[]): CategoryGroup[] {
-  const groups: CategoryGroup[] = [];
-  let current: CategoryGroup | null = null;
-  list.forEach((row) => {
-    if (!current || current.categoryConceptId !== row.categoryConceptId) {
-      current = {
-        category: row.category,
-        categoryConceptId: row.categoryConceptId,
-        rows: [],
-        totalCases: 0,
-        grandTotal: 0,
-        columnTotals: {},
-      };
-      AGE_GENDER_COLUMNS.forEach((col) => (current!.columnTotals[`${col.ageGroup}_${col.gender}`] = 0));
-      groups.push(current);
-    }
-    current.rows.push(row);
-    current.totalCases += row.totalCases;
-    current.grandTotal += row.total;
-    AGE_GENDER_COLUMNS.forEach((col) => {
-      const key = `${col.ageGroup}_${col.gender}`;
-      current!.columnTotals[key] += row.counts?.[key] ?? 0;
-    });
-  });
-  return groups;
+function summarize(rows: Array<DiseaseActivityRow>) {
+  const sectionTotals = summarizeSections(rows);
+  const diagnosisRows = rows.filter((row) => row.kind === 'DIAGNOSIS');
+  return {
+    sectionTotals,
+    totalDiseases: rows.find((row) => row.rowKey === TOTAL_DISEASES_KEY)?.total ?? 0,
+    topSection: topEntry(Array.from(sectionTotals.entries()).filter(([, total]) => total > 0)),
+    topRow: topEntry(diagnosisRows.filter((row) => row.total > 0).map((row): [string, number] => [row.label, row.total])),
+  };
 }
 
 export default function DiseaseSummaryReport() {
@@ -129,19 +85,24 @@ export default function DiseaseSummaryReport() {
   const [endDateInput, setEndDateInput] = useState('');
   const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>({});
   const [selection, setSelection] = useState<Selection | null>(null);
-  const [searchText, setSearchText] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [diagnosisListRow, setDiagnosisListRow] = useState<DiseaseActivityRow | null>(null);
+  const [diagnosisSearch, setDiagnosisSearch] = useState('');
   const [locationUuid, setLocationUuid] = useState('');
-  const [collapsedCategories, setCollapsedCategories] = useState<Set<number>>(new Set());
+  const [hideEmptyRows, setHideEmptyRows] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'table' | 'graph'>('table');
-  const [alertThreshold, setAlertThreshold] = useState<number>(10);
   const compare = useMonthComparison();
+  const locations = useLocations(LOCATION_TAG);
 
   const primaryStartDate = compare.enabled ? compare.primary.startDate : appliedDates.startDate;
   const primaryEndDate = compare.enabled ? compare.primary.endDate : appliedDates.endDate;
 
-  const { rows, isLoading } = useDiseaseSummaryReport(primaryStartDate, primaryEndDate, locationUuid || undefined);
-  const { rows: compareRowsRaw, isLoading: compareLoading } = useDiseaseSummaryReport(
+  const { rows, isLoading } = useDiseaseSummaryReport(
+    primaryStartDate,
+    primaryEndDate,
+    locationUuid || undefined,
+  );
+  const { rows: compareRows, isLoading: compareLoading } = useDiseaseSummaryReport(
     compare.comparison.startDate,
     compare.comparison.endDate,
     locationUuid || undefined,
@@ -150,93 +111,126 @@ export default function DiseaseSummaryReport() {
   const { patients, isLoading: patientsLoading } = useDiseaseDrilldown(selection);
   const dataLoading = isLoading || (compare.enabled && compareLoading);
 
-  const categories = useMemo(
-    () => Array.from(new Set(rows.map((row) => row.category))).sort((a, b) => a.localeCompare(b)),
-    [rows],
+  const siteName = locationUuid
+    ? locations?.find((location) => location.uuid === locationUuid)?.display ?? ''
+    : t('allLocations', 'All locations');
+  const periodLabel = compare.enabled
+    ? compare.primary.label
+    : primaryStartDate || primaryEndDate
+      ? `${primaryStartDate ?? '…'} – ${primaryEndDate ?? '…'}`
+      : t('allDates', 'All dates');
+
+  const primary = useMemo(() => summarize(rows), [rows]);
+  const compareSummary = useMemo(() => (compare.enabled ? summarize(compareRows) : null), [compareRows, compare.enabled]);
+
+  const lines = useMemo(() => {
+    const result: Array<DisplayLine> = [];
+    let currentSection: string | null = null;
+    rows.forEach((row) => {
+      const hidden =
+        hideEmptyRows && (row.kind === 'NOT_CAPTURED' || (row.kind === 'DIAGNOSIS' && row.total === 0));
+      if (row.section && row.section !== currentSection) {
+        currentSection = row.section;
+        result.push({ type: 'section', section: row.section, total: 0, rowCount: 0 });
+      } else if (!row.section) {
+        currentSection = null;
+      }
+      if (row.section) {
+        const sectionLine = result.filter((line) => line.type === 'section').pop() as Extract<
+          DisplayLine,
+          { type: 'section' }
+        >;
+        if (row.kind === 'DIAGNOSIS') {
+          sectionLine.total += row.total;
+        }
+        if (!hidden) {
+          sectionLine.rowCount += 1;
+        }
+      }
+      if (!hidden && !(row.section && collapsedSections.has(row.section))) {
+        result.push({ type: 'row', row });
+      }
+    });
+    // Drop section bands whose rows are all hidden.
+    return result.filter((line) => line.type !== 'section' || line.rowCount > 0);
+  }, [rows, hideEmptyRows, collapsedSections]);
+
+  const chartData = useMemo(
+    () =>
+      Array.from(primary.sectionTotals.entries()).map(([section, total]) => ({
+        label: section,
+        value: total,
+        compareValue: compare.enabled ? compareSummary?.sectionTotals.get(section) ?? 0 : undefined,
+      })),
+    [primary, compareSummary, compare.enabled],
   );
-
-  const primary = useMemo(() => summarize(rows, searchText, categoryFilter), [rows, searchText, categoryFilter]);
-  const { filteredRows, groupedRows, totals, topCategory } = primary;
-
-  const compareSummary = useMemo(
-    () => (compare.enabled ? summarize(compareRowsRaw, searchText, categoryFilter) : null),
-    [compareRowsRaw, searchText, categoryFilter, compare.enabled],
-  );
-
-  const chartData = useMemo(() => {
-    const compareByCategory = new Map(
-      (compareSummary?.groupedRows ?? []).map((group): [string, number] => [group.category, group.totalCases]),
-    );
-    return groupedRows.map((group) => ({
-      label: group.category,
-      value: group.totalCases,
-      compareValue: compare.enabled ? compareByCategory.get(group.category) ?? 0 : undefined,
-    }));
-  }, [groupedRows, compareSummary, compare.enabled]);
 
   const kpiItems = useMemo(() => {
     const items = [
-      { label: t('totalCases', 'Total Cases'), value: totals.totalCases },
-      { label: t('categories', 'Categories'), value: groupedRows.length },
-      { label: t('diagnosesTracked', 'Diagnoses Tracked'), value: filteredRows.length },
-      { label: t('topCategory', 'Top Category'), value: topCategory ? topCategory.category : '—' },
+      { label: t('totalDiseases', 'Total Diseases'), value: primary.totalDiseases },
+      { label: t('topCategory', 'Top Category'), value: primary.topSection ? primary.topSection[0] : '—' },
+      { label: t('topDisease', 'Top Disease'), value: primary.topRow ? primary.topRow[0] : '—' },
     ];
-    if (!compare.enabled || !compareSummary) {
+    if (!compareSummary) {
       return items;
     }
     const compareValues: Array<React.ReactNode> = [
-      compareSummary.totals.totalCases,
-      compareSummary.groupedRows.length,
-      compareSummary.filteredRows.length,
-      compareSummary.topCategory ? compareSummary.topCategory.category : '—',
+      compareSummary.totalDiseases,
+      compareSummary.topSection ? compareSummary.topSection[0] : '—',
+      compareSummary.topRow ? compareSummary.topRow[0] : '—',
     ];
     return items.map((item, index) => ({
       ...item,
       compareValue: compareValues[index],
       compareLabel: compare.comparison.label,
     }));
-  }, [t, totals, groupedRows, filteredRows, topCategory, compare.enabled, compareSummary, compare.comparison.label]);
+  }, [t, primary, compareSummary, compare.comparison.label]);
 
   const comparisonTableRows = useMemo(() => {
-    if (!compare.enabled || !compareSummary) {
+    if (!compareSummary) {
       return [];
     }
-    const compareByCategory = new Map(
-      compareSummary.groupedRows.map((group): [string, number] => [group.category, group.totalCases]),
-    );
-    const categoryUnion = new Set([
-      ...groupedRows.map((group) => group.category),
-      ...compareSummary.groupedRows.map((group) => group.category),
-    ]);
-    return Array.from(categoryUnion)
-      .sort((a, b) => a.localeCompare(b))
-      .map((category) => ({
-        label: category,
-        current: groupedRows.find((group) => group.category === category)?.totalCases ?? 0,
-        compare: compareByCategory.get(category) ?? 0,
-      }));
-  }, [groupedRows, compareSummary, compare.enabled]);
+    return Array.from(primary.sectionTotals.keys()).map((section) => ({
+      label: section,
+      current: primary.sectionTotals.get(section) ?? 0,
+      compare: compareSummary.sectionTotals.get(section) ?? 0,
+    }));
+  }, [primary, compareSummary]);
 
-  const mainExportSheet = useMemo<ExportSheet>(
-    () => ({
+  const mainExportSheet = useMemo<ExportSheet>(() => {
+    const exportRows: ExportSheet['rows'] = [
+      [t('primaryHealthActivityReport', 'Primary Health Activity Report')],
+      [`${t('site', 'Site')}: ${siteName}`],
+      [`${t('period', 'Period')}: ${periodLabel}`],
+    ];
+    let currentSection: string | null = null;
+    rows.forEach((row) => {
+      if (row.section && row.section !== currentSection) {
+        currentSection = row.section;
+        exportRows.push([row.section]);
+      }
+      exportRows.push(
+        row.kind === 'NOT_CAPTURED'
+          ? [row.number ?? '', row.label, ...AGE_GENDER_COLUMNS.map(() => NOT_CAPTURED), NOT_CAPTURED]
+          : [
+              row.number ?? '',
+              row.label,
+              ...AGE_GENDER_COLUMNS.map((col) => row.counts?.[col.key] ?? 0),
+              row.total,
+            ],
+      );
+    });
+    return {
       name: t('diseaseSummary', 'Disease Summary'),
       headers: [
-        t('category', 'Category'),
-        t('diagnosis', 'Diagnosis'),
-        t('totalCases', 'Total Cases'),
-        ...AGE_GENDER_COLUMNS.map((col) => col.label),
+        t('number', 'No.'),
+        t('disease', 'Disease'),
+        ...AGE_GROUPS.flatMap((ageGroup) => [`${ageGroup} Male`, `${ageGroup} Female`]),
         t('total', 'Total'),
       ],
-      rows: filteredRows.map((row) => [
-        row.category,
-        row.diagnosisLabel,
-        row.totalCases,
-        ...AGE_GENDER_COLUMNS.map((col) => row.counts?.[`${col.ageGroup}_${col.gender}`] ?? 0),
-        row.total,
-      ]),
-    }),
-    [t, filteredRows],
-  );
+      rows: exportRows,
+    };
+  }, [t, rows, siteName, periodLabel]);
 
   const exportExtraSheets = useMemo<Array<ExportSheet>>(() => {
     if (!compare.enabled) {
@@ -254,50 +248,115 @@ export default function DiseaseSummaryReport() {
     ];
   }, [t, compare.enabled, comparisonTableRows, compare.primary.label, compare.comparison.label, kpiItems]);
 
-  const outbreakAlerts = useMemo(
-    () => groupedRows.filter((group) => group.totalCases >= alertThreshold),
-    [groupedRows, alertThreshold],
-  );
+  const filteredDiagnoses = useMemo(() => {
+    const query = diagnosisSearch.trim().toLowerCase();
+    const diagnoses = diagnosisListRow?.diagnoses ?? [];
+    return query ? diagnoses.filter((name) => name.toLowerCase().includes(query)) : diagnoses;
+  }, [diagnosisListRow, diagnosisSearch]);
 
-  function toggleCategory(categoryConceptId: number) {
-    setCollapsedCategories((prev) => {
+  function toggleSection(section: string) {
+    setCollapsedSections((prev) => {
       const next = new Set(prev);
-      if (next.has(categoryConceptId)) {
-        next.delete(categoryConceptId);
+      if (next.has(section)) {
+        next.delete(section);
       } else {
-        next.add(categoryConceptId);
+        next.add(section);
       }
       return next;
     });
   }
 
-  function applyFilter() {
-    setAppliedDates({ startDate: startDateInput || undefined, endDate: endDateInput || undefined });
-  }
-
-  function openDrilldown(
-    diagnosisConceptId: number,
-    category: string,
-    diagnosisLabel: string,
-    ageGroup?: string,
-    gender?: string,
-    ageGroupLabel?: string,
-  ) {
+  function openDrilldown(row: DiseaseActivityRow, column?: AgeGenderColumn) {
     setSelection({
-      diagnosisConceptId,
-      ageGroup,
-      gender,
+      rowKey: row.rowKey,
+      label: row.label,
+      ageGroup: column?.ageGroup,
+      gender: column?.genderCode,
+      cellLabel: column ? `${column.ageGroup} ${column.gender}` : undefined,
       startDate: primaryStartDate,
       endDate: primaryEndDate,
       locationUuid: locationUuid || undefined,
-      category,
-      diagnosisLabel,
-      ageGroupLabel,
     });
   }
 
-  function goToPatientChart(patientUuid: string) {
-    navigate({ to: `\${openmrsSpaBase}/patient/${patientUuid}/chart/visits` });
+  function openDiagnosisList(row: DiseaseActivityRow) {
+    setDiagnosisSearch('');
+    setDiagnosisListRow(row);
+  }
+
+  function countCell(row: DiseaseActivityRow, value: number, column?: AgeGenderColumn) {
+    if (row.kind === 'NOT_CAPTURED') {
+      return (
+        <span className={styles.notCaptured} title={t('notCapturedYet', 'Not recorded in the system yet')}>
+          {NOT_CAPTURED}
+        </span>
+      );
+    }
+    return value > 0 ? (
+      <button className={pageStyles.linkCell} onClick={() => openDrilldown(row, column)}>
+        {value}
+      </button>
+    ) : (
+      value
+    );
+  }
+
+  function renderLine(line: DisplayLine) {
+    if (line.type === 'section') {
+      const collapsed = collapsedSections.has(line.section);
+      return (
+        <tr
+          key={`section-${line.section}`}
+          className={pageStyles.categoryHeaderRow}
+          onClick={() => toggleSection(line.section)}
+        >
+          <td colSpan={AGE_GENDER_COLUMNS.length + 3} className="left">
+            <button className={pageStyles.collapseToggle} aria-expanded={!collapsed}>
+              {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+              {line.section}
+              {collapsed && ` (${line.total})`}
+            </button>
+          </td>
+        </tr>
+      );
+    }
+    const { row } = line;
+    const content = (value: React.ReactNode) => (row.kind === 'TOTAL' ? <strong>{value}</strong> : value);
+    return (
+      <tr
+        key={row.rowKey}
+        className={
+          row.kind === 'TOTAL' ? pageStyles.dailyTotalRow : row.kind === 'SUBTOTAL' ? styles.subtotalRow : undefined
+        }
+      >
+        {row.kind === 'TOTAL' ? (
+          <td className="left" colSpan={2}>
+            {content(row.label)}
+          </td>
+        ) : (
+          <>
+            <td className={styles.numberCell}>{row.number}</td>
+            <td className="left">
+              {row.diagnoses?.length > 0 ? (
+                <button
+                  className={pageStyles.linkCell}
+                  title={t('showDiagnosesCountedHere', 'Show the diagnoses counted under this row')}
+                  onClick={() => openDiagnosisList(row)}
+                >
+                  {row.label}
+                </button>
+              ) : (
+                row.label
+              )}
+            </td>
+          </>
+        )}
+        {AGE_GENDER_COLUMNS.map((col) => (
+          <td key={col.key}>{content(countCell(row, row.counts?.[col.key] ?? 0, col))}</td>
+        ))}
+        <td>{content(countCell(row, row.total))}</td>
+      </tr>
+    );
   }
 
   return (
@@ -305,33 +364,17 @@ export default function DiseaseSummaryReport() {
       <BackToReportsLink />
       <div className={pageStyles.pageBody}>
         <h2 className={pageStyles.pageHeading}>{t('diseaseSummaryReportTitle', 'Disease Surveillance Summary Report')}</h2>
+        <div className={styles.reportHeader}>
+          <span>
+            <strong>{t('primaryHealthActivityReport', 'Primary Health Activity Report')}</strong>
+          </span>
+          <span>
+            {t('site', 'Site')}: {siteName}
+          </span>
+          <span>{periodLabel}</span>
+        </div>
 
         {!dataLoading && <KpiTiles items={kpiItems} />}
-
-        {!dataLoading && outbreakAlerts.length > 0 && (
-          <div className={pageStyles.alertStack}>
-            {outbreakAlerts.map((group) => (
-              <React.Fragment key={group.categoryConceptId}>
-                <InlineNotification
-                  kind="error"
-                  lowContrast
-                  hideCloseButton
-                  title={t('outbreakAlert', 'Outbreak alert')}
-                  subtitle={t(
-                    'outbreakAlertSubtitle',
-                    '{{category}} has {{count}} {{caseWord}} (threshold: {{threshold}})',
-                    {
-                      category: group.category,
-                      count: group.totalCases,
-                      caseWord: group.totalCases === 1 ? t('case', 'case') : t('casesPlural', 'cases'),
-                      threshold: alertThreshold,
-                    },
-                  )}
-                />
-              </React.Fragment>
-            ))}
-          </div>
-        )}
 
         {!dataLoading && compare.enabled && (
           <>
@@ -375,7 +418,12 @@ export default function DiseaseSummaryReport() {
                 onChange={(e) => setEndDateInput(clampToToday(e.target.value))}
               />
             </div>
-            <Button size="md" onClick={applyFilter}>
+            <Button
+              size="md"
+              onClick={() =>
+                setAppliedDates({ startDate: startDateInput || undefined, endDate: endDateInput || undefined })
+              }
+            >
               {t('filter', 'Filter')}
             </Button>
           </div>
@@ -383,39 +431,12 @@ export default function DiseaseSummaryReport() {
 
         <div className={pageStyles.filterTile}>
           <LocationFilter id="diseaseSummaryLocationFilter" value={locationUuid} onChange={setLocationUuid} />
-          <div className={pageStyles.filterField} style={{ minWidth: '16rem' }}>
-            <Search
-              size="md"
-              labelText={t('searchByCategoryOrDiagnosis', 'Search by category or diagnosis')}
-              placeholder={t('searchByCategoryOrDiagnosisPlaceholder', 'Search by category or diagnosis...')}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              onClear={() => setSearchText('')}
-            />
-          </div>
-          <div className={pageStyles.filterField} style={{ minWidth: '14rem' }}>
-            <Select
-              id="categoryFilter"
-              labelText={t('category', 'Category')}
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              <SelectItem value="" text={t('allCategories', 'All categories')} />
-              {categories.map((category) => (
-                <React.Fragment key={category}>
-                  <SelectItem value={category} text={category} />
-                </React.Fragment>
-              ))}
-            </Select>
-          </div>
-          <div className={pageStyles.filterField} style={{ minWidth: '10rem' }}>
-            <NumberInput
-              id="alertThreshold"
-              label={t('outbreakAlertThreshold', 'Outbreak alert threshold')}
-              size="md"
-              value={alertThreshold}
-              min={1}
-              onChange={(_e, { value }) => setAlertThreshold(Number(value) || 1)}
+          <div className={pageStyles.filterField}>
+            <Checkbox
+              id="hideEmptyDiseaseRows"
+              labelText={t('hideRowsWithNoCases', 'Hide rows with no cases')}
+              checked={hideEmptyRows}
+              onChange={(_e, { checked }) => setHideEmptyRows(checked)}
             />
           </div>
         </div>
@@ -445,136 +466,33 @@ export default function DiseaseSummaryReport() {
             <table className={pageStyles.dataTable}>
               <thead>
                 <tr>
+                  <th rowSpan={2}>{t('number', 'No.')}</th>
                   <th rowSpan={2} className="left">
-                    {t('category', 'Category')}
+                    {t('disease', 'Disease')}
                   </th>
-                  <th rowSpan={2} className="left">
-                    {t('diagnosis', 'Diagnosis')}
-                  </th>
-                  <th rowSpan={2}>{t('totalCases', 'Total Cases')}</th>
-                  <th colSpan={2}>0-4</th>
-                  <th colSpan={2}>5-14</th>
-                  <th colSpan={2}>15-18</th>
-                  <th colSpan={2}>19-49</th>
-                  <th colSpan={2}>50-65</th>
-                  <th colSpan={2}>65+</th>
-                  <th rowSpan={2}>Total</th>
+                  {AGE_GROUPS.map((ageGroup) => (
+                    <th key={ageGroup} colSpan={2}>
+                      {t('ageGroupYears', '{{ageGroup}} Years', { ageGroup })}
+                    </th>
+                  ))}
+                  <th rowSpan={2}>{t('total', 'Total')}</th>
                 </tr>
                 <tr>
                   {AGE_GENDER_COLUMNS.map((col) => (
-                    <th key={col.label}>{col.gender}</th>
+                    <th key={col.key}>{col.gender}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {groupedRows.map((group) => {
-                  const collapsed = collapsedCategories.has(group.categoryConceptId);
-                  return (
-                    <React.Fragment key={group.categoryConceptId}>
-                      <tr className={pageStyles.categoryHeaderRow} onClick={() => toggleCategory(group.categoryConceptId)}>
-                        <td colSpan={2} className="left">
-                          <button className={pageStyles.collapseToggle} aria-expanded={!collapsed}>
-                            {collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-                            {group.category} ({group.rows.length})
-                          </button>
-                        </td>
-                        <td>{group.totalCases}</td>
-                        {AGE_GENDER_COLUMNS.map((col) => (
-                          <td key={col.label}>{group.columnTotals[`${col.ageGroup}_${col.gender}`]}</td>
-                        ))}
-                        <td>{group.grandTotal}</td>
-                      </tr>
-                      {!collapsed &&
-                        group.rows.map((row, index) => (
-                          <tr key={`${row.diagnosisConceptId}-${index}`}>
-                            <td className="left" />
-                            <td className="left">{row.diagnosisLabel}</td>
-                            <td>
-                              {row.totalCases > 0 ? (
-                                <button
-                                  className={pageStyles.linkCell}
-                                  onClick={() => openDrilldown(row.diagnosisConceptId, row.category, row.diagnosisLabel)}
-                                >
-                                  {row.totalCases}
-                                </button>
-                              ) : (
-                                row.totalCases
-                              )}
-                            </td>
-                            {AGE_GENDER_COLUMNS.map((col) => {
-                              const key = `${col.ageGroup}_${col.gender}`;
-                              const count = row.counts?.[key] ?? 0;
-                              return (
-                                <td key={key}>
-                                  {count > 0 ? (
-                                    <button
-                                      className={pageStyles.linkCell}
-                                      onClick={() =>
-                                        openDrilldown(
-                                          row.diagnosisConceptId,
-                                          row.category,
-                                          row.diagnosisLabel,
-                                          col.ageGroup,
-                                          col.gender,
-                                          col.label,
-                                        )
-                                      }
-                                    >
-                                      {count}
-                                    </button>
-                                  ) : (
-                                    count
-                                  )}
-                                </td>
-                              );
-                            })}
-                            <td>
-                              {row.total > 0 ? (
-                                <button
-                                  className={pageStyles.linkCell}
-                                  onClick={() => openDrilldown(row.diagnosisConceptId, row.category, row.diagnosisLabel)}
-                                >
-                                  {row.total}
-                                </button>
-                              ) : (
-                                row.total
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                    </React.Fragment>
-                  );
-                })}
-                {groupedRows.length === 0 && (
+                {lines.map(renderLine)}
+                {rows.length === 0 && (
                   <tr>
-                    <td colSpan={16} className={pageStyles.emptyState}>
+                    <td colSpan={AGE_GENDER_COLUMNS.length + 3} className={pageStyles.emptyState}>
                       {t('noDataForSelection', 'No data found for this selection.')}
                     </td>
                   </tr>
                 )}
               </tbody>
-              {groupedRows.length > 0 && (
-                <tfoot>
-                  <tr>
-                    <td className="left" colSpan={2}>
-                      <strong>
-                        {t('totalsDiagnosesCount', 'Totals ({{count}} diagnoses)', { count: filteredRows.length })}
-                      </strong>
-                    </td>
-                    <td>
-                      <strong>{totals.totalCases}</strong>
-                    </td>
-                    {AGE_GENDER_COLUMNS.map((col) => (
-                      <td key={col.label}>
-                        <strong>{totals.columnTotals[`${col.ageGroup}_${col.gender}`]}</strong>
-                      </td>
-                    ))}
-                    <td>
-                      <strong>{totals.grandTotal}</strong>
-                    </td>
-                  </tr>
-                </tfoot>
-              )}
             </table>
           </div>
         )}
@@ -589,12 +507,42 @@ export default function DiseaseSummaryReport() {
         )}
       </div>
 
+      {diagnosisListRow && (
+        <Modal
+          open
+          modalHeading={diagnosisListRow.label}
+          passiveModal
+          onRequestClose={() => setDiagnosisListRow(null)}
+        >
+          <p className={styles.diagnosisListIntro}>
+            {t('diagnosesCountedUnderRow', '{{count}} diagnoses are counted under this row.', {
+              count: diagnosisListRow.diagnoses.length,
+            })}
+          </p>
+          <Search
+            size="md"
+            labelText={t('searchDiagnoses', 'Search diagnoses')}
+            placeholder={t('searchDiagnosesPlaceholder', 'Search diagnoses...')}
+            value={diagnosisSearch}
+            onChange={(e) => setDiagnosisSearch(e.target.value)}
+            onClear={() => setDiagnosisSearch('')}
+          />
+          {filteredDiagnoses.length === 0 ? (
+            <p className={styles.diagnosisListIntro}>{t('noMatchingDiagnoses', 'No diagnoses match your search.')}</p>
+          ) : (
+            <ul className={styles.diagnosisList}>
+              {filteredDiagnoses.map((name) => (
+                <li key={name}>{name}</li>
+              ))}
+            </ul>
+          )}
+        </Modal>
+      )}
+
       {selection && (
         <Modal
           open
-          modalHeading={`${selection.category} » ${selection.diagnosisLabel}${
-            selection.ageGroupLabel ? ` » ${selection.ageGroupLabel}` : ''
-          }`}
+          modalHeading={`${selection.label}${selection.cellLabel ? ` » ${selection.cellLabel}` : ''}`}
           passiveModal
           onRequestClose={() => setSelection(null)}
         >
@@ -619,7 +567,7 @@ export default function DiseaseSummaryReport() {
                     <tr
                       key={patient.patientId}
                       className={pageStyles.clickableRow}
-                      onClick={() => goToPatientChart(patient.patientUuid)}
+                      onClick={() => navigate({ to: `\${openmrsSpaBase}/patient/${patient.patientUuid}/chart/visits` })}
                     >
                       <td className="left">
                         {patient.givenName} {patient.familyName}

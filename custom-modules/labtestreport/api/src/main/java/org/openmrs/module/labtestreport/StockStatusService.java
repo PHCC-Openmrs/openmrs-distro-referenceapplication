@@ -19,6 +19,15 @@ public interface StockStatusService extends OpenmrsService {
 	List<StockBatchExpiryRow> getExpiryRisk(Integer daysAhead, String locationUuid);
 
 	/**
+	 * Quantity left in each batch of each item, per location, as of now. Includes expired batches
+	 * not yet disposed of and batches with no recorded expiry.
+	 *
+	 * @param locationUuid only include this location's batches, or null for all locations
+	 * @return one row per batch per location with a non-zero balance, ordered by item then batch
+	 */
+	List<StockBatchBalanceRow> getBatchBalance(String locationUuid);
+
+	/**
 	 * Current on-hand quantity per item/location against its average daily consumption over a
 	 * date range, projecting how many days of stock remain at that rate.
 	 *

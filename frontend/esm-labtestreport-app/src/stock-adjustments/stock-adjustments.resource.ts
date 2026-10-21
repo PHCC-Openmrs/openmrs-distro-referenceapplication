@@ -1,4 +1,5 @@
 import { openmrsFetch } from '@openmrs/esm-framework';
+import { useMemo } from 'react';
 import useSWR from 'swr';
 
 /** What the reason concept says an adjustment was for - see the backend's StockAdjustmentRow. */
@@ -25,6 +26,9 @@ export interface StockAdjustmentRow {
   bulkFactor: number | null;
   reasonUuid: string | null;
   reasonName: string | null;
+  // The free text typed for an "Other" (Miscellaneous) reason, split out of remarks - see
+  // splitOtherReason. Null when the reason is not Other or none was typed.
+  otherReason: string | null;
   remarks: string | null;
   responsiblePerson: string | null;
   purpose: AdjustmentPurpose;
@@ -32,6 +36,30 @@ export interface StockAdjustmentRow {
   // consumption, or a commodity recorded as a correction. Always false while no consumption reasons
   // are configured on the server, since nothing can be judged against an empty list.
   mismatched: boolean;
+}
+
+// The stock-management app shows the "Miscellaneous" reason concept as "Other" and asks for a typed
+// reason. A stock operation's reason can only be a concept, so it stores that text at the front of
+// remarks as "Reason: <text>", followed by any real remarks on the next line (see its
+// other-reason.utils.ts). Split it back out so the report shows the reason where it belongs and
+// remarks without the prefix.
+const OTHER_REASON_CONCEPT_NAME = 'miscellaneous';
+const OTHER_REASON_PREFIX = 'Reason: ';
+
+export function isOtherReasonName(reasonName?: string | null): boolean {
+  return reasonName?.trim().toLowerCase() === OTHER_REASON_CONCEPT_NAME;
+}
+
+function splitOtherReason(row: StockAdjustmentRow): StockAdjustmentRow {
+  const { remarks } = row;
+  if (!isOtherReasonName(row.reasonName) || !remarks?.startsWith(OTHER_REASON_PREFIX)) {
+    return { ...row, otherReason: null };
+  }
+  const withoutPrefix = remarks.slice(OTHER_REASON_PREFIX.length);
+  const lineEnd = withoutPrefix.indexOf('\n');
+  const otherReason = (lineEnd === -1 ? withoutPrefix : withoutPrefix.slice(0, lineEnd)).trim();
+  const rest = lineEnd === -1 ? '' : withoutPrefix.slice(lineEnd + 1).trim();
+  return { ...row, otherReason: otherReason || null, remarks: rest || null };
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
@@ -48,5 +76,6 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 export function useStockAdjustmentsReport(startDate?: string, endDate?: string, locationUuid?: string) {
   const url = `/module/labtestreport/api/stock-adjustments.json${buildQuery({ startDate, endDate, locationUuid })}`;
   const { data, error, isLoading } = useSWR<{ data: Array<StockAdjustmentRow> }, Error>(url, openmrsFetch);
-  return { rows: data?.data ?? [], error, isLoading };
+  const rows: Array<StockAdjustmentRow> = useMemo(() => (data?.data ?? []).map(splitOtherReason), [data]);
+  return { rows, error, isLoading };
 }
