@@ -5,6 +5,7 @@
  */
 import { getAsyncLifecycle } from '@openmrs/esm-framework';
 import { moduleName } from './constants';
+import { registerFormExpressionHelpers } from './form-expression-helpers';
 
 const options = {
   featureName: 'labtestreport',
@@ -14,7 +15,7 @@ const options = {
 export const importTranslation = (require as any).context('../translations', false, /.json$/, 'lazy');
 
 export function startupApp() {
-  // no config schema needed
+  registerFormExpressionHelpers();
 }
 
 export const reportsHome = getAsyncLifecycle(() => import('./reports-home/reports-home.component'), options);
