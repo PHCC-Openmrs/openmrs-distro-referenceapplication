@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InlineLoading, Button, Search, NumberInput } from '@carbon/react';
-import { navigate } from '@openmrs/esm-framework';
+import { navigate, useLocations } from '@openmrs/esm-framework';
 import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
 import { type ExportSheet } from '../reports-shell/export-utils';
@@ -16,6 +16,8 @@ import {
   type NutritionAgeBand,
   type NutritionSummaryRow,
 } from './nutrition-report.resource';
+
+const LOCATION_TAG = 'Login Location';
 
 function goToPatientChart(patientUuid: string) {
   navigate({ to: `\${openmrsSpaBase}/patient/${patientUuid}/chart/visits` });
@@ -48,13 +50,23 @@ export default function NutritionReportShared({ band, title, filenameBase, ageBa
 
   const { rows, isLoading } = useNutritionSummaryReport(band, appliedDates.startDate, appliedDates.endDate);
   const { options: filterOptions } = useNutritionFilterOptions();
+  const loginLocations = useLocations(LOCATION_TAG);
   const {
-    locations: locationOptions,
+    locations: encounterLocations,
     categories: categoryOptions,
     diagnoses: diagnosisOptions,
     supplementTypes: supplementOptions,
     statuses: statusOptions,
   } = filterOptions;
+  // Every login location, even ones with no nutrition data yet, plus any other location a
+  // nutrition encounter was recorded at. Rows are matched on location name.
+  const locationOptions = useMemo(
+    () =>
+      Array.from(new Set([...(loginLocations ?? []).map((location) => location.display), ...encounterLocations])).sort(
+        (a, b) => a.localeCompare(b),
+      ),
+    [loginLocations, encounterLocations],
+  );
 
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
