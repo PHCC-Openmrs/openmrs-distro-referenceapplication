@@ -27,4 +27,19 @@
             <column name="uuid" value="5e0c7a2e-8f3b-4c1d-9a6e-2b7d4f1c3a90"/>
         </insert>
     </changeSet>
+
+    <!-- Backs the registration form's National ID duplicate check (NationalIdService): a lookup by
+         identifier type + value is a single seek. Not unique, so existing data can never block it. -->
+    <changeSet id="labtestreport-national-id-idx-20261022" author="labtestreport">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists tableName="patient_identifier" indexName="labtestreport_national_id_idx"/>
+            </not>
+        </preConditions>
+        <createIndex indexName="labtestreport_national_id_idx" tableName="patient_identifier">
+            <column name="identifier_type"/>
+            <column name="identifier"/>
+            <column name="voided"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>
