@@ -51,6 +51,7 @@ export default function StockAdjustmentsReport() {
   const [purposeFilter, setPurposeFilter] = useState<'' | AdjustmentPurpose>('');
   const [itemTypeFilter, setItemTypeFilter] = useState<ItemTypeFilter>('');
   const [reasonFilter, setReasonFilter] = useState('');
+  const [responsiblePersonFilter, setResponsiblePersonFilter] = useState('');
 
   const { rows: rawRows, isLoading } = useStockAdjustmentsReport(
     appliedDates.startDate,
@@ -69,6 +70,13 @@ export default function StockAdjustmentsReport() {
       ),
     [rawRows],
   );
+  const responsiblePersonOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(rawRows.map((row) => row.responsiblePerson).filter((name): name is string => !!name)),
+      ).sort((a, b) => a.localeCompare(b)),
+    [rawRows],
+  );
 
   const rows = useMemo(() => {
     let filtered = filterByItemAndSearch(rawRows, itemFilter, searchText);
@@ -81,8 +89,11 @@ export default function StockAdjustmentsReport() {
     if (reasonFilter) {
       filtered = filtered.filter((row) => row.reasonName === reasonFilter);
     }
+    if (responsiblePersonFilter) {
+      filtered = filtered.filter((row) => row.responsiblePerson === responsiblePersonFilter);
+    }
     return filtered;
-  }, [rawRows, itemFilter, searchText, purposeFilter, itemTypeFilter, reasonFilter]);
+  }, [rawRows, itemFilter, searchText, purposeFilter, itemTypeFilter, reasonFilter, responsiblePersonFilter]);
 
   const kpiItems = useMemo(() => {
     // Counts rather than summed quantities: a report spanning tablets, gloves and syringes has no
@@ -113,6 +124,7 @@ export default function StockAdjustmentsReport() {
       quantity: (row: StockAdjustmentRow) => row.quantity,
       purpose: (row: StockAdjustmentRow) => row.purpose,
       reason: (row: StockAdjustmentRow) => reasonDisplay(row, t('other', 'Other')),
+      responsiblePerson: (row: StockAdjustmentRow) => row.responsiblePerson ?? '',
     }),
     [t],
   );
@@ -270,6 +282,21 @@ export default function StockAdjustmentsReport() {
             </Select>
           </div>
           <div className={pageStyles.filterField}>
+            <Select
+              id="responsiblePersonFilter"
+              labelText={t('responsiblePerson', 'Responsible Person')}
+              value={responsiblePersonFilter}
+              onChange={(e) => setResponsiblePersonFilter(e.target.value)}
+            >
+              <SelectItem value="" text={t('allResponsiblePersons', 'All responsible persons')} />
+              {responsiblePersonOptions.map((person) => (
+                <React.Fragment key={person}>
+                  <SelectItem value={person} text={person} />
+                </React.Fragment>
+              ))}
+            </Select>
+          </div>
+          <div className={pageStyles.filterField}>
             <label htmlFor="startDate">{t('startDate', 'Start Date')}</label>
             <input
               id="startDate"
@@ -371,7 +398,14 @@ export default function StockAdjustmentsReport() {
                     className="left"
                   />
                   <th className="left">{t('remarks', 'Remarks')}</th>
-                  <th className="left">{t('responsiblePerson', 'Responsible Person')}</th>
+                  <SortableHeader
+                    label={t('responsiblePerson', 'Responsible Person')}
+                    sortKey="responsiblePerson"
+                    activeSortKey={sortKey}
+                    direction={direction}
+                    onSort={toggleSort}
+                    className="left"
+                  />
                 </tr>
               </thead>
               <tbody>

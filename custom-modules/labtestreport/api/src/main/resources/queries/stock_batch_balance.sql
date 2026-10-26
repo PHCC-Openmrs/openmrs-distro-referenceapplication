@@ -10,8 +10,10 @@
 -- batch number (e.g. re-received with a different expiry) stay separate rows.
 --
 -- Only COMPLETED, non-voided operations count, matching stock_ledger_report.sql and
--- stock_current_onhand.sql. The HAVING keeps negative balances on purpose - a batch drawn below
--- zero is a data problem worth seeing, not one to hide alongside the emptied batches.
+-- stock_current_onhand.sql. Every batch that has had a completed movement at a location is listed,
+-- including ones drawn down to zero, so a storekeeper can see a batch has been used up rather than
+-- wonder whether it was ever received. Negative balances stay visible too - a batch drawn below
+-- zero is a data problem worth seeing.
 SELECT
   si.stock_item_id AS stockItemId,
   si.common_name   AS itemName,
@@ -41,5 +43,4 @@ WHERE si.voided = 0
   AND (:locationUuid IS NULL OR l.uuid = :locationUuid)
 GROUP BY si.stock_item_id, si.common_name, p.party_id, l.name, sb.stock_batch_id, sb.batch_no, sb.expiration,
          un.name, bun.name, bulk.factor
-HAVING quantity <> 0
 ORDER BY si.common_name, sb.batch_no, l.name

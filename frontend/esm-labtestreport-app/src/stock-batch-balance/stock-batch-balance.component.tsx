@@ -66,7 +66,11 @@ export default function StockBatchBalanceReport() {
     () => [
       { label: t('batches', 'Batches'), value: rows.length },
       { label: t('items', 'Items'), value: distinctItemNames(rows).length },
-      { label: t('expiredBatches', 'Already Expired'), value: rows.filter(isExpired).length },
+      // Only batches still holding stock: an expired batch already used up needs no action.
+      {
+        label: t('expiredBatches', 'Already Expired'),
+        value: rows.filter((row) => row.quantity > 0 && isExpired(row)).length,
+      },
     ],
     [t, rows],
   );
@@ -226,6 +230,11 @@ export default function StockBatchBalanceReport() {
                           {t('expired', 'Expired')}
                         </Tag>
                       )}
+                      {row.quantity === 0 && (
+                        <Tag type="gray" size="sm">
+                          {t('emptyBatch', 'Empty')}
+                        </Tag>
+                      )}
                       {row.quantity < 0 && (
                         <Tag type="magenta" size="sm">
                           {t('negativeBalance', 'Negative balance')}
@@ -237,7 +246,7 @@ export default function StockBatchBalanceReport() {
                 {rows.length === 0 && (
                   <tr>
                     <td colSpan={showLocationColumn ? 6 : 5} className={pageStyles.emptyState}>
-                      {t('noBatchesFound', 'No batches with stock left for this selection.')}
+                      {t('noBatchesFound', 'No batches found for this selection.')}
                     </td>
                   </tr>
                 )}
