@@ -24,7 +24,6 @@ export interface HealthPromotionRow {
   sessionType: string | null;
   topic: string | null;
   chwName: string | null;
-  notes: string | null;
 }
 
 export function useHealthPromotionReport(startDate?: string, endDate?: string, locationUuid?: string) {

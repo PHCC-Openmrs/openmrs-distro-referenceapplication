@@ -120,7 +120,6 @@ export default function HealthPromotionReport() {
         t('sessionType', 'Session Type'),
         t('topic', 'Topic'),
         t('chwName', 'CHW Name'),
-        t('notes', 'Notes'),
       ],
       rows: searchedRows.map((row) => [
         row.givenName,
@@ -140,7 +139,6 @@ export default function HealthPromotionReport() {
         row.sessionType ?? '',
         row.topic ?? '',
         row.chwName ?? '',
-        row.notes ?? '',
       ]),
     }),
     [t, searchedRows],
@@ -334,7 +332,6 @@ export default function HealthPromotionReport() {
                     onSort={toggleSort}
                     className="left"
                   />
-                  <th className="left">{t('notes', 'Notes')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -362,12 +359,11 @@ export default function HealthPromotionReport() {
                     <td>{row.sessionType || '--'}</td>
                     <td className="left">{row.topic || '--'}</td>
                     <td className="left">{row.chwName || '--'}</td>
-                    <td className="left">{row.notes || '--'}</td>
                   </tr>
                 ))}
                 {sortedRows.length === 0 && (
                   <tr>
-                    <td colSpan={16} className={pageStyles.emptyState}>
+                    <td colSpan={15} className={pageStyles.emptyState}>
                       {t('noSessionsForSelection', 'No Health Promotion Session submissions found for this selection.')}
                     </td>
                   </tr>

@@ -51,8 +51,6 @@ public class HealthPromotionRow {
 
 	private String chwName;
 
-	private String notes;
-
 	public Integer getPatientId() {
 		return patientId;
 	}
@@ -211,13 +209,5 @@ public class HealthPromotionRow {
 
 	public void setChwName(String chwName) {
 		this.chwName = chwName;
-	}
-
-	public String getNotes() {
-		return notes;
-	}
-
-	public void setNotes(String notes) {
-		this.notes = notes;
 	}
 }
