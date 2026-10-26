@@ -80,8 +80,7 @@ SELECT
       ORDER BY cn.locale_preferred DESC, cn.concept_name_id
       LIMIT 1)
   )                                 AS topic,
-  chwNameObs.value_text            AS chwName,
-  notesObs.value_text              AS notes
+  chwNameObs.value_text            AS chwName
 FROM encounter e
 JOIN form f ON f.form_id = e.form_id AND f.name = 'Health Promotion Session Form'
 JOIN person p ON p.person_id = e.patient_id
@@ -111,8 +110,6 @@ LEFT JOIN obs topicTextObs ON topicTextObs.encounter_id = e.encounter_id AND top
                                    LIMIT 1)
 LEFT JOIN obs chwNameObs ON chwNameObs.encounter_id = e.encounter_id AND chwNameObs.voided = 0
   AND chwNameObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '8f129f81-e078-4664-be97-649b66162a50')
-LEFT JOIN obs notesObs ON notesObs.encounter_id = e.encounter_id AND notesObs.voided = 0
-  AND notesObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '78a043eb-8a39-4fc4-a917-526df7314604')
 WHERE e.voided = 0
   AND (:startDate IS NULL OR e.encounter_datetime >= :startDate)
   AND (:endDate IS NULL OR e.encounter_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
