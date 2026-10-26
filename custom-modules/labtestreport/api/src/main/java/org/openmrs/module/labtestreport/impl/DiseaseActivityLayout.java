@@ -86,9 +86,10 @@ final class DiseaseActivityLayout {
 		        .columns("Obstetric/Gynaecological diseases"));
 		rows.add(diagnosis(section, "injuriesV00X99", "5", "Injuries by external causes (ICD 10 V00 to X99)")
 		        .columns("Injuries by external cuases (ICD 10 V00 to X99)"));
-		// War-related injuries: the sheet maps nothing here and the dictionary has no ICD-10 Y36-Y38 codes.
-		rows.add(notCaptured(GROUP_DISEASES, section, "injuriesY36Y38", "6",
-		    "Injuries by external causes (ICD 10 Y36 - Y38)"));
+		// The sheet has no column for this template row; its diagnosis sits under the V00-X99 column, so
+		// it's pinned here to take it from row 5.
+		rows.add(diagnosis(section, "injuriesY36Y38", "6", "Injuries by external causes (ICD 10 Y36 - Y38)")
+		        .pins("Injuries by external causes (ICD 10 Y36 - Y38)"));
 		rows.add(diagnosis(section, "dental", "7", "Dental diseases (dental caries etc.)")
 		        .columns("Dental diseases (dental caries etc.)"));
 		rows.add(diagnosis(section, "ear", "8", "Ear diseases (otitis media etc.)")
@@ -129,10 +130,6 @@ final class DiseaseActivityLayout {
 
 	private static RowDefinition diagnosis(String section, String key, String number, String label) {
 		return new RowDefinition(GROUP_DISEASES, section, key, number, label, Kind.DIAGNOSIS);
-	}
-
-	private static RowDefinition notCaptured(String group, String section, String key, String number, String label) {
-		return new RowDefinition(group, section, key, number, label, Kind.NOT_CAPTURED);
 	}
 
 	private static RowDefinition subtotal(String section, String key, String number, String label, String... memberKeys) {
