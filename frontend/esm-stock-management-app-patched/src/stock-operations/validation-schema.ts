@@ -144,6 +144,11 @@ export type BaseStockOperationItemFormData = z.infer<typeof baseStockOperationIt
 
 export const getStockOperationItemFormSchema = (operationType: OperationType, t: TranslateFn = defaultTranslate) => {
   const itemSchema = createBaseStockOperationItemSchema(t);
+  // Operations acting on existing stock must name the batch they draw from - the server rejects
+  // the item otherwise ("Stock batch null not found"), so block it here, before submission.
+  const requiredStockBatchUuid = z
+    .string({ required_error: t('batchRequired', 'Select a batch') })
+    .min(1, { message: t('batchRequired', 'Select a batch') });
   switch (operationType) {
     case OperationType.RECEIPT_OPERATION_TYPE:
     case OperationType.OPENING_STOCK_OPERATION_TYPE:
@@ -163,6 +168,7 @@ export const getStockOperationItemFormSchema = (operationType: OperationType, t:
           purchasePrice: true,
         })
         .extend({
+          stockBatchUuid: requiredStockBatchUuid,
           // Override quantity to allow negative values for negative adjustment operation
           quantity: z.coerce.number().refine((value) => value !== 0, {
             message: t('quantityCannotBeZero', 'Quantity cannot be zero.'),
@@ -173,11 +179,13 @@ export const getStockOperationItemFormSchema = (operationType: OperationType, t:
     case OperationType.STOCK_ISSUE_OPERATION_TYPE:
     case OperationType.STOCK_TAKE_OPERATION_TYPE:
     case OperationType.TRANSFER_OUT_OPERATION_TYPE:
-      return itemSchema.omit({
-        batchNo: true,
-        expiration: true,
-        purchasePrice: true,
-      });
+      return itemSchema
+        .omit({
+          batchNo: true,
+          expiration: true,
+          purchasePrice: true,
+        })
+        .extend({ stockBatchUuid: requiredStockBatchUuid });
     default:
       return itemSchema;
   }

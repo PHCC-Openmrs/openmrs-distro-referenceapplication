@@ -116,11 +116,18 @@ const BatchNoSelector: React.FC<BatchNoSelectorProps> = ({
     return <SelectSkeleton role="progressbar" />;
   }
 
+  // Nothing to draw from at this location - say so up front rather than leave an empty list.
+  const noBatchAvailable = filteredBatches.length === 0;
+
   return (
     <ComboBox
       id="stockBatchUuid"
-      invalid={!!error}
-      invalidText={error}
+      invalid={!!error || noBatchAvailable}
+      invalidText={
+        noBatchAvailable
+          ? t('noBatchAvailableAtLocation', 'No batch with available stock at this location')
+          : error
+      }
       items={filteredBatches}
       itemToString={itemToString}
       name="stockBatchUuid"
