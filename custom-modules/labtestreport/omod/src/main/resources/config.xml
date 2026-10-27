@@ -14,6 +14,7 @@
 	<require_modules>
 		<require_module version="1.17.0">org.openmrs.module.reporting</require_module>
 		<require_module version="4.0.0">org.openmrs.event</require_module>
+		<require_module version="4.0.0">org.openmrs.module.fhir2</require_module>
 	</require_modules>
 
 	<aware_of_modules>
