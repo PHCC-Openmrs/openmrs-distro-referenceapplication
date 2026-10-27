@@ -504,4 +504,33 @@
 		</property>
 	</bean>
 
+	<!-- Configure the Patient Name Search Service -->
+	<bean parent="serviceContext">
+		<property name="moduleService">
+			<list>
+				<value>org.openmrs.module.labtestreport.PatientNameSearchService</value>
+				<ref bean="labtestreportPatientNameSearchService"/>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="labtestreportPatientNameSearchService" class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+		<property name="transactionManager"><ref bean="transactionManager"/></property>
+		<property name="target">
+			<bean class="org.openmrs.module.labtestreport.impl.PatientNameSearchServiceImpl">
+				<property name="dao">
+					<bean class="org.openmrs.module.labtestreport.db.hibernate.HibernatePatientNameSearchDAO">
+						<property name="sessionFactory"><ref bean="dbSessionFactory"/></property>
+					</bean>
+				</property>
+			</bean>
+		</property>
+		<property name="preInterceptors">
+			<ref bean="serviceInterceptors"/>
+		</property>
+		<property name="transactionAttributeSource">
+			<bean class="org.springframework.transaction.annotation.AnnotationTransactionAttributeSource"/>
+		</property>
+	</bean>
+
 </beans>
