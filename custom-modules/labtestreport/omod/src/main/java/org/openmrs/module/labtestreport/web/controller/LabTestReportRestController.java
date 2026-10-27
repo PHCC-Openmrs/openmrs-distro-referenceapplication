@@ -38,6 +38,7 @@ import org.openmrs.module.labtestreport.SrhReportRow;
 import org.openmrs.module.labtestreport.SrhReportService;
 import org.openmrs.module.labtestreport.StockAdjustmentRow;
 import org.openmrs.module.labtestreport.StockBatchBalanceRow;
+import org.openmrs.module.labtestreport.StockBatchHistoryRow;
 import org.openmrs.module.labtestreport.StockBatchExpiryRow;
 import org.openmrs.module.labtestreport.StockDaysRemainingRow;
 import org.openmrs.module.labtestreport.StockFlowService;
@@ -365,6 +366,15 @@ public class LabTestReportRestController {
 	public ResponseEntity<String> stockBatchBalance(@RequestParam(value = "locationUuid", required = false) String locationUuid)
 	        throws JsonProcessingException {
 		List<StockBatchBalanceRow> rows = Context.getService(StockStatusService.class).getBatchBalance(locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/stock-batch-history.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> stockBatchHistory(@RequestParam(value = "stockItemId", required = false) Integer stockItemId,
+	        @RequestParam(value = "stockBatchId", required = false) Integer stockBatchId) throws JsonProcessingException {
+		List<StockBatchHistoryRow> rows = Context.getService(StockStatusService.class).getBatchHistory(stockItemId,
+		    stockBatchId);
 		return jsonResponse(rows);
 	}
 

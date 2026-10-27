@@ -35,6 +35,13 @@ public interface StockStatusDAO {
 	List<Object[]> getBatchBalanceRows(String locationUuid) throws DAOException;
 
 	/**
+	 * @return one row per completed transaction of the matching batches, oldest first, each a
+	 *         21-element array in the order fixed by HibernateStockStatusDAO's addScalar calls (see
+	 *         queries/stock_batch_history.sql)
+	 */
+	List<Object[]> getBatchHistoryRows(Integer stockItemId, Integer stockBatchId) throws DAOException;
+
+	/**
 	 * @return one row per (item, location) with an enabled reorder rule whose usable stock is below
 	 *         it, each a 9-element array of {stockItemId, itemName, locationId, locationName,
 	 *         ruleName, reorderLevel, onHandQty, expiredQty, unitName}. As above, onHandQty excludes

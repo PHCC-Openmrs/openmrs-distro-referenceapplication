@@ -18,6 +18,8 @@ public class HibernateStockStatusDAO implements StockStatusDAO {
 
 	private static final String BATCH_BALANCE_SQL = SqlResources.load("stock_batch_balance.sql");
 
+	private static final String BATCH_HISTORY_SQL = SqlResources.load("stock_batch_history.sql");
+
 	private static final String REORDER_STATUS_SQL = SqlResources.load("stock_reorder_status.sql");
 
 	private static final String STOCKOUT_FREQUENCY_SQL = SqlResources.load("stock_stockout_frequency.sql");
@@ -73,6 +75,36 @@ public class HibernateStockStatusDAO implements StockStatusDAO {
 		query.addScalar("bulkUnitName", StandardBasicTypes.STRING);
 		query.addScalar("bulkFactor", StandardBasicTypes.BIG_DECIMAL);
 		query.setParameter("locationUuid", locationUuid);
+		return query.list();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Object[]> getBatchHistoryRows(Integer stockItemId, Integer stockBatchId) throws DAOException {
+		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(BATCH_HISTORY_SQL);
+		query.addScalar("transactionId", StandardBasicTypes.INTEGER);
+		query.addScalar("operationDate", StandardBasicTypes.TIMESTAMP);
+		query.addScalar("operationNumber", StandardBasicTypes.STRING);
+		query.addScalar("operationUuid", StandardBasicTypes.STRING);
+		query.addScalar("activity", StandardBasicTypes.STRING);
+		query.addScalar("stockItemId", StandardBasicTypes.INTEGER);
+		query.addScalar("itemName", StandardBasicTypes.STRING);
+		query.addScalar("stockBatchId", StandardBasicTypes.INTEGER);
+		query.addScalar("batchNo", StandardBasicTypes.STRING);
+		query.addScalar("expirationDate", StandardBasicTypes.DATE);
+		query.addScalar("locationId", StandardBasicTypes.INTEGER);
+		query.addScalar("locationUuid", StandardBasicTypes.STRING);
+		query.addScalar("locationName", StandardBasicTypes.STRING);
+		query.addScalar("counterpartName", StandardBasicTypes.STRING);
+		query.addScalar("patientName", StandardBasicTypes.STRING);
+		query.addScalar("quantity", StandardBasicTypes.BIG_DECIMAL);
+		query.addScalar("reasonName", StandardBasicTypes.STRING);
+		query.addScalar("recordedBy", StandardBasicTypes.STRING);
+		query.addScalar("unitName", StandardBasicTypes.STRING);
+		query.addScalar("bulkUnitName", StandardBasicTypes.STRING);
+		query.addScalar("bulkFactor", StandardBasicTypes.BIG_DECIMAL);
+		query.setParameter("stockItemId", stockItemId, StandardBasicTypes.INTEGER);
+		query.setParameter("stockBatchId", stockBatchId, StandardBasicTypes.INTEGER);
 		return query.list();
 	}
 

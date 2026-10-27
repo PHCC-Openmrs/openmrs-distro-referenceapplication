@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InlineLoading, Search, Select, SelectItem, Tag } from '@carbon/react';
-import { formatDate, parseDate } from '@openmrs/esm-framework';
+import { formatDate, navigate, parseDate } from '@openmrs/esm-framework';
 import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import KpiTiles from '../reports-shell/kpi-tiles.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
@@ -221,7 +221,20 @@ export default function StockBatchBalanceReport() {
                   <tr key={`${row.stockBatchId}-${row.locationId}`}>
                     <td className="left">{row.itemName}</td>
                     {showLocationColumn && <td className="left">{row.locationName ?? '—'}</td>}
-                    <td className="left">{row.batchNo}</td>
+                    <td className="left">
+                      <button
+                        type="button"
+                        className={pageStyles.linkCell}
+                        title={t('viewBatchHistory', 'View batch history')}
+                        onClick={() =>
+                          navigate({
+                            to: `\${openmrsSpaBase}/stock-batch-history-report?stockItemId=${row.stockItemId}&stockBatchId=${row.stockBatchId}`,
+                          })
+                        }
+                      >
+                        {row.batchNo}
+                      </button>
+                    </td>
                     <td className="left">{formatExpiry(row.expirationDate) || '—'}</td>
                     <td>{formatQuantity(row.quantity, row.unitName, row.bulkUnitName, row.bulkFactor)}</td>
                     <td className="left">

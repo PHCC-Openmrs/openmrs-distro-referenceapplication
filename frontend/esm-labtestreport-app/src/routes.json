@@ -107,6 +107,10 @@
       "route": "stock-batch-balance-report"
     },
     {
+      "component": "stockBatchHistoryReport",
+      "route": "stock-batch-history-report"
+    },
+    {
       "component": "stockDaysRemainingReport",
       "route": "stock-days-remaining-report"
     },

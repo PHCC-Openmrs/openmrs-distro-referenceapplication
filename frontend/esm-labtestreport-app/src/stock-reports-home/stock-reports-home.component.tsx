@@ -129,6 +129,15 @@ export default function StockReportsHome() {
       route: 'stock-batch-balance-report',
     },
     {
+      key: 'batch-history',
+      title: t('stockBatchHistoryReportTitle', 'Batch History Report'),
+      description: t(
+        'stockBatchHistoryReportTileDesc',
+        'Everything that happened to a batch at each location - received, transferred, dispensed, disposed, adjusted - and what is left.',
+      ),
+      route: 'stock-batch-history-report',
+    },
+    {
       key: 'wastage',
       title: t('wastageReportTitle', 'Wastage / Disposal Report'),
       description: t(

@@ -76,6 +76,11 @@ export const stockBatchBalanceReport = getAsyncLifecycle(
   options,
 );
 
+export const stockBatchHistoryReport = getAsyncLifecycle(
+  () => import('./stock-batch-history/stock-batch-history.component'),
+  options,
+);
+
 export const stockDaysRemainingReport = getAsyncLifecycle(
   () => import('./stock-days-remaining/stock-days-remaining.component'),
   options,

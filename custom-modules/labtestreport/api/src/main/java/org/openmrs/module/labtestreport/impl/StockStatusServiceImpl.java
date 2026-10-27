@@ -10,6 +10,7 @@ import java.util.Map;
 import org.openmrs.api.impl.BaseOpenmrsService;
 import org.openmrs.module.labtestreport.StockBatchBalanceRow;
 import org.openmrs.module.labtestreport.StockBatchExpiryRow;
+import org.openmrs.module.labtestreport.StockBatchHistoryRow;
 import org.openmrs.module.labtestreport.StockDaysRemainingRow;
 import org.openmrs.module.labtestreport.StockFlowService;
 import org.openmrs.module.labtestreport.StockLocationQtyRow;
@@ -71,6 +72,40 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 			row.setUnitName((String) r[8]);
 			row.setBulkUnitName((String) r[9]);
 			row.setBulkFactor(toNullableDouble(r[10]));
+			rows.add(row);
+		}
+		return rows;
+	}
+
+	@Override
+	public List<StockBatchHistoryRow> getBatchHistory(Integer stockItemId, Integer stockBatchId) {
+		List<StockBatchHistoryRow> rows = new ArrayList<>();
+		if (stockItemId == null && stockBatchId == null) {
+			return rows;
+		}
+		for (Object[] r : dao.getBatchHistoryRows(stockItemId, stockBatchId)) {
+			StockBatchHistoryRow row = new StockBatchHistoryRow();
+			row.setTransactionId(toInteger(r[0]));
+			row.setOperationDate((Date) r[1]);
+			row.setOperationNumber((String) r[2]);
+			row.setOperationUuid((String) r[3]);
+			row.setActivity((String) r[4]);
+			row.setStockItemId(toInteger(r[5]));
+			row.setItemName((String) r[6]);
+			row.setStockBatchId(toInteger(r[7]));
+			row.setBatchNo((String) r[8]);
+			row.setExpirationDate((Date) r[9]);
+			row.setLocationId(toInteger(r[10]));
+			row.setLocationUuid((String) r[11]);
+			row.setLocationName((String) r[12]);
+			row.setCounterpartName((String) r[13]);
+			row.setPatientName((String) r[14]);
+			row.setQuantity(toDouble(r[15]));
+			row.setReasonName((String) r[16]);
+			row.setRecordedBy((String) r[17]);
+			row.setUnitName((String) r[18]);
+			row.setBulkUnitName((String) r[19]);
+			row.setBulkFactor(toNullableDouble(r[20]));
 			rows.add(row);
 		}
 		return rows;

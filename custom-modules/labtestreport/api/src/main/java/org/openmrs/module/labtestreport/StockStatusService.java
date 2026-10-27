@@ -28,6 +28,18 @@ public interface StockStatusService extends OpenmrsService {
 	List<StockBatchBalanceRow> getBatchBalance(String locationUuid);
 
 	/**
+	 * Every completed movement of a batch - receipts, transfers, issues, dispenses, disposals,
+	 * adjustments - at every location that held it, so a batch can be followed from receipt to
+	 * zero. Summed per location, the rows equal that location's {@link #getBatchBalance} figure.
+	 *
+	 * @param stockItemId only include this item's batches, or null for any item
+	 * @param stockBatchId only include this batch, or null for every batch of the item
+	 * @return one row per stock transaction, oldest first; empty when both arguments are null, so
+	 *         an unfiltered call cannot pull every transaction in the system
+	 */
+	List<StockBatchHistoryRow> getBatchHistory(Integer stockItemId, Integer stockBatchId);
+
+	/**
 	 * Current on-hand quantity per item/location against its average daily consumption over a
 	 * date range, projecting how many days of stock remain at that rate.
 	 *
