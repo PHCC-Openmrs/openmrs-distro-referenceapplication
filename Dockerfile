@@ -76,6 +76,14 @@ RUN mvn $MVN_ARGS clean
 # Replace '2.7.x' with the exact version of openmrs-core built for production (if available)
 FROM openmrs/openmrs-core:2.8.x-amazoncorretto-21
 
+# The base image's startup-init.sh quotes the glob in `rm -fR "${OMRS_MODULES_DIR:?}/*"`, so it never
+# expands and nothing is deleted - omods dropped from the distro (e.g. billing) or superseded versions
+# linger in the persisted openmrs-data volume and keep loading. Move the glob outside the quotes so each
+# start really wipes modules/OWAs/config/frontend before copying the distribution in; the grep fails
+# the build if a quoted glob is still left behind.
+RUN sed -i -E 's#rm -fR "(\$\{OMRS_[A-Z_]+_DIR:\?\})/\*"#rm -fR "\1"/*#' /openmrs/startup-init.sh && \
+    ! grep -q '_DIR:?}/\*"' /openmrs/startup-init.sh
+
 # Do not copy the war if using the correct openmrs-core image version
 COPY --from=dev /openmrs/distribution/openmrs_core/openmrs.war /openmrs/distribution/openmrs_core/
 
