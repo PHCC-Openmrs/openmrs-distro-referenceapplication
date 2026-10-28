@@ -6,7 +6,7 @@ SELECT
   v.visit_id                    AS visitId,
   v.date_started                AS visitDate,
   COALESCE(l.name, '')          AS locationName,
-  COALESCE(GROUP_CONCAT(DISTINCT COALESCE(pv.name, TRIM(CONCAT(pvpn.given_name, ' ', pvpn.family_name))) SEPARATOR ', '), '') AS providerName,
+  COALESCE(GROUP_CONCAT(DISTINCT COALESCE(NULLIF(TRIM(pv.name), ''), TRIM(CONCAT(pvpn.given_name, ' ', pvpn.family_name))) SEPARATOR ', '), '') AS providerName,
   GROUP_CONCAT(DISTINCT pr.name ORDER BY pr.name SEPARATOR ', ') AS serviceType
 FROM visit v
 JOIN patient pt ON pt.patient_id = v.patient_id
@@ -16,7 +16,14 @@ LEFT JOIN location l ON l.location_id = v.location_id
 LEFT JOIN encounter e ON e.visit_id = v.visit_id AND e.voided = 0
 LEFT JOIN encounter_provider ep ON ep.encounter_id = e.encounter_id AND ep.voided = 0
 LEFT JOIN provider pv ON pv.provider_id = ep.provider_id
-LEFT JOIN person_name pvpn ON pvpn.person_id = pv.person_id AND pvpn.voided = 0 AND pvpn.preferred = 1
+-- Staff providers are often saved with a single name never flagged preferred (only patients get that
+-- from registration), so take the preferred name when there is one and otherwise any non-voided name.
+LEFT JOIN person_name pvpn ON pvpn.person_name_id = (
+  SELECT pn2.person_name_id FROM person_name pn2
+  WHERE pn2.person_id = pv.person_id AND pn2.voided = 0
+  ORDER BY pn2.preferred DESC, pn2.person_name_id
+  LIMIT 1
+)
 -- Which of the four service-type programs, if any, this particular visit belongs to.
 -- NOTE: duplicated from patient_encounter_summary.sql, which needs the same resolution but
 -- aggregated across all of a patient's visits rather than kept per visit as it is here. Keep the
