@@ -360,7 +360,7 @@
     }
   },
   "@openmrs/esm-laboratory-app": {
-    "labTableColumns": ["name", "patientId", "urgency", "age", "sex", "totalOrders", "action"],
+    "labTableColumns": ["name", "patientId", "urgency", "diagnoses", "age", "sex", "totalOrders", "action"],
     "extensionSlots": {
       "tests-ordered-actions-slot": {
         "configure": {
