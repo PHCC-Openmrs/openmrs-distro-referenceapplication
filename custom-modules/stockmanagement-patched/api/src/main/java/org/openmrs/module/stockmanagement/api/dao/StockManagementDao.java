@@ -5327,4 +5327,134 @@ public class StockManagementDao extends DaoBase {
 		criteria.add(Restrictions.eq("voided", false));
 		return criteria.list();
 	}
+
+	public StockItem getStockItemById(Integer id) {
+		return (StockItem) getSession().createCriteria(StockItem.class).add(Restrictions.eq("id", id)).uniqueResult();
+	}
+
+	public StockBatch getStockBatchById(Integer id) {
+		return (StockBatch) getSession().createCriteria(StockBatch.class).add(Restrictions.eq("id", id)).uniqueResult();
+	}
+
+	public StockItemPackagingUOM getStockItemPackagingUOMById(Integer id) {
+		return (StockItemPackagingUOM) getSession().createCriteria(StockItemPackagingUOM.class)
+		        .add(Restrictions.eq("id", id)).uniqueResult();
+	}
+
+	/** How long to wait for a row lock before giving up, so a stuck request fails fast and can be retried. */
+	private static final int LOCK_WAIT_SECONDS = 5;
+
+	private static volatile Boolean mariaDb;
+
+	/**
+	 * Locks the given order rows until the current transaction ends, so two requests for the same
+	 * prescription run one after the other. Orders are always locked before stock batches; taking locks in
+	 * one fixed order is what keeps two requests from deadlocking each other.
+	 */
+	public void lockOrdersForUpdate(Collection<Integer> orderIds) {
+		lockRowsForUpdate("orders", "order_id", orderIds);
+	}
+
+	/**
+	 * Locks the given stock batch rows until the current transaction ends. Everything that takes stock out
+	 * of a batch locks it first, so a second request for the same batch waits until the first has committed
+	 * and then sees the new balance, instead of both passing the negative-balance check. The lock is held by
+	 * the database until commit, unlike a Java monitor, which is released before the transaction commits.
+	 */
+	public void lockStockBatchesForUpdate(Collection<Integer> stockBatchIds) {
+		lockRowsForUpdate("stockmgmt_stock_batch", "stock_batch_id", stockBatchIds);
+	}
+
+	private void lockRowsForUpdate(String table, String idColumn, Collection<Integer> ids) {
+		if (ids == null) {
+			return;
+		}
+		// Primary-key order, so the rows are always locked in the same sequence.
+		List<Integer> sortedIds = ids.stream().filter(Objects::nonNull).distinct().sorted().collect(Collectors.toList());
+		if (sortedIds.isEmpty()) {
+			return;
+		}
+		String sql = "SELECT " + idColumn + " FROM " + table + " WHERE " + idColumn + " IN (:ids) ORDER BY " + idColumn
+		        + " FOR UPDATE";
+		if (isMariaDb()) {
+			sql += " WAIT " + LOCK_WAIT_SECONDS;
+		}
+		getSession().createSQLQuery(sql).setParameterList("ids", sortedIds).list();
+	}
+
+	private boolean isMariaDb() {
+		Boolean result = mariaDb;
+		if (result == null) {
+			result = getSession().doReturningWork(connection -> {
+				java.sql.DatabaseMetaData metaData = connection.getMetaData();
+				return StringUtils.containsIgnoreCase(metaData.getDatabaseProductName(), "mariadb")
+				        || StringUtils.containsIgnoreCase(metaData.getDatabaseProductVersion(), "mariadb");
+			});
+			mariaDb = result;
+		}
+		return result;
+	}
+
+	/** The batches a dispense's stock rows were taken from. */
+	public List<Integer> getStockBatchIdsForMedicationDispense(Integer medicationDispenseId) {
+		Query query = getSession().createQuery(
+		    "select distinct t.stockBatch.id from stockmanagement.StockItemTransaction t where t.medicationDispense.id = :id");
+		query.setParameter("id", medicationDispenseId);
+		return query.list();
+	}
+
+	/**
+	 * Stock rows made by dispensing against an order before rows were linked to the individual dispense.
+	 */
+	public List<StockItemTransaction> getUnlinkedDispenseTransactionsForOrder(Integer orderId) {
+		Query query = getSession().createQuery("from stockmanagement.StockItemTransaction t where t.order.id = :orderId "
+		        + "and t.medicationDispense is null");
+		query.setParameter("orderId", orderId);
+		return query.list();
+	}
+
+	public boolean hasStockTransactionsForMedicationDispense(Integer medicationDispenseId) {
+		Query query = getSession().createQuery(
+		    "select count(t) from stockmanagement.StockItemTransaction t where t.medicationDispense.id = :id");
+		query.setParameter("id", medicationDispenseId);
+		return ((Number) query.uniqueResult()).longValue() > 0;
+	}
+
+	/**
+	 * What a dispense has taken from stock so far, net of anything already given back, per location, item,
+	 * batch and packaging unit. Each row is [partyId, stockItemId, stockBatchId, stockItemPackagingUOMId,
+	 * net quantity in that packaging unit]; a negative net is stock still out.
+	 */
+	public List<Object[]> getMedicationDispenseStockNet(Integer medicationDispenseId) {
+		Query query = getSession().createQuery(
+		    "select t.party.id, t.stockItem.id, t.stockBatch.id, t.stockItemPackagingUOM.id, sum(t.quantity) "
+		            + "from stockmanagement.StockItemTransaction t where t.medicationDispense.id = :id "
+		            + "group by t.party.id, t.stockItem.id, t.stockBatch.id, t.stockItemPackagingUOM.id");
+		query.setParameter("id", medicationDispenseId);
+		return query.list();
+	}
+
+	public long countMedicationDispensesForOrder(Integer orderId, Concept status) {
+		Query query = getSession().createQuery("select count(md) from org.openmrs.MedicationDispense md "
+		        + "where md.drugOrder.id = :orderId and md.voided = false and md.status = :status");
+		query.setParameter("orderId", orderId);
+		query.setParameter("status", status);
+		return ((Number) query.uniqueResult()).longValue();
+	}
+
+	/**
+	 * The total quantity already handed out on an order in the given unit, leaving out one dispense (the one
+	 * being saved, so an edit is not counted twice).
+	 */
+	public double sumDispensedQuantityForOrder(Integer orderId, Concept status, Concept quantityUnits,
+	        String excludedMedicationDispenseUuid) {
+		Query query = getSession().createQuery("select coalesce(sum(md.quantity), 0) from org.openmrs.MedicationDispense md "
+		        + "where md.drugOrder.id = :orderId and md.voided = false and md.status = :status "
+		        + "and md.quantityUnits = :units and md.uuid <> :excluded");
+		query.setParameter("orderId", orderId);
+		query.setParameter("status", status);
+		query.setParameter("units", quantityUnits);
+		query.setParameter("excluded", excludedMedicationDispenseUuid);
+		return ((Number) query.uniqueResult()).doubleValue();
+	}
 }

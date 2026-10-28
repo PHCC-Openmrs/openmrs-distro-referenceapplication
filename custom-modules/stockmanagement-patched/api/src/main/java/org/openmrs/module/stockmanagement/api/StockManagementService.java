@@ -20,6 +20,7 @@ import org.openmrs.module.stockmanagement.api.dto.reporting.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.reporting.Report;
 import org.openmrs.util.PrivilegeConstants;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.Path;
@@ -272,20 +273,20 @@ public interface StockManagementService extends OpenmrsService {
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)
 	void voidStockOperationItem(String stockOperationItemUuid, String reason, int voidedBy);
 	
-	@Transactional
+	@Transactional(isolation = Isolation.READ_COMMITTED)
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)
 	void submitStockOperation(StockOperationDTO stockOperationDTO);
 	
-	@Transactional
+	@Transactional(isolation = Isolation.READ_COMMITTED)
 	@Authorized({ Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE,
 	        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS })
 	void completeStockOperation(StockOperationDTO stockOperationDTO);
 	
-	@Transactional
+	@Transactional(isolation = Isolation.READ_COMMITTED)
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE)
 	void approveStockOperation(StockOperationDTO stockOperationDTO);
 	
-	@Transactional
+	@Transactional(isolation = Isolation.READ_COMMITTED)
 	@Authorized({ Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE,
 	        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE })
 	void dispatchStockOperation(StockOperationDTO stockOperationDTO);
@@ -294,21 +295,21 @@ public interface StockManagementService extends OpenmrsService {
 	@Authorized({ Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS })
 	void stockOperationItemsReceived(StockOperationDTO stockOperationDTO, List<StockOperationActionLineItem> lineItems);
 	
-	@Transactional
+	@Transactional(isolation = Isolation.READ_COMMITTED)
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE)
 	void rejectStockOperation(StockOperationDTO stockOperationDTO, String reason);
 	
-	@Transactional
+	@Transactional(isolation = Isolation.READ_COMMITTED)
 	@Authorized({ Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE,
 	        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS })
 	void returnStockOperation(StockOperationDTO stockOperationDTO, String reason);
 	
-	@Transactional
+	@Transactional(isolation = Isolation.READ_COMMITTED)
 	@Authorized({ Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE,
 	        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE })
 	void cancelStockOperation(StockOperationDTO stockOperationDTO, String reason);
 	
-	@Transactional
+	@Transactional(isolation = Isolation.READ_COMMITTED)
 	@Authorized({ Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE })
 	void dispenseStockItems(List<DispenseRequest> dispenseRequests);
 	

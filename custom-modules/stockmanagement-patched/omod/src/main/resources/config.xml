@@ -19,6 +19,10 @@
         <require_module version="${webservicesRestVersion}">
             org.openmrs.module.webservices.rest
         </require_module>
+        <!-- The dispense endpoint parses and translates MedicationDispense resources with the FHIR module. -->
+        <require_module version="${fhir2Version}">
+            org.openmrs.module.fhir2
+        </require_module>
     </require_modules>
 
     <aware_of_modules>

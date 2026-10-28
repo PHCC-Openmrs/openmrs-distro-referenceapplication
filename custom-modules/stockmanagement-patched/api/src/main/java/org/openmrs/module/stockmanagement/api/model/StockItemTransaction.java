@@ -22,7 +22,15 @@ public class StockItemTransaction extends TransactionBase implements Serializabl
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "encounter_id", nullable = true)
 	private Encounter encounter;
-	
+
+	/**
+	 * The dispense this movement was made for. order_id alone cannot identify it, because one order can
+	 * be dispensed several times.
+	 */
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "medication_dispense_id", nullable = true)
+	private MedicationDispense medicationDispense;
+
 	public StockItemTransaction() {
 	}
 	
@@ -48,5 +56,13 @@ public class StockItemTransaction extends TransactionBase implements Serializabl
 	
 	public void setEncounter(Encounter encounter) {
 		this.encounter = encounter;
+	}
+
+	public MedicationDispense getMedicationDispense() {
+		return medicationDispense;
+	}
+
+	public void setMedicationDispense(MedicationDispense medicationDispense) {
+		this.medicationDispense = medicationDispense;
 	}
 }

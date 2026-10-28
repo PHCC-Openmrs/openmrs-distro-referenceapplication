@@ -26,6 +26,10 @@
         <openmrsPlatformVersion>2.8.0</openmrsPlatformVersion>
         <javaCompilerVersion>1.8</javaCompilerVersion>
         <webservicesRestVersion>3.0.0</webservicesRestVersion>
+        <!-- The dispense endpoint parses and saves MedicationDispense resources through the FHIR module. -->
+        <fhir2Version>4.2.0</fhir2Version>
+        <hapifhirVersion>5.7.9</hapifhirVersion>
+        <fhirCoreVersion>5.6.27</fhirCoreVersion>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 

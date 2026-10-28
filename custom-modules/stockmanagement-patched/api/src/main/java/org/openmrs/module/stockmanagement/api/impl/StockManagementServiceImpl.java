@@ -56,8 +56,6 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     private Log log = LogFactory.getLog(this.getClass());
 
     private static final UUID STOCK_OPERATION_PROCESSING_LOCK = UUID.randomUUID();
-    private static final UUID DISPENSING_PROCESSING_LOCK = UUID.randomUUID();
-    private static final Map<String, UUID> LOCATION_DISPENSING_OPERATION_LOCKS = new HashMap<>();
 
     public StockManagementServiceImpl() {
 
@@ -1878,6 +1876,14 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         synchronized (STOCK_OPERATION_PROCESSING_LOCK) {
             MessageSourceService messageSourceService = Context.getMessageSourceService();
             StockOperation stockOperation = getStockOperationByUuid(stockOperationDTO.getUuid());
+            // Lock the batches this operation moves before any balance is checked, so it can't race a dispense or
+            // another operation on the same batch. The monitor above is released before the transaction commits,
+            // so on its own it never protected the balance check.
+            if (stockOperation != null) {
+                dao.lockStockBatchesForUpdate(stockOperation.getStockOperationItems().stream()
+                        .filter(p -> !p.getVoided() && p.getStockBatch() != null)
+                        .map(p -> p.getStockBatch().getId()).collect(Collectors.toList()));
+            }
             if (action.equals(StockOperationAction.Action.SUBMIT)) {
                 if (!stockOperation.isUpdateable()) {
                     throw new StockManagementException(
@@ -2284,6 +2290,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                         messageSourceService.getMessage("stockmanagement.dispenseoperation.packaginguomrequired"));
             }
             processingInfo.setPackagingUOM(stockItemPackagingUOM);
+            processingInfo.setMedicationDispense(dispenseRequest.getMedicationDispense());
             processingInformation.add(processingInfo);
         }
 
@@ -2305,17 +2312,11 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                         p.getKey().getStockBatchId()))
                 .collect(Collectors.toList());
 
-        // Ensure all the location dispensing locks are setup
-        for (Map.Entry<String, Location> location : locationMap.entrySet()) {
-            if (!LOCATION_DISPENSING_OPERATION_LOCKS.containsKey(location.getKey().toLowerCase())) {
-                synchronized (DISPENSING_PROCESSING_LOCK) {
-                    if (!LOCATION_DISPENSING_OPERATION_LOCKS.containsKey(location.getKey().toLowerCase())) {
-                        LOCATION_DISPENSING_OPERATION_LOCKS.putIfAbsent(location.getKey().toLowerCase(),
-                                UUID.randomUUID());
-                    }
-                }
-            }
-        }
+        // Lock every batch this request takes from before reading any balance. The database holds these
+        // locks until the transaction commits, so a concurrent dispense of the same batch waits and then
+        // sees this one's stock rows; the per-location Java lock this replaces was released before commit.
+        dao.lockStockBatchesForUpdate(processingInformation.stream().map(p -> p.getStockBatch().getId())
+                .collect(Collectors.toList()));
 
         Map<String, List<DispenseRequestProcessingInfo>> dispenseLocationGroups = processingInformation.stream()
                 .collect(Collectors.groupingBy(p -> p.getLocation().getUuid().toLowerCase()));
@@ -2328,143 +2329,141 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 throw new StockManagementException("Item group filters mismatch");
             }
 
-            UUID lockObject = LOCATION_DISPENSING_OPERATION_LOCKS.get(dispenseGroup.getKey());
-            synchronized (lockObject) {
-                List<StockItemInventory> stockItemInventories = dao.getStockItemInventory(searchFilter, null).getData();
-                List<String> errors = new ArrayList<>();
-                for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : searchFilter
-                        .getItemGroupFilters()) {
-                    List<DispenseRequestProcessingInfo> itemGroupItems = dispenseGroup.getValue().stream()
-                            .filter(p -> p.getStockItem().getId().equals(itemGroupFilter.getStockItemId()) &&
-                                    p.getStockBatch().getId().equals(itemGroupFilter.getFirstStockBatchId()))
-                            .collect(Collectors.toList());
+            List<StockItemInventory> stockItemInventories = dao.getStockItemInventory(searchFilter, null).getData();
+            List<String> errors = new ArrayList<>();
+            for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : searchFilter
+                    .getItemGroupFilters()) {
+                List<DispenseRequestProcessingInfo> itemGroupItems = dispenseGroup.getValue().stream()
+                        .filter(p -> p.getStockItem().getId().equals(itemGroupFilter.getStockItemId()) &&
+                                p.getStockBatch().getId().equals(itemGroupFilter.getFirstStockBatchId()))
+                        .collect(Collectors.toList());
 
-                    StockItem stockItem = itemGroupItems.get(0).getStockItem();
-                    StockBatch stockBatch = itemGroupItems.get(0).getStockBatch();
+                StockItem stockItem = itemGroupItems.get(0).getStockItem();
+                StockBatch stockBatch = itemGroupItems.get(0).getStockBatch();
 
-                    BigDecimal batchEffect = itemGroupItems.stream()
-                            .map(p -> p.getQuantity().multiply(p.getPackagingUOM().getFactor())
-                                    .multiply(BigDecimal.valueOf(-1)))
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal batchEffect = itemGroupItems.stream()
+                        .map(p -> p.getQuantity().multiply(p.getPackagingUOM().getFactor())
+                                .multiply(BigDecimal.valueOf(-1)))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                    Optional<StockItemInventory> batchCurrentBalance = stockItemInventories.stream()
-                            .filter(p -> p.getStockItemId().equals(itemGroupFilter.getStockItemId()) &&
-                                    p.getStockBatchId().equals(itemGroupFilter.getFirstStockBatchId()))
-                            .findAny();
+                Optional<StockItemInventory> batchCurrentBalance = stockItemInventories.stream()
+                        .filter(p -> p.getStockItemId().equals(itemGroupFilter.getStockItemId()) &&
+                                p.getStockBatchId().equals(itemGroupFilter.getFirstStockBatchId()))
+                        .findAny();
 
-                    BigDecimal balance = BigDecimal.ZERO;
-                    if (batchCurrentBalance.isPresent()) {
-                        balance = batchCurrentBalance.get().getQuantity();
-                    }
-                    BigDecimal netEffectBalance = balance.add(batchEffect);
-                    if (netEffectBalance.compareTo(BigDecimal.ZERO) < 0) {
-                        String stockItemName = null;
-                        if (stockItem.getDrug() != null) {
-                            stockItemName = stockItem.getDrug().getName();
-                            if (stockItem.getConcept() != null) {
-                                stockItemName = stockItemName + " (" + stockItem.getConcept().getDisplayString() + ")";
-                            }
-                        } else if (stockItem.getConcept() != null) {
-                            stockItemName = stockItem.getConcept().getDisplayString();
-                        }
-
-                        BigDecimal displayUnitValue = netEffectBalance;
-                        String displayUom = null;
-                        for (DispenseRequestProcessingInfo itemInGroup : itemGroupItems) {
-                            displayUnitValue = netEffectBalance.divide(itemInGroup.getPackagingUOM().getFactor(), 5,
-                                    BigDecimal.ROUND_HALF_EVEN);
-                            if (displayUnitValue.abs().compareTo(BigDecimal.ZERO) > 0) {
-                                displayUom = itemInGroup.getPackagingUOM().getPackagingUom().getDisplayString();
-                                break;
-                            }
-                        }
-                        if (StringUtils.isBlank(displayUom)) {
-                            StockItemPackagingUOMSearchFilter uomFilter = new StockItemPackagingUOMSearchFilter();
-                            uomFilter.setStockItemIds(Arrays.asList(stockItem.getId()));
-                            Result<StockItemPackagingUOMDTO> uoms = findStockItemPackagingUOMs(uomFilter);
-                            if (!uoms.getData().isEmpty()) {
-                                StockItemPackagingUOMDTO preferredUoM = getPreferredPackagingUoM(netEffectBalance,uoms.getData(),true,uomPriorityIsBigToSmall,null);
-                                displayUnitValue = netEffectBalance.divide(preferredUoM.getFactor(), 5, BigDecimal.ROUND_HALF_EVEN);
-                                displayUom = preferredUoM.getPackagingUomName();
-                            }
-                        }
-
-                        if (displayUom == null) {
-                            displayUnitValue = netEffectBalance;
-                        }
-
-                        errors.add(
-                                String.format(
-                                        messageSourceService.getMessage(
-                                                "stockmanagement.stockoperation.itembatchbalancenegativeafteroperation"),
-                                        stockItemName,
-                                        stockBatch.getBatchNo(),
-                                        NumberFormatUtil.qtyDisplayFormat(displayUnitValue),
-                                        displayUom));
-                    }
+                BigDecimal balance = BigDecimal.ZERO;
+                if (batchCurrentBalance.isPresent()) {
+                    balance = batchCurrentBalance.get().getQuantity();
                 }
-                if (!errors.isEmpty()) {
-                    throw new StockManagementException(String.join(", ", errors));
-                }
-
-                Party party = partyMap.get(dispenseGroup.getKey()).get(0);
-
-                // Dispensing is recorded as a completed Stock Issue operation (rather than a bare
-                // StockItemTransaction) so that it is attributed to a stockmgmt_stock_operation row of
-                // type 'stockissue' - that is what the Stock Consumption report joins against.
-                StockOperationType stockIssueType = getStockOperationTypeByType(StockOperationType.STOCK_ISSUE);
-                if (stockIssueType == null) {
-                    throw new StockManagementException(
-                            messageSourceService.getMessage("stockmanagement.stockoperation.notfound"));
-                }
-
-                StockOperation stockOperation = new StockOperation();
-                stockOperation.setStockOperationType(stockIssueType);
-                stockOperation.setOperationOrder(1);
-                stockOperation.setLocked(false);
-                stockOperation.setStatus(StockOperationStatus.COMPLETED);
-                stockOperation.setCreator(Context.getAuthenticatedUser());
-                stockOperation.setDateCreated(new Date());
-                stockOperation.setOperationDate(new Date());
-                stockOperation.setAtLocation(dispenseGroup.getValue().get(0).getLocation());
-                stockOperation.setSource(party);
-                stockOperation.setResponsiblePerson(Context.getAuthenticatedUser());
-                stockOperation.setCompletedBy(Context.getAuthenticatedUser());
-                stockOperation.setCompletedDate(new Date());
-                stockOperation.setStockOperationItems(new HashSet<>());
-                stockOperation.setStockItemTransactions(new HashSet<>());
-
-                for (DispenseRequestProcessingInfo item : dispenseGroup.getValue()) {
-                    StockOperationItem stockOperationItem = new StockOperationItem();
-                    stockOperationItem.setCreator(Context.getAuthenticatedUser());
-                    stockOperationItem.setDateCreated(new Date());
-                    stockOperationItem.setStockItem(item.getStockItem());
-                    stockOperationItem.setStockBatch(item.getStockBatch());
-                    stockOperationItem.setQuantity(item.getQuantity());
-                    stockOperationItem.setStockItemPackagingUOM(item.getPackagingUOM());
-                    stockOperation.addStockOperationItem(stockOperationItem);
-
-                    StockItemTransaction stockItemTransaction = new StockItemTransaction(stockOperation,
-                            stockOperationItem);
-                    stockItemTransaction.setParty(party);
-                    stockItemTransaction.setPatient(item.getPatient());
-                    stockItemTransaction.setCreator(Context.getAuthenticatedUser());
-                    stockItemTransaction.setDateCreated(new Date());
-                    stockItemTransaction.setQuantity(item.getQuantity().multiply(BigDecimal.valueOf(-1)));
-                    if (item.getOrder() != null) {
-                        stockItemTransaction.setOrder(item.getOrder());
+                BigDecimal netEffectBalance = balance.add(batchEffect);
+                if (netEffectBalance.compareTo(BigDecimal.ZERO) < 0) {
+                    String stockItemName = null;
+                    if (stockItem.getDrug() != null) {
+                        stockItemName = stockItem.getDrug().getName();
+                        if (stockItem.getConcept() != null) {
+                            stockItemName = stockItemName + " (" + stockItem.getConcept().getDisplayString() + ")";
+                        }
+                    } else if (stockItem.getConcept() != null) {
+                        stockItemName = stockItem.getConcept().getDisplayString();
                     }
-                    if (item.getEncounter() != null) {
-                        stockItemTransaction.setEncounter(item.getEncounter());
-                    }
-                    stockOperation.addStockItemTransaction(stockItemTransaction);
-                }
 
-                dao.saveStockOperation(stockOperation);
-                stockOperation.setOperationNumber(String.format("%1s-%2s", stockIssueType.getAcronym(),
-                        StringUtils.leftPad(Integer.toString(stockOperation.getId()), 4, '0')));
-                dao.saveStockOperation(stockOperation);
+                    BigDecimal displayUnitValue = netEffectBalance;
+                    String displayUom = null;
+                    for (DispenseRequestProcessingInfo itemInGroup : itemGroupItems) {
+                        displayUnitValue = netEffectBalance.divide(itemInGroup.getPackagingUOM().getFactor(), 5,
+                                BigDecimal.ROUND_HALF_EVEN);
+                        if (displayUnitValue.abs().compareTo(BigDecimal.ZERO) > 0) {
+                            displayUom = itemInGroup.getPackagingUOM().getPackagingUom().getDisplayString();
+                            break;
+                        }
+                    }
+                    if (StringUtils.isBlank(displayUom)) {
+                        StockItemPackagingUOMSearchFilter uomFilter = new StockItemPackagingUOMSearchFilter();
+                        uomFilter.setStockItemIds(Arrays.asList(stockItem.getId()));
+                        Result<StockItemPackagingUOMDTO> uoms = findStockItemPackagingUOMs(uomFilter);
+                        if (!uoms.getData().isEmpty()) {
+                            StockItemPackagingUOMDTO preferredUoM = getPreferredPackagingUoM(netEffectBalance,uoms.getData(),true,uomPriorityIsBigToSmall,null);
+                            displayUnitValue = netEffectBalance.divide(preferredUoM.getFactor(), 5, BigDecimal.ROUND_HALF_EVEN);
+                            displayUom = preferredUoM.getPackagingUomName();
+                        }
+                    }
+
+                    if (displayUom == null) {
+                        displayUnitValue = netEffectBalance;
+                    }
+
+                    errors.add(
+                            String.format(
+                                    messageSourceService.getMessage(
+                                            "stockmanagement.stockoperation.itembatchbalancenegativeafteroperation"),
+                                    stockItemName,
+                                    stockBatch.getBatchNo(),
+                                    NumberFormatUtil.qtyDisplayFormat(displayUnitValue),
+                                    displayUom));
+                }
             }
+            if (!errors.isEmpty()) {
+                throw new StockManagementException(String.join(", ", errors));
+            }
+
+            Party party = partyMap.get(dispenseGroup.getKey()).get(0);
+
+            // Dispensing is recorded as a completed Stock Issue operation (rather than a bare
+            // StockItemTransaction) so that it is attributed to a stockmgmt_stock_operation row of
+            // type 'stockissue' - that is what the Stock Consumption report joins against.
+            StockOperationType stockIssueType = getStockOperationTypeByType(StockOperationType.STOCK_ISSUE);
+            if (stockIssueType == null) {
+                throw new StockManagementException(
+                        messageSourceService.getMessage("stockmanagement.stockoperation.notfound"));
+            }
+
+            StockOperation stockOperation = new StockOperation();
+            stockOperation.setStockOperationType(stockIssueType);
+            stockOperation.setOperationOrder(1);
+            stockOperation.setLocked(false);
+            stockOperation.setStatus(StockOperationStatus.COMPLETED);
+            stockOperation.setCreator(Context.getAuthenticatedUser());
+            stockOperation.setDateCreated(new Date());
+            stockOperation.setOperationDate(new Date());
+            stockOperation.setAtLocation(dispenseGroup.getValue().get(0).getLocation());
+            stockOperation.setSource(party);
+            stockOperation.setResponsiblePerson(Context.getAuthenticatedUser());
+            stockOperation.setCompletedBy(Context.getAuthenticatedUser());
+            stockOperation.setCompletedDate(new Date());
+            stockOperation.setStockOperationItems(new HashSet<>());
+            stockOperation.setStockItemTransactions(new HashSet<>());
+
+            for (DispenseRequestProcessingInfo item : dispenseGroup.getValue()) {
+                StockOperationItem stockOperationItem = new StockOperationItem();
+                stockOperationItem.setCreator(Context.getAuthenticatedUser());
+                stockOperationItem.setDateCreated(new Date());
+                stockOperationItem.setStockItem(item.getStockItem());
+                stockOperationItem.setStockBatch(item.getStockBatch());
+                stockOperationItem.setQuantity(item.getQuantity());
+                stockOperationItem.setStockItemPackagingUOM(item.getPackagingUOM());
+                stockOperation.addStockOperationItem(stockOperationItem);
+
+                StockItemTransaction stockItemTransaction = new StockItemTransaction(stockOperation,
+                        stockOperationItem);
+                stockItemTransaction.setParty(party);
+                stockItemTransaction.setPatient(item.getPatient());
+                stockItemTransaction.setCreator(Context.getAuthenticatedUser());
+                stockItemTransaction.setDateCreated(new Date());
+                stockItemTransaction.setQuantity(item.getQuantity().multiply(BigDecimal.valueOf(-1)));
+                if (item.getOrder() != null) {
+                    stockItemTransaction.setOrder(item.getOrder());
+                }
+                if (item.getEncounter() != null) {
+                    stockItemTransaction.setEncounter(item.getEncounter());
+                }
+                stockItemTransaction.setMedicationDispense(item.getMedicationDispense());
+                stockOperation.addStockItemTransaction(stockItemTransaction);
+            }
+
+            dao.saveStockOperation(stockOperation);
+            stockOperation.setOperationNumber(String.format("%1s-%2s", stockIssueType.getAcronym(),
+                    StringUtils.leftPad(Integer.toString(stockOperation.getId()), 4, '0')));
+            dao.saveStockOperation(stockOperation);
         }
     }
 

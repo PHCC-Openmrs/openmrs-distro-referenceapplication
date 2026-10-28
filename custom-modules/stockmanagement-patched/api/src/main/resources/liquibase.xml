@@ -4824,4 +4824,26 @@ CREATE TRIGGER stockmgmt_location_after_delete
       <where>operation_type = 'transferout'</where>
     </update>
   </changeSet>
+
+  <changeSet author="claude" id="stockmanagement-2026-10-28-1000">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="stockmgmt_stock_item_transaction" columnName="medication_dispense_id"/>
+      </not>
+    </preConditions>
+    <comment>
+      Links each stock movement made by dispensing to the medication_dispense row it belongs to. Until now
+      the only link was order_id, and an order can be dispensed more than once (partial fills, refills), so
+      editing or deleting one dispense could not tell which stock rows were its own. The dispense endpoint
+      uses this link to give a dispense's stock back when the dispense is edited or deleted.
+    </comment>
+    <addColumn tableName="stockmgmt_stock_item_transaction">
+      <column name="medication_dispense_id" type="int"/>
+    </addColumn>
+    <addForeignKeyConstraint constraintName="stockmgmt_stock_item_transaction_medication_dispense_fk"
+                             baseTableName="stockmgmt_stock_item_transaction"
+                             baseColumnNames="medication_dispense_id"
+                             referencedTableName="medication_dispense"
+                             referencedColumnNames="medication_dispense_id"/>
+  </changeSet>
 </databaseChangeLog>

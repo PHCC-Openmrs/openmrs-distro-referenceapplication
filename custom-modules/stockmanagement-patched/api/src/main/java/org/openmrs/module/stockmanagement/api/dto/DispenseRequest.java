@@ -1,5 +1,6 @@
 package org.openmrs.module.stockmanagement.api.dto;
 
+import org.openmrs.MedicationDispense;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 
 import java.io.Serializable;
@@ -85,5 +86,19 @@ public class DispenseRequest implements Serializable {
 	
 	public void setStockItemPackagingUOMUuid(String stockItemPackagingUOMUuid) {
 		this.stockItemPackagingUOMUuid = stockItemPackagingUOMUuid;
+	}
+
+	/**
+	 * Set when the stock is taken for a saved dispense, so the resulting stock rows can be traced back to
+	 * it. Not part of the REST payload.
+	 */
+	private transient MedicationDispense medicationDispense;
+
+	public MedicationDispense getMedicationDispense() {
+		return medicationDispense;
+	}
+
+	public void setMedicationDispense(MedicationDispense medicationDispense) {
+		this.medicationDispense = medicationDispense;
 	}
 }

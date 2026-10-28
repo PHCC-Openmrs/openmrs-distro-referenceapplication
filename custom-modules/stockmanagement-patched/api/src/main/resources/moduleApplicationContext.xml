@@ -47,4 +47,39 @@
             </list>
         </property>
     </bean>
+
+    <!-- Saves a dispense, its prescription status and its stock movements in one transaction. -->
+    <bean id="stockmanagement.MedicationDispenseStockService"
+            class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+        <property name="transactionManager">
+            <ref bean="transactionManager" />
+        </property>
+        <property name="target">
+            <bean class="org.openmrs.module.stockmanagement.api.impl.MedicationDispenseStockServiceImpl">
+                <property name="dao">
+                    <bean class="${project.parent.groupId}.${project.parent.artifactId}.api.dao.StockManagementDao">
+                        <property name="sessionFactory">
+                            <ref bean="dbSessionFactory" />
+                        </property>
+                        <property name="searchSessionFactory" ref="searchSessionFactory"/>
+                    </bean>
+                </property>
+            </bean>
+        </property>
+        <property name="preInterceptors">
+            <ref bean="serviceInterceptors" />
+        </property>
+        <property name="transactionAttributeSource">
+            <ref bean="transactionAttributeSource" />
+        </property>
+    </bean>
+
+    <bean parent="serviceContext">
+        <property name="moduleService">
+            <list>
+                <value>org.openmrs.module.stockmanagement.api.MedicationDispenseStockService</value>
+                <ref bean="stockmanagement.MedicationDispenseStockService" />
+            </list>
+        </property>
+    </bean>
 </beans>

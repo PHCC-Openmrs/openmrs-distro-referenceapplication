@@ -2,6 +2,7 @@ package org.openmrs.module.stockmanagement.api.dto;
 
 import org.openmrs.Encounter;
 import org.openmrs.Location;
+import org.openmrs.MedicationDispense;
 import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.module.stockmanagement.api.model.Party;
@@ -101,5 +102,15 @@ public class DispenseRequestProcessingInfo {
 	
 	public void setPackagingUOM(StockItemPackagingUOM packagingUOM) {
 		PackagingUOM = packagingUOM;
+	}
+
+	private MedicationDispense medicationDispense;
+
+	public MedicationDispense getMedicationDispense() {
+		return medicationDispense;
+	}
+
+	public void setMedicationDispense(MedicationDispense medicationDispense) {
+		this.medicationDispense = medicationDispense;
 	}
 }

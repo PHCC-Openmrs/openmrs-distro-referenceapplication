@@ -78,9 +78,10 @@ public class DispenseRequestResource extends ResourceBase<DispenseRequest> {
     }
 
     public DispenseRequest covertToDispenseRequest(Map dispenseItem) {
-        Integer dispenseItemQuantity;
+        BigDecimal dispenseItemQuantity;
         if (!dispenseItem.get("quantity").equals("") && !dispenseItem.get("quantity").equals(null)) {
-            dispenseItemQuantity = Integer.parseInt(dispenseItem.get("quantity").toString());
+            // A decimal: batches can hold fractional quantities, and Integer.parseInt failed on them ("0.01").
+            dispenseItemQuantity = new BigDecimal(dispenseItem.get("quantity").toString());
         } else {
             throw new IllegalArgumentException("quantity can not be null");
         }
@@ -119,7 +120,7 @@ public class DispenseRequestResource extends ResourceBase<DispenseRequest> {
             throw new IllegalArgumentException("stockItem,stockBatch,and stockItemPackagingUOM,dispensingLocation can not be null");
         }
 
-        dispenseRequest.setQuantity(BigDecimal.valueOf(dispenseItemQuantity));
+        dispenseRequest.setQuantity(dispenseItemQuantity);
         return dispenseRequest;
     }
 
