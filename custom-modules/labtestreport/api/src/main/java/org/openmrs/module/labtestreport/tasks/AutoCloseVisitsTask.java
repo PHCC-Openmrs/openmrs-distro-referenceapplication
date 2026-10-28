@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.type.IntegerType;
+import org.hibernate.type.TimestampType;
 import org.openmrs.Patient;
 import org.openmrs.PatientProgram;
 import org.openmrs.Program;
@@ -32,7 +33,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * The queue module's "Auto Close Visit Queue Entries" task then ends their queue entries within a
  * minute. The program enrollments the start-visit form opened for the visit's "Service" selections
  * are completed too, exactly as the SPA does when a user ends a visit by hand (see
- * {@link #completeServiceEnrollments}).
+ * {@link #completeServiceEnrollments}). Every run also completes any enrollment still open after its
+ * visit ended some other way, at that visit's stop time (see {@link #completeEndedVisitEnrollments}).
  * <p>
  * The closing time is evaluated in the clinic's own timezone rather than the server's (which is
  * UTC), so it stays at the same wall-clock time across daylight saving changes. That's why this
@@ -81,6 +83,12 @@ public class AutoCloseVisitsTask extends AbstractTask {
 		}
 		catch (Exception e) {
 			log.error("Error while auto-closing visits", e);
+		}
+		try {
+			completeEndedVisitEnrollments();
+		}
+		catch (Exception e) {
+			log.error("Error while completing enrollments of ended visits", e);
 		}
 		finally {
 			stopExecuting();
@@ -194,6 +202,63 @@ public class AutoCloseVisitsTask extends AbstractTask {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Completes every still-open program enrollment whose visit has already ended, at that visit's
+	 * stop time. This catches visits ended any other way (by hand when the SPA's completion failed,
+	 * before enrollments were completed on visit end, or a run where completing them failed).
+	 * <p>
+	 * An enrollment is judged by the patient's latest visit that has its program in the "Service"
+	 * attribute: while that visit is active the enrollment stays open, and once it has ended the
+	 * enrollment is completed at its stop time. Enrollments made after that visit ended were not
+	 * used by it and are left alone.
+	 */
+	private void completeEndedVisitEnrollments() {
+		TransactionTemplate tx = new TransactionTemplate(
+		        Context.getRegisteredComponent("transactionManager", PlatformTransactionManager.class));
+		DbSessionFactory sessionFactory = Context.getRegisteredComponent("dbSessionFactory", DbSessionFactory.class);
+		ProgramWorkflowService programService = Context.getProgramWorkflowService();
+		@SuppressWarnings("unchecked")
+		List<Object[]> rows = tx.execute(status -> (List<Object[]>) sessionFactory.getCurrentSession()
+		        .createSQLQuery("select pp.patient_program_id, v.date_stopped from patient_program pp"
+		                + " join program p on p.program_id = pp.program_id"
+		                + " join visit v on v.patient_id = pp.patient_id and v.voided = 0"
+		                + " join visit_attribute va on va.visit_id = v.visit_id and va.voided = 0"
+		                + " join visit_attribute_type vat on vat.visit_attribute_type_id = va.attribute_type_id"
+		                + " and vat.uuid = :serviceType"
+		                + " where pp.voided = 0 and pp.date_completed is null"
+		                + " and find_in_set(p.uuid, va.value_reference) > 0"
+		                + " and not exists (select 1 from visit v2 join visit_attribute va2 on va2.visit_id = v2.visit_id"
+		                + " and va2.voided = 0 and va2.attribute_type_id = va.attribute_type_id"
+		                + " where v2.patient_id = pp.patient_id and v2.voided = 0"
+		                + " and find_in_set(p.uuid, va2.value_reference) > 0 and v2.date_started > v.date_started)"
+		                + " and v.date_stopped is not null and v.date_stopped >= pp.date_enrolled")
+		        .addScalar("patient_program_id", IntegerType.INSTANCE).addScalar("date_stopped", TimestampType.INSTANCE)
+		        .setParameter("serviceType", SERVICE_VISIT_ATTRIBUTE_TYPE_UUID).list());
+		if (rows == null || rows.isEmpty()) {
+			return;
+		}
+
+		int completed = 0;
+		for (Object[] row : rows) {
+			Integer patientProgramId = (Integer) row[0];
+			Date visitStopped = (Date) row[1];
+			try {
+				tx.executeWithoutResult(status -> {
+					PatientProgram enrollment = programService.getPatientProgram(patientProgramId);
+					if (enrollment != null && enrollment.getDateCompleted() == null) {
+						enrollment.setDateCompleted(visitStopped);
+						programService.savePatientProgram(enrollment);
+					}
+				});
+				completed++;
+			}
+			catch (Exception e) {
+				log.warn("Unable to complete enrollment {} of an ended visit", patientProgramId, e);
+			}
+		}
+		log.info("Completed {} of {} open enrollment(s) whose visit had ended", completed, rows.size());
 	}
 
 	/**
