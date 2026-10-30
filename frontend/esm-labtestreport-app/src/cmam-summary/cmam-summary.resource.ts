@@ -16,6 +16,7 @@ export interface CmamPatientRow {
   patientId: number;
   patientUuid: string;
   givenName: string;
+  middleName?: string;
   familyName: string;
   identifier: string;
   sex: string;
