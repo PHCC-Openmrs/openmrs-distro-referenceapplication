@@ -45,7 +45,8 @@ SELECT DISTINCT
     WHEN DATEDIFF(nextAppt.nextApptDate, CURDATE()) <= 7 THEN 'DUE SOON'
     ELSE 'OK'
   END                          AS alertStatus,
-  nvd.value_datetime            AS nextVisitDate
+  nvd.value_datetime            AS nextVisitDate,
+  COALESCE(pn.middle_name, '') AS middleName
 FROM latest_encounters le
 -- Alert Status is matched against the computed category (see cmam_summary_report.sql) rather
 -- than the raw recorded obs, so this stays consistent with the summary counts above it (matched

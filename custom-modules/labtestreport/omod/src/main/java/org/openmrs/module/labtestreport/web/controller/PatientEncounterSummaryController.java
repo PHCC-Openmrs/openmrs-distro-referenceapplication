@@ -44,7 +44,7 @@ public class PatientEncounterSummaryController {
 		SimpleDateFormat dateFormat = new SimpleDateFormat(SummaryReportController.DATE_FORMAT);
 		List<Row> rows = new ArrayList<>();
 		for (PatientEncounterSummaryRow r : summaryRows) {
-			String name = (r.getGivenName() + " " + r.getFamilyName()).trim();
+			String name = (r.getGivenName() + " " + (r.getMiddleName() == null ? "" : r.getMiddleName() + " ") + r.getFamilyName()).trim().replaceAll("\\s+", " ");
 			String mostRecent = r.getMostRecentVisitDate() == null ? "" : dateFormat.format(r.getMostRecentVisitDate());
 			rows.add(new Row(r.getPatientUuid(), name, r.getAge(), r.getVisitCount(), mostRecent, r.getSex(),
 			        r.getNationalId(), r.getPhoneNumber()));
