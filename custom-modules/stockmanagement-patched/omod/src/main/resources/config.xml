@@ -50,6 +50,10 @@
         <description>Able to dispense stock items</description>
     </privilege>
     <privilege>
+        <name>Task: stockmanagement.undo</name>
+        <description>Able to reverse completed stock operations and undo completed or closed prescriptions</description>
+    </privilege>
+    <privilege>
         <name>App: stockmanagement.userRoleScopes</name>
         <description>Able to view stock management user role scope</description>
     </privilege>

@@ -88,6 +88,15 @@ const StockOperationExpandedRow: React.FC<StockOperationExpandedRowProps> = (pro
               extraStatusinfo={<span>{props.model?.rejectionReason}</span>}
             />
           )}
+          {props.model?.status === 'REVERSED' && props.model?.reversedDate && (
+            <StockOpertationStatus
+              status={t('deletedReversed', 'Deleted (reversed)')}
+              statusFilledDate={props.model.reversedDate.toString()}
+              statusFillerFamilyName={props.model?.reversedByFamilyName}
+              statusFillerGivenName={props.model?.reversedByGivenName}
+              extraStatusinfo={<span className={styles.text}>{props.model?.reversalReason}</span>}
+            />
+          )}
           {props.model?.reasonName && (
             <div>
               <span className={styles.textHeading}>{t('reason', 'Reason')}:</span>

@@ -6,7 +6,7 @@ import styles from './stock-operation-statuses-filter.scss';
 const StockOperationStatusesFilter: React.FC = () => {
   const { t } = useTranslation();
   // get stock sources
-  const items = ['SUBMITTED', 'NEW', 'RETURNED', 'CANCELLED', 'DISPATCHED', 'COMPLETED', 'REJECTED'];
+  const items = ['SUBMITTED', 'NEW', 'RETURNED', 'CANCELLED', 'DISPATCHED', 'COMPLETED', 'REJECTED', 'REVERSED'];
 
   return (
     <div className={styles.filterContainer}>

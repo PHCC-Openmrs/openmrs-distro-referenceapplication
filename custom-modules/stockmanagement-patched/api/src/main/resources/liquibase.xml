@@ -4846,4 +4846,26 @@ CREATE TRIGGER stockmgmt_location_after_delete
                              referencedTableName="medication_dispense"
                              referencedColumnNames="medication_dispense_id"/>
   </changeSet>
+
+  <changeSet author="claude" id="stockmanagement-2026-10-29-1000">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="stockmgmt_stock_operation" columnName="reversed_by"/>
+      </not>
+    </preConditions>
+    <comment>
+      Records who reversed (deleted) a completed stock operation, when and why. Reversing writes offsetting
+      stock rows on the same operation and sets its status to REVERSED, so the history is kept.
+    </comment>
+    <addColumn tableName="stockmgmt_stock_operation">
+      <column name="reversal_reason" type="varchar(500)"/>
+      <column name="reversed_by" type="int"/>
+      <column name="reversed_date" type="datetime"/>
+    </addColumn>
+    <addForeignKeyConstraint constraintName="stockmgmt_stock_operation_reversed_by_fk"
+                             baseTableName="stockmgmt_stock_operation"
+                             baseColumnNames="reversed_by"
+                             referencedTableName="users"
+                             referencedColumnNames="user_id"/>
+  </changeSet>
 </databaseChangeLog>

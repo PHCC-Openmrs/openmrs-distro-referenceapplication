@@ -83,6 +83,9 @@ export const APP_STOCKMANAGEMENT_SETTINGS = 'App: stockmanagement.settings';
 /** @type {string}: Task: stockmanagement.reports.mutate, Able to create stock reports*/
 export const TASK_STOCKMANAGEMENT_REPORTS_MUTATE = 'Task: stockmanagement.reports.mutate';
 
+/** @type {string}: Task: stockmanagement.undo, Able to delete (reverse) completed stock operations*/
+export const TASK_STOCKMANAGEMENT_UNDO = 'Task: stockmanagement.undo';
+
 /** @type {string}: Task: stockmanagement.reports.mutate, Able to create stock reports*/
 
 export const INVENTORY_CLERK_ROLE_UUID = 'd210eb66-2188-11ed-9dff-507b9dea1806';

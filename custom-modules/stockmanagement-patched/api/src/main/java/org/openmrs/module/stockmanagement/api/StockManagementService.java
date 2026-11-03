@@ -309,6 +309,15 @@ public interface StockManagementService extends OpenmrsService {
 	        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE })
 	void cancelStockOperation(StockOperationDTO stockOperationDTO, String reason);
 	
+	/**
+	 * Deletes a completed operation by reversing it: every stock row it wrote is offset by an opposite row on
+	 * the same operation, and its status becomes REVERSED with who, when and why. Refused if it would leave
+	 * any batch negative, or if the operation belongs to a dispense (cancel the prescription instead).
+	 */
+	@Transactional(isolation = Isolation.READ_COMMITTED)
+	@Authorized(Privileges.TASK_STOCKMANAGEMENT_UNDO)
+	void reverseStockOperation(StockOperationDTO stockOperationDTO, String reason);
+	
 	@Transactional(isolation = Isolation.READ_COMMITTED)
 	@Authorized({ Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE })
 	void dispenseStockItems(List<DispenseRequest> dispenseRequests);

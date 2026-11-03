@@ -40,4 +40,15 @@ public interface MedicationDispenseStockService extends OpenmrsService {
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE)
 	MedicationDispense voidMedicationDispense(String uuid, boolean fulfillerStatusSpecified,
 	        Order.FulfillerStatus fulfillerStatus, String reason);
+
+	/**
+	 * Cancels a prescription that was dispensed: every completed dispense on the order is voided with its
+	 * stock returned, and the order's fulfiller status becomes DECLINED, all in one transaction. Cancelling an
+	 * order that has no dispenses left only sets the status.
+	 *
+	 * @return the dispenses that were voided
+	 */
+	@Transactional(isolation = Isolation.READ_COMMITTED)
+	@Authorized(Privileges.TASK_STOCKMANAGEMENT_UNDO)
+	List<MedicationDispense> cancelOrderDispenses(String orderUuid, String reason);
 }

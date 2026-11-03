@@ -75,6 +75,9 @@ public class StockOperationActionResource extends ResourceBase<StockOperationAct
 				case CANCEL:
 					getStockManagementService().cancelStockOperation(stockOperation, delegate.getReason());
 					break;
+				case REVERSE:
+					getStockManagementService().reverseStockOperation(stockOperation, delegate.getReason());
+					break;
 				case DISPATCH:
 					getStockManagementService().dispatchStockOperation(stockOperation);
 					break;

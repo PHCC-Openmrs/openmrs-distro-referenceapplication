@@ -48,7 +48,12 @@ public enum StockOperationStatus {
 	/**
 	 * The operation was completed and the pending transactions were applied.
 	 */
-	COMPLETED();
+	COMPLETED(),
+	/**
+	 * A completed operation that an administrator deleted: its transactions were offset, so it no longer
+	 * affects stock.
+	 */
+	REVERSED();
 	
 	StockOperationStatus() {
 	}

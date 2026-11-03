@@ -20,5 +20,6 @@ export const StopOperationActionTypes = [
   'COMPLETE',
   'CANCEL',
   'QUANTITY_RECEIVED',
+  'REVERSE',
 ] as const;
 export type StopOperationActionType = (typeof StopOperationActionTypes)[number];

@@ -5,6 +5,7 @@ import ca.uhn.fhir.parser.DataFormatException;
 import ca.uhn.fhir.parser.IParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -53,6 +54,9 @@ import java.util.List;
  * → 200 { "dispenses": [ saved FHIR MedicationDispense, ... ] }
  *
  * DELETE /ws/rest/v1/stockmanagement/dispense/{uuid}   body (optional): { "fulfillerStatus": ..., "reason": ... }
+ *
+ * POST /ws/rest/v1/stockmanagement/dispense/order/{orderUuid}/cancel   body: { "reason": ... }
+ * → 200 { "voided": [ dispense uuid, ... ] }   (administrators only: voids every completed dispense with its stock)
  * </pre>
  *
  * On any error nothing is saved. 409 means the request waited too long for, or deadlocked on, a lock held
@@ -124,6 +128,29 @@ public class MedicationDispenseController {
 			ObjectNode result = objectMapper.createObjectNode();
 			result.put("uuid", dispense.getUuid());
 			result.put("voided", true);
+			return json(HttpStatus.OK, result.toString());
+		}
+		catch (Exception e) {
+			return handle(e);
+		}
+	}
+
+	@RequestMapping(value = "/order/{orderUuid}/cancel", method = RequestMethod.POST)
+	public ResponseEntity<String> cancelOrder(@PathVariable("orderUuid") String orderUuid,
+	        @RequestBody(required = false) String body) {
+		if (!Context.isAuthenticated()) {
+			return error(HttpStatus.UNAUTHORIZED, "Not logged in");
+		}
+		try {
+			JsonNode root = StringUtils.isBlank(body) ? objectMapper.createObjectNode() : objectMapper.readTree(body);
+			List<MedicationDispense> voided = Context.getService(MedicationDispenseStockService.class)
+			        .cancelOrderDispenses(orderUuid, text(root, "reason"));
+
+			ObjectNode result = objectMapper.createObjectNode();
+			ArrayNode uuids = result.putArray("voided");
+			for (MedicationDispense dispense : voided) {
+				uuids.add(dispense.getUuid());
+			}
 			return json(HttpStatus.OK, result.toString());
 		}
 		catch (Exception e) {

@@ -7,7 +7,7 @@ import java.util.List;
 public class StockOperationAction {
 	
 	public enum Action {
-		SUBMIT(), APPROVE(), DISPATCH(), RETURN(), REJECT(), COMPLETE(), CANCEL(), QUANTITY_RECEIVED()
+		SUBMIT(), APPROVE(), DISPATCH(), RETURN(), REJECT(), COMPLETE(), CANCEL(), QUANTITY_RECEIVED(), REVERSE()
 	}
 	
 	private String reason;
