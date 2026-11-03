@@ -24,6 +24,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItem;
@@ -670,6 +671,97 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         assertEquals(entity.size(), 2);
         assertTrue(entity.stream().anyMatch(p -> dispenseRequests.stream().anyMatch(x -> p.getQuantity().multiply(BigDecimal.valueOf(-1)).setScale(2, BigDecimal.ROUND_HALF_EVEN).compareTo(x.getQuantity()) == 0)));
     }
+	
+	private StockOperation newCompletedOperationMoving(StockItem stockItem, StockBatch stockBatch,
+	        StockItemPackagingUOM packagingUom, BigDecimal quantity) {
+		StockOperation operation = eu().newStockOperation(dao());
+		operation.setVoided(false);
+		operation.setStatus(StockOperationStatus.COMPLETED);
+		operation.setStockItemTransactions(new HashSet<>());
+		dao().saveStockOperation(operation);
+		StockItemTransaction transaction = eu().newStockItemTransaction(dao(), stockItem, stockBatch, packagingUom);
+		transaction.setStockOperation(operation);
+		transaction.setPatient(null);
+		transaction.setQuantity(quantity);
+		operation.addStockItemTransaction(transaction);
+		dao().saveStockOperation(operation);
+		return operation;
+	}
+	
+	private BigDecimal netOf(StockOperation operation) {
+		return dao().getStockOperationStockNet(operation.getId()).stream().map(net -> (BigDecimal) net[4])
+		        .reduce(BigDecimal.ZERO, BigDecimal::add);
+	}
+	
+	@Test
+	public void reverseStockOperation_shouldOffsetTransactionsAndMarkReversed() {
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(stockBatch);
+		StockOperation receipt = newCompletedOperationMoving(stockItem, stockBatch, packagingUom, BigDecimal.valueOf(100));
+		stockManagementService.setDao(dao());
+		
+		StockOperationDTO dto = new StockOperationDTO();
+		dto.setUuid(receipt.getUuid());
+		stockManagementService.reverseStockOperation(dto, "Entered twice");
+		
+		StockOperation reversed = dao().getStockOperationByUuid(receipt.getUuid());
+		assertEquals(StockOperationStatus.REVERSED, reversed.getStatus());
+		assertEquals("Deleted by admin " + Context.getAuthenticatedUser().getPersonName().getFullName() + ": Entered twice",
+		    reversed.getReversalReason());
+		assertNotNull(reversed.getReversedBy());
+		assertNotNull(reversed.getReversedDate());
+		assertEquals(2, reversed.getStockItemTransactions().size());
+		assertEquals(0, netOf(reversed).compareTo(BigDecimal.ZERO));
+	}
+	
+	@Test
+	public void reverseStockOperation_shouldRefuseWhenBatchWouldGoNegative() {
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(stockBatch);
+		StockOperation receipt = newCompletedOperationMoving(stockItem, stockBatch, packagingUom, BigDecimal.valueOf(100));
+		// Most of what was received has since been issued.
+		newCompletedOperationMoving(stockItem, stockBatch, packagingUom, BigDecimal.valueOf(-80));
+		stockManagementService.setDao(dao());
+		
+		StockOperationDTO dto = new StockOperationDTO();
+		dto.setUuid(receipt.getUuid());
+		try {
+			stockManagementService.reverseStockOperation(dto, "Entered twice");
+			fail("Reversing a receipt whose stock was issued must be refused");
+		}
+		catch (StockManagementException expected) {
+			assertTrue(expected.getMessage(), expected.getMessage().contains(stockBatch.getBatchNo()));
+		}
+		StockOperation unchanged = dao().getStockOperationByUuid(receipt.getUuid());
+		assertEquals(StockOperationStatus.COMPLETED, unchanged.getStatus());
+		assertEquals(0, netOf(unchanged).compareTo(BigDecimal.valueOf(100)));
+	}
+	
+	@Test(expected = StockManagementException.class)
+	public void reverseStockOperation_shouldRefuseAnOperationThatIsNotCompleted() {
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(stockBatch);
+		StockOperation operation = newCompletedOperationMoving(stockItem, stockBatch, packagingUom, BigDecimal.TEN);
+		operation.setStatus(StockOperationStatus.SUBMITTED);
+		dao().saveStockOperation(operation);
+		stockManagementService.setDao(dao());
+		
+		StockOperationDTO dto = new StockOperationDTO();
+		dto.setUuid(operation.getUuid());
+		stockManagementService.reverseStockOperation(dto, "Entered twice");
+	}
 	
 	@Test
 	public void importStockItems() throws Exception {

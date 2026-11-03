@@ -593,6 +593,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 userIds.add(stockOperationDTO.getRejectedBy());
             if (stockOperationDTO.getDispatchedBy() != null)
                 userIds.add(stockOperationDTO.getDispatchedBy());
+            if (stockOperationDTO.getReversedBy() != null)
+                userIds.add(stockOperationDTO.getReversedBy());
         }
 
         List<UserPersonNameDTO> personNames = dao
@@ -613,6 +615,15 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 if (userPersonNameDTO.isPresent()) {
                     stockOperationDTO.setCancelledByFamilyName(userPersonNameDTO.get().getFamilyName());
                     stockOperationDTO.setCancelledByGivenName(userPersonNameDTO.get().getGivenName());
+                }
+            }
+
+            if (stockOperationDTO.getReversedBy() != null) {
+                Optional<UserPersonNameDTO> userPersonNameDTO = personNames.stream()
+                        .filter(p -> p.getUserId().equals(stockOperationDTO.getReversedBy())).findFirst();
+                if (userPersonNameDTO.isPresent()) {
+                    stockOperationDTO.setReversedByFamilyName(userPersonNameDTO.get().getFamilyName());
+                    stockOperationDTO.setReversedByGivenName(userPersonNameDTO.get().getGivenName());
                 }
             }
 
@@ -1652,6 +1663,123 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             }
             return new Pair<String, StockOperationPrivelegeTarget>(privelege, target);
         });
+    }
+
+    public void reverseStockOperation(StockOperationDTO stockOperationDTO, String reason) {
+        MessageSourceService messageSourceService = Context.getMessageSourceService();
+        if (StringUtils.isBlank(reason)) {
+            throw new StockManagementException(
+                    messageSourceService.getMessage("stockmanagement.stockoperation.reverse.reasonrequired"));
+        }
+        synchronized (STOCK_OPERATION_PROCESSING_LOCK) {
+            StockOperation stockOperation = getStockOperationByUuid(stockOperationDTO.getUuid());
+            if (stockOperation == null) {
+                throw new StockManagementException(
+                        messageSourceService.getMessage("stockmanagement.stockoperation.notfound"));
+            }
+            List<Object[]> netByBatch = dao.getStockOperationStockNet(stockOperation.getId());
+            dao.lockStockBatchesForUpdate(netByBatch.stream().map(net -> (Integer) net[2]).collect(Collectors.toList()));
+            // Re-read under the batch locks: another request may have reversed it while this one waited.
+            dao.getSession().refresh(stockOperation);
+            if (stockOperation.getStatus() != StockOperationStatus.COMPLETED) {
+                throw new StockManagementException(
+                        messageSourceService.getMessage("stockmanagement.stockoperation.reverse.notcompleted"));
+            }
+            // A dispense's stock follows the dispense; reversing it here would leave the dispense claiming stock it no
+            // longer took.
+            if (dao.hasMedicationDispenseTransactions(stockOperation.getId())) {
+                throw new StockManagementException(
+                        messageSourceService.getMessage("stockmanagement.stockoperation.reverse.dispenselinked"));
+            }
+
+            validateBalancesAfterReversal(netByBatch, messageSourceService);
+
+            User user = Context.getAuthenticatedUser();
+            Date now = new Date();
+            for (StockItemTransaction original : new ArrayList<>(stockOperation.getStockItemTransactions())) {
+                if (original.getQuantity() == null || original.getQuantity().signum() == 0) {
+                    continue;
+                }
+                StockItemTransaction offset = new StockItemTransaction(original);
+                offset.setParty(original.getParty());
+                offset.setPatient(original.getPatient());
+                offset.setOrder(original.getOrder());
+                offset.setEncounter(original.getEncounter());
+                offset.setQuantity(original.getQuantity().negate());
+                offset.setCreator(user);
+                offset.setDateCreated(now);
+                stockOperation.addStockItemTransaction(offset);
+            }
+            stockOperation.setStatus(StockOperationStatus.REVERSED);
+            stockOperation.setReversedBy(user);
+            stockOperation.setReversedDate(now);
+            stockOperation.setReversalReason(adminReversalReason(user, reason, messageSourceService));
+            dao.saveStockOperation(stockOperation);
+        }
+    }
+
+    /**
+     * The reason as recorded: tagged as an admin deletion and by whom, so it reads that way wherever the reason is
+     * shown. Cut to the 500 characters the reversal_reason column holds.
+     */
+    private String adminReversalReason(User user, String reason, MessageSourceService messageSourceService) {
+        String name = user.getPersonName() != null ? user.getPersonName().getFullName() : user.getUsername();
+        String recorded = String.format(messageSourceService.getMessage("stockmanagement.stockoperation.reverse.reasontag"),
+                name, reason.trim());
+        return recorded.length() > 500 ? recorded.substring(0, 500) : recorded;
+    }
+
+    /**
+     * Refuses a reversal that would take a batch below zero, e.g. reversing a receipt whose stock has since been
+     * issued. Each net row is [partyId, stockItemId, stockBatchId, packagingUomId, quantity in that unit].
+     */
+    private void validateBalancesAfterReversal(List<Object[]> netByBatch, MessageSourceService messageSourceService) {
+        Map<StockItemInventorySearchFilter.PartyStockItemBatch, BigDecimal> removedByBatch = new HashMap<>();
+        for (Object[] net : netByBatch) {
+            BigDecimal factor = dao.getStockItemPackagingUOMById((Integer) net[3]).getFactor();
+            BigDecimal effect = ((BigDecimal) net[4]).multiply(factor).negate();
+            removedByBatch.merge(new StockItemInventorySearchFilter.PartyStockItemBatch((Integer) net[0],
+                    (Integer) net[1], (Integer) net[2]), effect, BigDecimal::add);
+        }
+        removedByBatch.values().removeIf(effect -> effect.signum() >= 0);
+        if (removedByBatch.isEmpty()) {
+            return;
+        }
+
+        StockItemInventorySearchFilter searchFilter = new StockItemInventorySearchFilter();
+        searchFilter.setItemGroupFilters(removedByBatch.keySet().stream()
+                .map(key -> new StockItemInventorySearchFilter.ItemGroupFilter(Arrays.asList(key.getPartyId()),
+                        key.getStockItemId(), key.getStockBatchId()))
+                .collect(Collectors.toList()));
+        searchFilter.setRequireNonExpiredStockBatches(false);
+        List<StockItemInventory> inventories = dao.getStockItemInventory(searchFilter, null).getData();
+
+        List<String> shortfalls = new ArrayList<>();
+        for (Map.Entry<StockItemInventorySearchFilter.PartyStockItemBatch, BigDecimal> entry : removedByBatch.entrySet()) {
+            StockItemInventorySearchFilter.PartyStockItemBatch key = entry.getKey();
+            BigDecimal balance = inventories.stream()
+                    .filter(p -> key.getPartyId().equals(p.getPartyId()) && key.getStockItemId().equals(p.getStockItemId())
+                            && key.getStockBatchId().equals(p.getStockBatchId()))
+                    .map(StockItemInventory::getQuantity).filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (balance.add(entry.getValue()).signum() < 0) {
+                StockItem stockItem = dao.getStockItemById(key.getStockItemId());
+                StockBatch stockBatch = dao.getStockBatchById(key.getStockBatchId());
+                Party party = dao.getPartyById(key.getPartyId());
+                String name = stockItem.getDrug() != null ? stockItem.getDrug().getName()
+                        : stockItem.getConcept() == null ? stockItem.getUuid() : stockItem.getConcept().getDisplayString();
+                shortfalls.add(String.format("%s batch %s at %s (has %s, needs %s)", name,
+                        stockBatch == null ? "-" : stockBatch.getBatchNo(),
+                        party == null || party.getLocation() == null ? "-" : party.getLocation().getName(),
+                        balance.stripTrailingZeros().toPlainString(),
+                        entry.getValue().negate().stripTrailingZeros().toPlainString()));
+            }
+        }
+        if (!shortfalls.isEmpty()) {
+            throw new StockManagementException(String.format(
+                    messageSourceService.getMessage("stockmanagement.stockoperation.reverse.negative"),
+                    String.join("; ", shortfalls)));
+        }
     }
 
     private void validateStockInventoryAfterOperation(StockOperation stockOperation,

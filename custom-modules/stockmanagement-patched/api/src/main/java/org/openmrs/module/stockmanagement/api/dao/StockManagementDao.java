@@ -680,6 +680,9 @@ public class StockManagementDao extends DaoBase {
                 "so.returnedDate as returnedDate,\n" +
                 "so.rejectedBy.userId as rejectedBy,\n" +
                 "so.rejectedDate as rejectedDate,\n" +
+                "so.reversalReason as reversalReason,\n" +
+                "so.reversedBy.userId as reversedBy,\n" +
+                "so.reversedDate as reversedDate,\n" +
                 "dest.uuid as destinationUuid,\n" +
                 "coalesce(destl.name,dests.name) as destinationName,\n" +
                 "so.externalReference as externalReference,\n" +
@@ -5456,5 +5459,35 @@ public class StockManagementDao extends DaoBase {
 		query.setParameter("units", quantityUnits);
 		query.setParameter("excluded", excludedMedicationDispenseUuid);
 		return ((Number) query.uniqueResult()).doubleValue();
+	}
+
+	/** The completed dispenses on an order that have not been voided, oldest first. */
+	public List<MedicationDispense> getCompletedMedicationDispensesForOrder(Integer orderId, Concept status) {
+		Query query = getSession().createQuery("from org.openmrs.MedicationDispense md "
+		        + "where md.drugOrder.id = :orderId and md.voided = false and md.status = :status order by md.id");
+		query.setParameter("orderId", orderId);
+		query.setParameter("status", status);
+		return query.list();
+	}
+	
+	/**
+	 * What a stock operation has moved, per location, item, batch and packaging unit. Each row is [partyId,
+	 * stockItemId, stockBatchId, stockItemPackagingUOMId, net quantity in that packaging unit].
+	 */
+	public List<Object[]> getStockOperationStockNet(Integer stockOperationId) {
+		Query query = getSession().createQuery(
+		    "select t.party.id, t.stockItem.id, t.stockBatch.id, t.stockItemPackagingUOM.id, sum(t.quantity) "
+		            + "from stockmanagement.StockItemTransaction t where t.stockOperation.id = :id "
+		            + "group by t.party.id, t.stockItem.id, t.stockBatch.id, t.stockItemPackagingUOM.id");
+		query.setParameter("id", stockOperationId);
+		return query.list();
+	}
+	
+	/** Whether any of a stock operation's rows belong to a medication dispense. */
+	public boolean hasMedicationDispenseTransactions(Integer stockOperationId) {
+		Query query = getSession().createQuery("select count(t) from stockmanagement.StockItemTransaction t "
+		        + "where t.stockOperation.id = :id and t.medicationDispense is not null");
+		query.setParameter("id", stockOperationId);
+		return ((Number) query.uniqueResult()).longValue() > 0;
 	}
 }

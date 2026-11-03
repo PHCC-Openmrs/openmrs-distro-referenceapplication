@@ -70,6 +70,15 @@ const StockOperationStatusRow: React.FC<Props> = ({ stockOperation }) => {
           extraStatusinfo={<span>{stockOperation.rejectionReason}</span>}
         />
       )}
+      {stockOperation.status === 'REVERSED' && stockOperation.reversedDate && (
+        <StockOpertationStatus
+          status={t('deletedReversed', 'Deleted (reversed)')}
+          statusFilledDate={stockOperation.reversedDate.toString()}
+          statusFillerFamilyName={stockOperation.reversedByFamilyName}
+          statusFillerGivenName={stockOperation.reversedByGivenName}
+          extraStatusinfo={<span className={styles.text}>{stockOperation.reversalReason}</span>}
+        />
+      )}
     </Row>
   );
 };

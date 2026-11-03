@@ -246,6 +246,11 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 			description.addProperty("cancelledByGivenName");
 			description.addProperty("cancelledByFamilyName");
 			description.addProperty("cancelledDate");
+			description.addProperty("reversalReason");
+			description.addProperty("reversedBy");
+			description.addProperty("reversedByGivenName");
+			description.addProperty("reversedByFamilyName");
+			description.addProperty("reversedDate");
 			description.addProperty("completedBy");
 			description.addProperty("completedByGivenName");
 			description.addProperty("completedByFamilyName");
@@ -526,7 +531,10 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 			modelImpl.property("uuid", new StringProperty()).property("cancelReason", new StringProperty())
 			        .property("cancelledBy", new IntegerProperty()).property("cancelledByGivenName", new StringProperty())
 			        .property("cancelledByFamilyName", new StringProperty())
-			        .property("cancelledDate", new DateTimeProperty()).property("completedBy", new IntegerProperty())
+			        .property("cancelledDate", new DateTimeProperty()).property("reversalReason", new StringProperty())
+			        .property("reversedBy", new IntegerProperty()).property("reversedByGivenName", new StringProperty())
+			        .property("reversedByFamilyName", new StringProperty()).property("reversedDate", new DateTimeProperty())
+			        .property("completedBy", new IntegerProperty())
 			        .property("completedByGivenName", new StringProperty())
 			        .property("completedByFamilyName", new StringProperty())
 			        .property("completedDate", new DateTimeProperty()).property("destinationUuid", new StringProperty())

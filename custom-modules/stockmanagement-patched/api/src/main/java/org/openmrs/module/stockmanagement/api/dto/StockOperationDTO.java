@@ -128,6 +128,16 @@ public class StockOperationDTO {
 	
 	private Date rejectedDate;
 	
+	private String reversalReason;
+	
+	private Integer reversedBy;
+	
+	private String reversedByGivenName;
+	
+	private String reversedByFamilyName;
+	
+	private Date reversedDate;
+	
 	public Integer getSubmittedBy() {
 		return submittedBy;
 	}
@@ -222,6 +232,46 @@ public class StockOperationDTO {
 	
 	public void setRejectedDate(Date rejectedDate) {
 		this.rejectedDate = rejectedDate;
+	}
+	
+	public String getReversalReason() {
+		return reversalReason;
+	}
+	
+	public void setReversalReason(String reversalReason) {
+		this.reversalReason = reversalReason;
+	}
+	
+	public Integer getReversedBy() {
+		return reversedBy;
+	}
+	
+	public void setReversedBy(Integer reversedBy) {
+		this.reversedBy = reversedBy;
+	}
+	
+	public String getReversedByGivenName() {
+		return reversedByGivenName;
+	}
+	
+	public void setReversedByGivenName(String reversedByGivenName) {
+		this.reversedByGivenName = reversedByGivenName;
+	}
+	
+	public String getReversedByFamilyName() {
+		return reversedByFamilyName;
+	}
+	
+	public void setReversedByFamilyName(String reversedByFamilyName) {
+		this.reversedByFamilyName = reversedByFamilyName;
+	}
+	
+	public Date getReversedDate() {
+		return reversedDate;
+	}
+	
+	public void setReversedDate(Date reversedDate) {
+		this.reversedDate = reversedDate;
 	}
 	
 	public Boolean getApprovalRequired() {
