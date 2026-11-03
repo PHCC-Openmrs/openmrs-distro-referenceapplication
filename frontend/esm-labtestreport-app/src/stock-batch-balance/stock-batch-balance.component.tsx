@@ -15,6 +15,7 @@ import pageStyles from '../reports-shell/reports-page.scss';
 import { useStockBatchBalanceReport, type StockBatchBalanceRow } from './stock-batch-balance.resource';
 
 type ExpiryFilter = '' | 'expired' | 'notExpired' | 'noExpiry';
+type StockFilter = '' | 'inStock' | 'outOfStock';
 
 // A batch expiring today counts as expired, matching stock_current_onhand.sql's
 // "expiration <= CURDATE()".
@@ -41,6 +42,18 @@ function matchesExpiryFilter(row: StockBatchBalanceRow, filter: ExpiryFilter): b
   }
 }
 
+// Negative balances count as out of stock: there is nothing left to issue.
+function matchesStockFilter(row: StockBatchBalanceRow, filter: StockFilter): boolean {
+  switch (filter) {
+    case 'inStock':
+      return row.quantity > 0;
+    case 'outOfStock':
+      return row.quantity <= 0;
+    default:
+      return true;
+  }
+}
+
 function formatExpiry(expirationDate: string | null): string {
   return expirationDate ? formatDate(parseDate(expirationDate), { mode: 'standard', time: false }) : '';
 }
@@ -51,6 +64,7 @@ export default function StockBatchBalanceReport() {
   const [itemFilter, setItemFilter] = useState('');
   const [searchText, setSearchText] = useState('');
   const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>('');
+  const [stockFilter, setStockFilter] = useState<StockFilter>('');
 
   const { rows: rawRows, isLoading } = useStockBatchBalanceReport(locationUuid || undefined);
   const showLocationColumn = !locationUuid;
@@ -58,8 +72,10 @@ export default function StockBatchBalanceReport() {
   const itemOptions = useMemo(() => distinctItemNames(rawRows), [rawRows]);
   const rows = useMemo(
     () =>
-      filterByItemAndSearch(rawRows, itemFilter, searchText).filter((row) => matchesExpiryFilter(row, expiryFilter)),
-    [rawRows, itemFilter, searchText, expiryFilter],
+      filterByItemAndSearch(rawRows, itemFilter, searchText).filter(
+        (row) => matchesExpiryFilter(row, expiryFilter) && matchesStockFilter(row, stockFilter),
+      ),
+    [rawRows, itemFilter, searchText, expiryFilter, stockFilter],
   );
 
   const kpiItems = useMemo(
@@ -159,6 +175,18 @@ export default function StockBatchBalanceReport() {
               <SelectItem value="notExpired" text={t('notExpired', 'Not expired')} />
               <SelectItem value="expired" text={t('expired', 'Expired')} />
               <SelectItem value="noExpiry" text={t('noExpiryDate', 'No expiry date')} />
+            </Select>
+          </div>
+          <div className={pageStyles.filterField}>
+            <Select
+              id="stockFilter"
+              labelText={t('stockAvailability', 'Stock')}
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value as StockFilter)}
+            >
+              <SelectItem value="" text={t('allBatches', 'All batches')} />
+              <SelectItem value="inStock" text={t('inStock', 'In stock')} />
+              <SelectItem value="outOfStock" text={t('outOfStock', 'Out of stock')} />
             </Select>
           </div>
         </div>
