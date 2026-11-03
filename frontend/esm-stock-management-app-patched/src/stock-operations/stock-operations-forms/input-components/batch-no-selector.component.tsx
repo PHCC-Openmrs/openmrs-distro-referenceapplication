@@ -44,7 +44,9 @@ const BatchNoSelector: React.FC<BatchNoSelectorProps> = ({
     if (!stockItemBatchNos) return [];
 
     return stockItemBatchNos.map((item) => {
-      const matchingBatch = items?.find((batch) => batch.batchNumber === item.batchNo);
+      // Match on the batch uuid, not the batch number: the same number can exist as several
+      // batches (e.g. received with different expiry dates), each with its own stock.
+      const matchingBatch = items?.find((batch) => batch.stockBatchUuid === item.uuid);
 
       return matchingBatch
         ? ({
