@@ -50,6 +50,7 @@ import java.util.List;
  *                    "update": true,                        (only when editing)
  *                    "fulfillerStatus": "COMPLETED",        (absent = unchanged, null = cleared)
  *                    "restrictTotalQuantityDispensed": true,
+ *                    "extraQuantity": 5,                    (part of the quantity given beyond the prescription)
  *                    "stock": [ { "stockItem", "stockBatch", "stockItemPackagingUOM", "dispenseLocation", "quantity" } ] } ] }
  * → 200 { "dispenses": [ saved FHIR MedicationDispense, ... ] }
  *
@@ -179,6 +180,13 @@ public class MedicationDispenseController {
 			request.setFulfillerStatus(toFulfillerStatus(item.get("fulfillerStatus")));
 		}
 		request.setRestrictTotalQuantityDispensed(item.path("restrictTotalQuantityDispensed").asBoolean(false));
+		if (item.hasNonNull("extraQuantity")) {
+			BigDecimal extra = new BigDecimal(item.get("extraQuantity").asText());
+			if (extra.signum() < 0) {
+				throw new IllegalArgumentException("\"extraQuantity\" can't be negative");
+			}
+			request.setExtraQuantity(extra);
+		}
 		for (JsonNode lineJson : item.path("stock")) {
 			DispenseStockLine line = new DispenseStockLine();
 			line.setStockItemUuid(text(lineJson, "stockItem"));

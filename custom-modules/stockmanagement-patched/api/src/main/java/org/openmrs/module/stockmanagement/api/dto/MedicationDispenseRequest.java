@@ -3,6 +3,7 @@ package org.openmrs.module.stockmanagement.api.dto;
 import org.openmrs.MedicationDispense;
 import org.openmrs.Order;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +36,8 @@ public class MedicationDispenseRequest {
 	private Order.FulfillerStatus fulfillerStatus;
 
 	private boolean restrictTotalQuantityDispensed;
+
+	private BigDecimal extraQuantity = BigDecimal.ZERO;
 
 	private List<DispenseStockLine> stockLines = new ArrayList<>();
 
@@ -105,6 +108,19 @@ public class MedicationDispenseRequest {
 
 	public void setRestrictTotalQuantityDispensed(boolean restrictTotalQuantityDispensed) {
 		this.restrictTotalQuantityDispensed = restrictTotalQuantityDispensed;
+	}
+
+	/**
+	 * How much of the dispense's quantity is given on top of what the prescription has left. Only the rest
+	 * counts against the ordered quantity, and extra is only allowed on the dispense that uses up all of it.
+	 * The dispense's quantity, and the stock taken, are the total including the extra.
+	 */
+	public BigDecimal getExtraQuantity() {
+		return extraQuantity;
+	}
+
+	public void setExtraQuantity(BigDecimal extraQuantity) {
+		this.extraQuantity = extraQuantity == null ? BigDecimal.ZERO : extraQuantity;
 	}
 
 	public List<DispenseStockLine> getStockLines() {

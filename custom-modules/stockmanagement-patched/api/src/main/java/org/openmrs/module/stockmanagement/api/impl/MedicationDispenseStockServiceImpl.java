@@ -250,8 +250,12 @@ public class MedicationDispenseStockServiceImpl extends BaseOpenmrsService imple
 				throw new APIAuthenticationException(String.format(message("stockmanagement.dispense.orderclosed"),
 				    describe(dispense)));
 			}
-			boolean fullyDispensed = isCompleted && request.isRestrictTotalQuantityDispensed()
-			        && isFullyDispensedAfter(dispense, order, completed);
+			double extra = request.getExtraQuantity().doubleValue();
+			if (extra > 0 && !isCompleted) {
+				throw new StockManagementException(message("stockmanagement.dispense.stocknotallowed"));
+			}
+			boolean fullyDispensed = isCompleted && (request.isRestrictTotalQuantityDispensed() || extra > 0)
+			        && isFullyDispensedAfter(dispense, order, completed, extra);
 
 			dispenseService.saveMedicationDispense(dispense);
 			for (DispenseStockLine line : request.getStockLines()) {
@@ -277,26 +281,42 @@ public class MedicationDispenseStockServiceImpl extends BaseOpenmrsService imple
 	 * Checks the dispense does not take the prescription past its ordered quantity (refills included), and
 	 * says whether it completes it. The total already dispensed is read from the database while the order
 	 * is locked, so two pharmacists dispensing the same prescription can't both use up what is left.
+	 * {@code extra} is the part of the dispense given beyond the prescription: it is not counted against the
+	 * ordered quantity, but is only allowed on the dispense that uses up everything left.
 	 */
-	private boolean isFullyDispensedAfter(MedicationDispense dispense, DrugOrder order, Concept completed) {
+	private boolean isFullyDispensedAfter(MedicationDispense dispense, DrugOrder order, Concept completed, double extra) {
 		if (order.getQuantity() == null || dispense.getQuantity() == null || dispense.getQuantityUnits() == null
 		        || !dispense.getQuantityUnits().equals(order.getQuantityUnits())) {
 			// Without an ordered quantity in the same unit there is nothing to compare against; the dispensing
 			// app itself refuses quantities in a different unit.
+			if (extra > 0) {
+				throw new StockManagementException(String.format(message("stockmanagement.dispense.extranotallowed"),
+				    describe(dispense)));
+			}
 			return false;
 		}
 		int refills = order.getNumRefills() == null ? 0 : order.getNumRefills();
 		double ordered = order.getQuantity() * (1 + refills);
 		double alreadyDispensed = dao.sumDispensedQuantityForOrder(order.getOrderId(), completed,
 		    dispense.getQuantityUnits(), dispense.getUuid());
-		double total = alreadyDispensed + dispense.getQuantity();
+		double prescribedPart = dispense.getQuantity() - extra;
+		double total = alreadyDispensed + prescribedPart;
+		if (extra > 0 && prescribedPart <= QUANTITY_TOLERANCE) {
+			throw new StockManagementException(String.format(message("stockmanagement.dispense.extranotallowed"),
+			    describe(dispense)));
+		}
+		String unit = " " + dispense.getQuantityUnits().getDisplayString();
 		if (total > ordered + QUANTITY_TOLERANCE) {
-			String unit = " " + dispense.getQuantityUnits().getDisplayString();
 			throw new StockManagementException(String.format(message("stockmanagement.dispense.quantityexceeded"),
 			    formatQuantity(Math.max(0, ordered - alreadyDispensed)) + unit, describe(dispense),
-			    formatQuantity(dispense.getQuantity()) + unit));
+			    formatQuantity(prescribedPart) + unit));
 		}
-		return total >= ordered - QUANTITY_TOLERANCE;
+		boolean usesUpRest = total >= ordered - QUANTITY_TOLERANCE;
+		if (extra > 0 && !usesUpRest) {
+			throw new StockManagementException(String.format(message("stockmanagement.dispense.extranotallowed"),
+			    describe(dispense)));
+		}
+		return usesUpRest;
 	}
 
 	private DispenseRequest toDispenseRequest(DispenseStockLine line, MedicationDispense dispense, DrugOrder order) {
