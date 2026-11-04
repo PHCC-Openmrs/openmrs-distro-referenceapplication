@@ -1,0 +1,52 @@
+# Runs doco-cd (https://doco.cd) on the onprem VM, GitOps style: it polls this
+# repo's feature/doco-cd-deployment branch and, whenever it moves, deploys the stack described by
+# ../../.doco-cd.yml (docker-compose.yml + docker-compose.grafana.yml, with
+# image tags from images.env). Nothing calls into the VM -- see README.md.
+#
+# Start it from this directory, with any secrets in ./.env (gitignored):
+#   docker compose -f dococd-docker-compose.yml up -d
+#
+# This is its own compose project (doco-cd), separate from the stack it
+# deploys, so redeploying the stack never restarts doco-cd itself.
+
+name: doco-cd
+
+services:
+  doco-cd:
+    container_name: doco-cd
+    # Pin to a release tag once verified: https://github.com/kimdre/doco-cd/pkgs/container/doco-cd
+    image: ghcr.io/kimdre/doco-cd:latest
+    restart: unless-stopped
+    # No published ports: polling is outbound-only.
+    environment:
+      TZ: ${TZ:-Asia/Kolkata}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POLL_CONFIG: |
+        - url: https://github.com/PHCC-Openmrs/openmrs-distro-referenceapplication.git
+          reference: feature/doco-cd-deployment
+          interval: ${POLL_INTERVAL:-60}
+      # Only needed if the repo is private; read-only token (contents:read).
+      GIT_ACCESS_TOKEN: ${GIT_ACCESS_TOKEN:-}
+      GIT_AUTH_DOMAINS: "${GIT_AUTH_DOMAINS:-- domains: [github.com]}"
+      # Only needed if the ghcr.io/phcc-openmrs packages are private, e.g.
+      #   DOCKER_AUTH_CONFIG={"auths":{"ghcr.io":{"auth":"<base64 user:read-packages-PAT>"}}}
+      DOCKER_AUTH_CONFIG: ${DOCKER_AUTH_CONFIG:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # The stack's existing .env (DB passwords, CERT_WEB_DOMAINS, Grafana
+      # password, ...) from the VM checkout, used by .doco-cd.yml's env_files
+      # for compose interpolation. Must be world-readable (cap_drop: ALL means
+      # root in the container can't bypass file permissions).
+      - ../../.env:/config/stack.env:ro
+      # doco-cd's git mirrors and per-revision checkouts.
+      - data:/data
+    cap_drop:
+      - ALL
+    healthcheck: # runs the image's built-in /healthcheck command
+      start_period: 15s
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  data:
