@@ -30,6 +30,7 @@ import org.openmrs.module.labtestreport.NutritionSummaryRow;
 import org.openmrs.module.labtestreport.PatientEncounterDetailRow;
 import org.openmrs.module.labtestreport.PatientEncounterReportService;
 import org.openmrs.module.labtestreport.PatientEncounterSummaryRow;
+import org.openmrs.module.labtestreport.MonthlyHealthPromotionService;
 import org.openmrs.module.labtestreport.PatientRow;
 import org.openmrs.module.labtestreport.ReferralFormReportService;
 import org.openmrs.module.labtestreport.ReferralFormRow;
@@ -238,6 +239,41 @@ public class LabTestReportRestController {
 	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
 		List<PatientRow> rows = Context.getService(RhActivityReportService.class).getPatientsForCell(indicatorKey,
 		    gender, ageGroup, startDate, endDate, locationUuid);
+		return jsonResponse(rows);
+	}
+
+	@RequestMapping(value = "/monthly-health-promotion-report.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> monthlyHealthPromotionReport(
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "subject", required = false) String subject,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		return jsonResponse(Context.getService(MonthlyHealthPromotionService.class).getReport(startDate, endDate,
+		    locationUuid, subject));
+	}
+
+	@RequestMapping(value = "/monthly-health-promotion-subjects.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> monthlyHealthPromotionSubjects(
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		return jsonResponse(Context.getService(MonthlyHealthPromotionService.class).getSubjects(startDate, endDate,
+		    locationUuid));
+	}
+
+	@RequestMapping(value = "/monthly-health-promotion-drilldown.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> monthlyHealthPromotionDrilldown(@RequestParam("sessionType") String sessionType,
+	        @RequestParam(value = "subject", required = false) String subject,
+	        @RequestParam(value = "gender", required = false) String gender,
+	        @RequestParam(value = "ageGroup", required = false) String ageGroup,
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<PatientRow> rows = Context.getService(MonthlyHealthPromotionService.class).getPatientsForCell(sessionType,
+		    subject, gender, ageGroup, startDate, endDate, locationUuid);
 		return jsonResponse(rows);
 	}
 
