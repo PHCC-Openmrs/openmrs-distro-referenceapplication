@@ -31,6 +31,8 @@ export interface MedicineDistributionRow {
   /** Status of the most recent dispense (Completed, On hold, Refused...), or null if pharmacy has not acted yet. */
   dispenseStatus: string | null;
   prescriber: string | null;
+  /** Provider picked as "Dispensed by" on the most recent Completed dispense, or null if nothing was dispensed. */
+  dispensedBy: string | null;
 }
 
 export function useMedicineDistributionReport(startDate?: string, endDate?: string, locationUuid?: string) {
