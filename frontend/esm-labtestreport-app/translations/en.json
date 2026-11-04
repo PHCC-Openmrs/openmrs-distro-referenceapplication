@@ -540,5 +540,12 @@
   "weeksAndDays": "{{weeks}}w {{days}}d",
   "weeksSinceLmp": "Weeks Since LMP",
   "woundDressings": "Wound Dressings",
-  "yes": "Yes"
+  "yes": "Yes",
+  "grandTotal": "Grand Total",
+  "monthlyHealthPromotionReport": "Monthly Health Promotion Report",
+  "monthlyHealthPromotionReportTitle": "Monthly Health Promotion Report",
+  "monthlyHealthPromotionReportTileDesc": "Health Promotion sessions by session type and subject, age group and gender, with drill-down to the patients behind each count.",
+  "sessionSubject": "Session subject",
+  "year": "Year",
+  "allSubjects": "All subjects"
 }

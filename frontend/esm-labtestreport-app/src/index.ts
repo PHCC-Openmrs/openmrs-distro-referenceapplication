@@ -127,6 +127,11 @@ export const healthPromotionReport = getAsyncLifecycle(
   options,
 );
 
+export const monthlyHealthPromotionReport = getAsyncLifecycle(
+  () => import('./monthly-health-promotion-report/monthly-health-promotion-report.component'),
+  options,
+);
+
 export const srhReport = getAsyncLifecycle(() => import('./srh-report/srh-report.component'), options);
 
 export const medicineDistributionReport = getAsyncLifecycle(

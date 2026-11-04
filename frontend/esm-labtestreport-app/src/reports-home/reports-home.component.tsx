@@ -158,6 +158,15 @@ export default function ReportsHome() {
           ),
           route: 'health-promotion-report',
         },
+        {
+          key: 'monthly-health-promotion-report',
+          title: t('monthlyHealthPromotionReportTitle', 'Monthly Health Promotion Report'),
+          description: t(
+            'monthlyHealthPromotionReportTileDesc',
+            'Health Promotion sessions by session type and subject, age group and gender, with drill-down to the patients behind each count.',
+          ),
+          route: 'monthly-health-promotion-report',
+        },
       ],
     },
     {
