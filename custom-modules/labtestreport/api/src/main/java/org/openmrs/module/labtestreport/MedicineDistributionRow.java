@@ -64,6 +64,9 @@ public class MedicineDistributionRow {
 
 	private String prescriber;
 
+	/** Provider chosen as "Dispensed by" on the most recent Completed dispense, or null if nothing was dispensed. */
+	private String dispensedBy;
+
 	public Integer getPatientId() {
 		return patientId;
 	}
@@ -278,5 +281,13 @@ public class MedicineDistributionRow {
 
 	public void setPrescriber(String prescriber) {
 		this.prescriber = prescriber;
+	}
+
+	public String getDispensedBy() {
+		return dispensedBy;
+	}
+
+	public void setDispensedBy(String dispensedBy) {
+		this.dispensedBy = dispensedBy;
 	}
 }

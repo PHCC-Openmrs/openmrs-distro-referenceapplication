@@ -50,6 +50,7 @@ public class MedicineDistributionServiceImpl extends BaseOpenmrsService implemen
 			row.setDispenseStatus((String) r[24]);
 			row.setPrescriber((String) r[25]);
 			row.setPhoneNumber((String) r[26]);
+			row.setDispensedBy((String) r[27]);
 			rows.add(row);
 		}
 		return rows;

@@ -21,6 +21,7 @@ const SEARCHABLE_FIELDS: Array<keyof MedicineDistributionRow> = [
   'drugName',
   'location',
   'prescriber',
+  'dispensedBy',
 ];
 
 const LOCATION_TAG = 'Login Location';
@@ -160,6 +161,7 @@ export default function MedicineDistributionReport() {
       dispenseStatus: (row: MedicineDistributionRow) => row.dispenseStatus ?? '',
       location: (row: MedicineDistributionRow) => row.location ?? '',
       prescriber: (row: MedicineDistributionRow) => row.prescriber ?? '',
+      dispensedBy: (row: MedicineDistributionRow) => row.dispensedBy ?? '',
     }),
     [],
   );
@@ -221,6 +223,7 @@ export default function MedicineDistributionReport() {
         t('instructions', 'Instructions'),
         t('location', 'Location'),
         t('prescriber', 'Prescriber'),
+        t('dispensedBy', 'Dispensed By'),
       ],
       rows: detailSort.sortedRows.map((row) => [
         row.givenName,
@@ -246,6 +249,7 @@ export default function MedicineDistributionReport() {
         row.dosingInstructions ?? '',
         row.location ?? '',
         row.prescriber ?? '',
+        row.dispensedBy ?? '',
       ]),
     }),
     // dispenseStatusLabel only depends on t
@@ -398,7 +402,7 @@ export default function MedicineDistributionReport() {
             <Search
               size="md"
               labelText={t('search', 'Search')}
-              placeholder={t('searchMedicineDistributionPlaceholder', 'Search patient, ID, phone, medicine, prescriber...')}
+              placeholder={t('searchMedicineDistributionPlaceholder', 'Search patient, ID, phone, medicine, prescriber, dispensed by...')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onClear={() => setSearchTerm('')}
@@ -614,6 +618,14 @@ export default function MedicineDistributionReport() {
                     onSort={detailSort.toggleSort}
                     className="left"
                   />
+                  <SortableHeader
+                    label={t('dispensedBy', 'Dispensed By')}
+                    sortKey="dispensedBy"
+                    activeSortKey={detailSort.sortKey}
+                    direction={detailSort.direction}
+                    onSort={detailSort.toggleSort}
+                    className="left"
+                  />
                 </tr>
               </thead>
               <tbody>
@@ -639,11 +651,12 @@ export default function MedicineDistributionReport() {
                     <td className="left">{dispenseStatusLabel(row)}</td>
                     <td className="left">{row.location || '--'}</td>
                     <td className="left">{row.prescriber || '--'}</td>
+                    <td className="left">{row.dispensedBy || '--'}</td>
                   </tr>
                 ))}
                 {detailSort.sortedRows.length === 0 && (
                   <tr>
-                    <td colSpan={16} className={pageStyles.emptyState}>
+                    <td colSpan={17} className={pageStyles.emptyState}>
                       {t('noPrescriptionsForSelection', 'No prescriptions found for this selection.')}
                     </td>
                   </tr>
