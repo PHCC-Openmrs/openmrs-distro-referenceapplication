@@ -57,23 +57,25 @@ requests to GitHub and GHCR.
    with **empty** `db-data`/`openmrs-data` volumes (and fails on the
    already-taken ports 80/443/3306).
 
-2. **Make the stack's `.env` readable by doco-cd.** It's mounted read-only
-   as `/config/stack.env`, and doco-cd runs with `cap_drop: ALL`, so it must
-   be world-readable:
+2. **The stack's settings are in the repo's `.env`, encrypted with SOPS.**
+   doco-cd decrypts it with the private age key. The public key is in
+   `.sops.yaml`. To change a value, with the private key available locally:
    ```
-   chmod 644 /home/openmrsdev/openmrsdev/openmrs-distro-referenceapplication/.env
+   SOPS_AGE_KEY_FILE=<path-to-private-key> sops edit .env
    ```
 
-3. **Optional `ops/doco-cd/.env`**, only if needed:
+3. **Create `ops/doco-cd/.env`** (Azure VMs build it from Key Vault on boot):
    ```
-   # repo is private (read-only PAT, contents:read):
+   # read-only PAT:
    GIT_ACCESS_TOKEN=<PAT>
+   # private age key that decrypts the repo's .env:
+   SOPS_AGE_KEY=<private-age-key>
    # ghcr.io/phcc-openmrs packages are private:
    DOCKER_AUTH_CONFIG={"auths":{"ghcr.io":{"auth":"<base64 of user:read-packages-PAT>"}}}
    # default 60 (seconds):
    POLL_INTERVAL=60
    ```
-   `chmod 600 .env`. It isn't covered by `.gitignore`, so never `git add` it.
+   `chmod 600 .env`. It's gitignored, and must never be committed.
 
 4. **Stop the old deployer** so the two don't fight over the stack:
    ```

@@ -3,7 +3,8 @@
 # ../../.doco-cd.yml (docker-compose.yml + docker-compose.grafana.yml, with
 # image tags from images.env). Nothing calls into the VM -- see README.md.
 #
-# Start it from this directory, with any secrets in ./.env (gitignored):
+# Azure VMs fetch this file and build ./.env from Key Vault on boot. To run it
+# by hand, start it from this directory with the secrets in ./.env (gitignored):
 #   docker compose -f dococd-docker-compose.yml up -d
 #
 # This is its own compose project (doco-cd), separate from the stack it
@@ -25,19 +26,16 @@ services:
         - url: https://github.com/PHCC-Openmrs/openmrs-distro-referenceapplication.git
           reference: feature/doco-cd-deployment
           interval: ${POLL_INTERVAL:-60}
-      # Only needed if the repo is private; read-only token (contents:read).
-      GIT_ACCESS_TOKEN: ${GIT_ACCESS_TOKEN:-}
+      GIT_ACCESS_TOKEN: ${GIT_ACCESS_TOKEN:?Set GIT_ACCESS_TOKEN in .env}
       GIT_AUTH_DOMAINS: "${GIT_AUTH_DOMAINS:-- domains: [github.com]}"
+      # Private age key that decrypts the repo's .env. An env var rather than a
+      # file secret: with cap_drop ALL, root here can't read a 0600 file it doesn't own.
+      SOPS_AGE_KEY: ${SOPS_AGE_KEY:?Set SOPS_AGE_KEY in .env}
       # Only needed if the ghcr.io/phcc-openmrs packages are private, e.g.
       #   DOCKER_AUTH_CONFIG={"auths":{"ghcr.io":{"auth":"<base64 user:read-packages-PAT>"}}}
       DOCKER_AUTH_CONFIG: ${DOCKER_AUTH_CONFIG:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      # The stack's existing .env (DB passwords, CERT_WEB_DOMAINS, Grafana
-      # password, ...) from the VM checkout, used by .doco-cd.yml's env_files
-      # for compose interpolation. Must be world-readable (cap_drop: ALL means
-      # root in the container can't bypass file permissions).
-      - ../../.env:/config/stack.env:ro
       # doco-cd's git mirrors and per-revision checkouts.
       - data:/data
     cap_drop:

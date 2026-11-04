@@ -12,10 +12,10 @@ compose_files:
   - docker-compose.yml
   - docker-compose.grafana.yml
 
-# The VM's .env (DB passwords, CERT_WEB_DOMAINS, ...), mounted read-only by
-# ops/doco-cd/dococd-docker-compose.yml.
+# SOPS-encrypted in git. doco-cd decrypts it with SOPS_AGE_KEY in its own copy
+# of the repo. To change a value: sops edit .env
 env_files:
-  - /config/stack.env
+  - .env
 environment:
   # The images .github/workflows/deploy-onprem.yml pushes to GHCR.
   IMAGE_PREFIX: ghcr.io/phcc-openmrs
