@@ -64,7 +64,7 @@ public class MedicineDistributionRow {
 
 	private String prescriber;
 
-	/** Provider chosen as "Dispensed by" on the most recent Completed dispense, or null if nothing was dispensed. */
+	/** Comma-separated names of the staff who recorded dispenses against this order, or null if none. */
 	private String dispensedBy;
 
 	public Integer getPatientId() {

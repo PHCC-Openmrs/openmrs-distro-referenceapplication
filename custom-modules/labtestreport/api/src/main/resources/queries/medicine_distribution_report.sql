@@ -79,24 +79,20 @@ SELECT
                                                  WHERE uuid = '14d4f066-15f5-102d-96e4-000c29c2a5d7' OR name = 'Phone Number')
     ORDER BY pa_phone.person_attribute_id DESC
     LIMIT 1)                        AS phoneNumber,
-  -- The "Dispensed by" providers picked on the dispense form (medication_dispense.dispenser is a
-  -- provider). One name for the usual single hand-over; when an order was handed over in more than one
-  -- go by different providers, every one of them, comma separated. Only Completed hand-overs count, so
-  -- it names who actually dispensed; NULL when nothing has been dispensed. Name resolved the same way
-  -- as the prescriber.
+  -- Who handed the medicine over: the distinct dispensers across this order's non-voided dispense
+  -- records (an order can be dispensed in several goes by different staff). Same name fallback as
+  -- prescriber.
   (SELECT GROUP_CONCAT(DISTINCT COALESCE(
-            (SELECT NULLIF(TRIM(CONCAT(COALESCE(dispenserName.given_name, ''), ' ', COALESCE(dispenserName.family_name, ''))), '')
-               FROM person_name dispenserName
-              WHERE dispenserName.person_id = dp.person_id AND dispenserName.voided = 0
-              ORDER BY dispenserName.preferred DESC, dispenserName.person_name_id
+            (SELECT NULLIF(TRIM(CONCAT(COALESCE(dn.given_name, ''), ' ', COALESCE(dn.family_name, ''))), '')
+               FROM person_name dn
+              WHERE dn.person_id = dpr.person_id AND dn.voided = 0
+              ORDER BY dn.preferred DESC, dn.person_name_id
               LIMIT 1),
-            NULLIF(TRIM(dp.name), ''))
-          ORDER BY dp.provider_id SEPARATOR ', ')
+            NULLIF(TRIM(dpr.name), ''))
+          SEPARATOR ', ')
      FROM medication_dispense md
-     JOIN provider dp ON dp.provider_id = md.dispenser
-    WHERE md.drug_order_id = o.order_id AND md.voided = 0
-      AND md.status = (SELECT concept_id FROM concept WHERE uuid = '1267AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-  )                                AS dispensedBy
+     JOIN provider dpr ON dpr.provider_id = md.dispenser
+    WHERE md.drug_order_id = o.order_id AND md.voided = 0) AS dispensedBy
 FROM drug_order do
 JOIN orders o ON o.order_id = do.order_id
 JOIN person p ON p.person_id = o.patient_id
