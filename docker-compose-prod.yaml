@@ -12,7 +12,7 @@ services:
     depends_on:
       - frontend
       - backend
-      - portainer
+      # - portainer
     extra_hosts:
       # Lets gateway reach the `webhook` listener bound to 127.0.0.1:9000 on
       # the host, for the /hooks/ proxy_pass in its nginx config.
@@ -63,15 +63,15 @@ services:
     volumes:
       - openmrs-data:/openmrs/data
 
-  portainer:
-    image: portainer/portainer-ce:latest
-    restart: "unless-stopped"
-    environment:
-      TRUSTED_ORIGINS: https://${CERT_WEB_DOMAINS:?set in .env},http://localhost
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer-data:/data
+  # portainer:
+  #   image: portainer/portainer-ce:latest
+  #   restart: "unless-stopped"
+  #   environment:
+  #     TRUSTED_ORIGINS: https://${CERT_WEB_DOMAINS:?set in .env},http://localhost
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - portainer-data:/data
 
 volumes:
   openmrs-data: ~
-  portainer-data: ~
+  # portainer-data: ~
