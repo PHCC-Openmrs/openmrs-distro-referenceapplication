@@ -97,7 +97,7 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
           // the locations this operation type is scoped to - saves reselecting your own
           // location on every operation, while still leaving it editable.
           const currentLocationParty = sourceParties?.find((party) => party.locationUuid === sessionLocation?.uuid);
-          if (currentLocationParty) {
+          if (currentLocationParty && !form.getValues('sourceUuid')) {
             form.setValue('sourceUuid', currentLocationParty.uuid);
           }
         }
@@ -105,7 +105,9 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
 
       if (stockOperationType?.hasDestination) {
         const shouldLockDestination = destinationTags.length === 1 && destinationTags[0] === MAIN_STORE_LOCATION_TAG;
-        if (shouldLockDestination && destinationParties?.length) {
+        // Only default it when empty: this step remounts on Back, and re-running the default then
+        // would overwrite the store the user already picked.
+        if (shouldLockDestination && destinationParties?.length && !form.getValues('destinationUuid')) {
           const party = destinationParties[0];
           form.setValue('destinationUuid', party.uuid);
         }
