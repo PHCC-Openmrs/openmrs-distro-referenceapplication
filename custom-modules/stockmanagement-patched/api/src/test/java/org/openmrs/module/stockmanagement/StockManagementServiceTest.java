@@ -24,6 +24,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockOperationPrivelegeTarget;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.dto.*;
@@ -761,6 +762,150 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		StockOperationDTO dto = new StockOperationDTO();
 		dto.setUuid(operation.getUuid());
 		stockManagementService.reverseStockOperation(dto, "Entered twice");
+	}
+	
+	private StockOperationType newRequisitionType() {
+		StockOperationType type = new StockOperationType();
+		type.setName("Test Requisition");
+		type.setDescription("A location asking a store for stock.");
+		type.setOperationType(StockOperationType.REQUISITION);
+		type.setHasSource(true);
+		type.setSourceType(LocationType.Location);
+		type.setHasDestination(true);
+		type.setDestinationType(LocationType.Location);
+		type.setAvailableWhenReserved(false);
+		type.setCreator(Context.getAuthenticatedUser());
+		type.setDateCreated(new Date());
+		type.setVoided(false);
+		dao().saveStockOperationType(type);
+		return type;
+	}
+	
+	private Party newPartyAt(Location location) {
+		Party party = new Party();
+		party.setLocation(location);
+		party.setCreator(Context.getAuthenticatedUser());
+		party.setDateCreated(new Date());
+		party.setVoided(false);
+		dao().saveParty(party);
+		return party;
+	}
+	
+	/** A NEW requisition from {@code requester} asking {@code store} for one line. */
+	private StockOperation newRequisition(Party requester, Party store, StockItem stockItem, StockBatch stockBatch,
+	        StockItemPackagingUOM packagingUom, BigDecimal quantity) {
+		StockOperation requisition = eu().newStockOperation(dao());
+		requisition.setVoided(false);
+		requisition.setStockOperationType(newRequisitionType());
+		requisition.setSource(requester);
+		requisition.setDestination(store);
+		requisition.setAtLocation(requester.getLocation());
+		requisition.setStatus(StockOperationStatus.NEW);
+		requisition.setLocked(false);
+		requisition.setStockItemTransactions(new HashSet<>());
+		requisition.setReservedTransactions(new HashSet<>());
+		StockOperationItem line = new StockOperationItem();
+		line.setCreator(Context.getAuthenticatedUser());
+		line.setDateCreated(new Date());
+		line.setVoided(false);
+		line.setStockItem(stockItem);
+		line.setStockBatch(stockBatch);
+		line.setStockItemPackagingUOM(packagingUom);
+		line.setQuantity(quantity);
+		line.setStockOperation(requisition);
+		requisition.setStockOperationItems(new HashSet<>(Collections.singletonList(line)));
+		dao().saveStockOperation(requisition);
+		return requisition;
+	}
+	
+	private BigDecimal balanceOf(Party party, StockBatch stockBatch) {
+		Object sum = dao().getSession()
+		        .createQuery("select sum(t.quantity) from stockmanagement.StockItemTransaction t "
+		                + "where t.party.id = :party and t.stockBatch.id = :batch")
+		        .setParameter("party", party.getId()).setParameter("batch", stockBatch.getId()).uniqueResult();
+		return sum == null ? BigDecimal.ZERO : (BigDecimal) sum;
+	}
+	
+	private void act(StockOperation operation, StockOperationAction.Action action) {
+		stockManagementService.processStockOperationAction(action, null, operation, operation.getStockOperationType(),
+		    Context.getMessageSourceService(), null);
+		dao().saveStockOperation(operation);
+		dao().getSession().flush();
+	}
+	
+	@Test
+	public void requisition_shouldMoveStockFromTheStoreToTheRequesterOnlyWhenApproved() {
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(stockBatch);
+		Party store = eu().getParty(dao());
+		Party requester = newPartyAt(Context.getLocationService().getLocation(2));
+		newCompletedOperationMoving(stockItem, stockBatch, packagingUom, BigDecimal.valueOf(100));
+		stockManagementService.setDao(dao());
+		StockOperation requisition = newRequisition(requester, store, stockItem, stockBatch, packagingUom,
+		    BigDecimal.valueOf(30));
+		
+		assertEquals(StockOperationPrivelegeTarget.Destination,
+		    requisition.getStockOperationType().getApprovalPrivilegeTarget());
+		assertEquals(store, requisition.getStockOperationType().getPartyStockIsTakenFrom(requisition));
+		
+		act(requisition, StockOperationAction.Action.SUBMIT);
+		assertEquals(0, balanceOf(store, stockBatch).compareTo(BigDecimal.valueOf(100)));
+		assertEquals(0, balanceOf(requester, stockBatch).compareTo(BigDecimal.ZERO));
+		assertFalse(stockManagementService.stockOperationHasMovedStock(requisition.getId()));
+		
+		act(requisition, StockOperationAction.Action.APPROVE);
+		assertEquals(StockOperationStatus.COMPLETED, requisition.getStatus());
+		assertEquals(0, balanceOf(store, stockBatch).compareTo(BigDecimal.valueOf(70)));
+		assertEquals(0, balanceOf(requester, stockBatch).compareTo(BigDecimal.valueOf(30)));
+		assertTrue(requisition.getReservedTransactions().isEmpty());
+		assertTrue(stockManagementService.stockOperationHasMovedStock(requisition.getId()));
+	}
+	
+	@Test
+	public void requisition_shouldMoveNothingWhenReturned() {
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(stockBatch);
+		Party store = eu().getParty(dao());
+		Party requester = newPartyAt(Context.getLocationService().getLocation(2));
+		newCompletedOperationMoving(stockItem, stockBatch, packagingUom, BigDecimal.valueOf(100));
+		stockManagementService.setDao(dao());
+		StockOperation requisition = newRequisition(requester, store, stockItem, stockBatch, packagingUom,
+		    BigDecimal.valueOf(30));
+		
+		act(requisition, StockOperationAction.Action.SUBMIT);
+		act(requisition, StockOperationAction.Action.RETURN);
+		
+		assertEquals(StockOperationStatus.RETURNED, requisition.getStatus());
+		assertTrue(requisition.getReservedTransactions().isEmpty());
+		assertEquals(0, balanceOf(store, stockBatch).compareTo(BigDecimal.valueOf(100)));
+		assertFalse(stockManagementService.stockOperationHasMovedStock(requisition.getId()));
+	}
+	
+	@Test
+	public void requisition_submittedBeforeRequisitionsMovedStock_shouldApproveWithoutMovingStock() {
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		Party store = eu().getParty(dao());
+		Party requester = newPartyAt(Context.getLocationService().getLocation(2));
+		stockManagementService.setDao(dao());
+		// The old form saved neither a batch nor (necessarily) a quantity, and submitting reserved nothing.
+		StockOperation requisition = newRequisition(requester, store, stockItem, null, null, null);
+		requisition.setStatus(StockOperationStatus.SUBMITTED);
+		requisition.setLocked(true);
+		dao().saveStockOperation(requisition);
+		
+		act(requisition, StockOperationAction.Action.APPROVE);
+		
+		assertEquals(StockOperationStatus.COMPLETED, requisition.getStatus());
+		assertFalse(stockManagementService.stockOperationHasMovedStock(requisition.getId()));
 	}
 	
 	@Test

@@ -147,7 +147,12 @@ const StockOperationForm: React.FC<StockOperationFormProps> = ({
       setItemFormProps({
         stockOperationType,
         stockOperationItem,
-        sourceUuid: form.getValues('sourceUuid'),
+        // The location whose batches the item form lists and checks. A requisition takes its
+        // stock from the store it asks ("Request stock from"), so that store, not the requester.
+        sourceUuid:
+          operationType === OperationType.REQUISITION_OPERATION_TYPE
+            ? form.getValues('destinationUuid')
+            : form.getValues('sourceUuid'),
         // A requisition asks its destination ("Request stock from") for stock - the item form
         // checks the requested quantity against what that store has.
         ...(operationType === OperationType.REQUISITION_OPERATION_TYPE

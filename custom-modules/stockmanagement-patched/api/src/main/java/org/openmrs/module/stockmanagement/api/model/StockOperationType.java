@@ -4,6 +4,7 @@ import org.openmrs.BaseChangeableOpenmrsData;
 import org.openmrs.BaseOpenmrsData;
 import org.openmrs.Location;
 import org.openmrs.User;
+import org.openmrs.module.stockmanagement.api.StockOperationPrivelegeTarget;
 import org.openmrs.module.stockmanagement.api.StockOperationTypeProcessor;
 import org.openmrs.module.stockmanagement.api.impl.*;
 
@@ -300,6 +301,14 @@ public class StockOperationType extends BaseChangeableOpenmrsData implements Ser
 	
 	public BigDecimal getQuantityToApplyAtSource(BigDecimal quantity) {
 		return getStockOperationTypeProcessor().getQuantityToApplyAtSource(quantity);
+	}
+	
+	public Party getPartyStockIsTakenFrom(StockOperation operation) {
+		return getStockOperationTypeProcessor().getPartyStockIsTakenFrom(operation);
+	}
+	
+	public StockOperationPrivelegeTarget getApprovalPrivilegeTarget() {
+		return getStockOperationTypeProcessor().getApprovalPrivilegeTarget();
 	}
 	
 	/**
