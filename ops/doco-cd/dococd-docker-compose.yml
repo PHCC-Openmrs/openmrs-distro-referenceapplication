@@ -1,10 +1,10 @@
 # Runs doco-cd (https://doco.cd) on the onprem VM, GitOps style: it polls this
 # repo's feature/doco-cd-deployment branch and, whenever it moves, deploys the stack described by
-# ../../.doco-cd.yml (docker-compose.yml + docker-compose.grafana.yml, with
-# image tags from images.env). Nothing calls into the VM -- see README.md.
+# ../../.doco-cd.yml. Nothing calls into the VM -- see README.md.
 #
-# Azure VMs fetch this file and build ./.env from Key Vault on boot. To run it
-# by hand, start it from this directory with the secrets in ./.env (gitignored):
+# Azure VMs fetch this file and read its secrets from Key Vault (doco-cd-up), with
+# no .env. To run it by hand, log in to ghcr.io, then start it from this directory
+# with the secrets in ./.env (gitignored):
 #   docker compose -f dococd-docker-compose.yml up -d
 #
 # This is its own compose project (doco-cd), separate from the stack it
@@ -15,8 +15,8 @@ name: doco-cd
 services:
   doco-cd:
     container_name: doco-cd
-    # Pin to a release tag once verified: https://github.com/kimdre/doco-cd/pkgs/container/doco-cd
-    image: ghcr.io/kimdre/doco-cd:latest
+    # Our copy of ghcr.io/kimdre/doco-cd:0.132.0. Pulling it needs a ghcr.io login on the host.
+    image: ghcr.io/phcc-openmrs/doco-cd:0.132.0
     restart: unless-stopped
     # No published ports: polling is outbound-only.
     environment:

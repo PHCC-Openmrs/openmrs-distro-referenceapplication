@@ -64,7 +64,7 @@ requests to GitHub and GHCR.
    SOPS_AGE_KEY_FILE=<path-to-private-key> sops edit .env
    ```
 
-3. **Create `ops/doco-cd/.env`** (Azure VMs build it from Key Vault on boot):
+3. **Create `ops/doco-cd/.env`** (Azure VMs read these from Key Vault instead, and need no file):
    ```
    # read-only PAT:
    GIT_ACCESS_TOKEN=<PAT>
@@ -82,7 +82,8 @@ requests to GitHub and GHCR.
    sudo systemctl disable --now webhook
    ```
 
-5. **Start doco-cd**:
+5. **Start doco-cd**. Its image, `ghcr.io/phcc-openmrs/doco-cd`, is private, so run
+   `docker login ghcr.io` first:
    ```
    cd /home/openmrsdev/openmrsdev/openmrs-distro-referenceapplication/ops/doco-cd
    docker compose -f dococd-docker-compose.yml up -d
