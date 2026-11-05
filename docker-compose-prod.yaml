@@ -55,6 +55,8 @@ services:
       OMRS_CONFIG_CONNECTION_DATABASE: ${OMRS_CONFIG_CONNECTION_DATABASE:?set in Key Vault}
       OMRS_CONFIG_CONNECTION_USERNAME: ${OMRS_DB_USER:?set in Key Vault}
       OMRS_CONFIG_CONNECTION_PASSWORD: ${OMRS_DB_PASSWORD:?set in Key Vault}
+      # Only used when OpenMRS first sets up an empty database. OpenMRS has no setting for the admin username.
+      OMRS_CONFIG_ADMIN_USER_PASSWORD: ${OMRS_CONFIG_ADMIN_USER_PASSWORD:?set in Key Vault}
       # Added to the end of the JDBC URL. The server requires TLS.
       OMRS_CONFIG_CONNECTION_EXTRA_ARGS: ${OMRS_CONFIG_CONNECTION_EXTRA_ARGS:?set in .env}
     healthcheck:

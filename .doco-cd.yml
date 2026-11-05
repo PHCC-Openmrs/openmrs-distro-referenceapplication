@@ -24,6 +24,7 @@ external_secrets:
   OMRS_DB_PASSWORD: openmrs-mysql-password
   OMRS_CONFIG_CONNECTION_DATABASE: openmrs-mysql-dbname
   OMRS_CONFIG_CONNECTION_SERVER: openmrs-mysql-dburl
+  OMRS_CONFIG_ADMIN_USER_PASSWORD: openmrs-admin-password
 
 # TAG is the floating `main` tag, so pull on every deploy to pick up images
 # pushed since the last one.
