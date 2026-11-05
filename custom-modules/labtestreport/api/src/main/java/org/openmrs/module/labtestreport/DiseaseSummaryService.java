@@ -53,8 +53,11 @@ public interface DiseaseSummaryService extends OpenmrsService {
 	 * @param endDate only include diagnoses through the end of this date (inclusive), or null for no upper bound
 	 * @param locationUuid only include diagnoses recorded at this location (a condition counts at the location of
 	 *            the visit open when it was recorded), or null for all locations
+	 * @param programUuid only include diagnoses of patients enrolled in this service-type program (Primary Health
+	 *            Care, SRH, Pediatric Consultation, Nutrition) on the day the diagnosis was recorded, or null for
+	 *            every service
 	 */
-	DiseaseActivityReport getActivityReport(Date startDate, Date endDate, String locationUuid);
+	DiseaseActivityReport getActivityReport(Date startDate, Date endDate, String locationUuid, String programUuid);
 
 	/**
 	 * Patients behind a cell of {@link #getActivityReport}.
@@ -64,5 +67,5 @@ public interface DiseaseSummaryService extends OpenmrsService {
 	 * @param ageGroup one of "0-4", "5-14", "15-18", "19-49", "50-65", "65+", or null to match any age
 	 */
 	List<PatientRow> getPatientsForActivityRow(String rowKey, String gender, String ageGroup, Date startDate,
-	        Date endDate, String locationUuid);
+	        Date endDate, String locationUuid, String programUuid);
 }
