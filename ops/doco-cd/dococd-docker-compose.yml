@@ -1,5 +1,5 @@
 # Runs doco-cd (https://doco.cd) on the onprem VM, GitOps style: it polls this
-# repo's feature/doco-cd-deployment branch and, whenever it moves, deploys the stack described by
+# repo's deployment branch and, whenever it moves, deploys the stack described by
 # ../../.doco-cd.yml. Nothing calls into the VM -- see README.md.
 #
 # Azure VMs fetch this file and read its secrets from Key Vault (doco-cd-up), with
@@ -24,7 +24,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       POLL_CONFIG: |
         - url: https://github.com/PHCC-Openmrs/openmrs-distro-referenceapplication.git
-          reference: feature/doco-cd-deployment
+          reference: ${DOCO_CD_BRANCH:?Set DOCO_CD_BRANCH in .env}
           interval: ${POLL_INTERVAL:-60}
       GIT_ACCESS_TOKEN: ${GIT_ACCESS_TOKEN:?Set GIT_ACCESS_TOKEN in .env}
       GIT_AUTH_DOMAINS: "${GIT_AUTH_DOMAINS:-- domains: [github.com]}"

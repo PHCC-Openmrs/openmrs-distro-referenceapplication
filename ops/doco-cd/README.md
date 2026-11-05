@@ -1,9 +1,9 @@
 # Onprem deployment via doco-cd (GitOps)
 
-> **Deployment branch:** doco-cd currently follows `feature/doco-cd-deployment`,
-> not `main`. Read `main` below as that branch for git changes. Images still use
-> the `:main` tag, which CI builds from `main`. To switch branches, change
-> `reference` in `.doco-cd.yml` and in `dococd-docker-compose.yml`.
+> **Deployment branch:** doco-cd follows the branch in `DOCO_CD_BRANCH`, which Azure
+> VMs read from the Key Vault secret `openmrs-vm-deploy-branch`. Read `main` below
+> as that branch for git changes. Images still use the `:main` tag, which CI builds
+> from `main`.
 
 [doco-cd](https://doco.cd) runs on the onprem VM, polls this repo's `main`
 branch, and whenever `main` moves it deploys the stack described in
@@ -70,6 +70,8 @@ requests to GitHub and GHCR.
    GIT_ACCESS_TOKEN=<PAT>
    # private age key that decrypts the repo's .env:
    SOPS_AGE_KEY=<private-age-key>
+   # branch to deploy:
+   DOCO_CD_BRANCH=<branch>
    # Key Vault with the MySQL secrets, and an identity that can read them:
    SECRET_PROVIDER_VAULT_URL=https://<key-vault-name>.vault.azure.net
    AZURE_CLIENT_ID=<identity-client-id>
