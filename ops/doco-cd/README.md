@@ -54,8 +54,8 @@ requests to GitHub and GHCR.
    ```
    If the running project is named differently, change `name` in
    `.doco-cd.yml` before starting doco-cd, otherwise it starts a second stack
-   with **empty** `db-data`/`openmrs-data` volumes (and fails on the
-   already-taken ports 80/443/3306).
+   with an **empty** `openmrs-data` volume (and fails on the already-taken
+   ports 80/443).
 
 2. **The stack's settings are in the repo's `.env`, encrypted with SOPS.**
    doco-cd decrypts it with the private age key. The public key is in

@@ -1,0 +1,77 @@
+# Production stack deployed by doco-cd (see .doco-cd.yml). The database is the Azure MySQL
+# Flexible Server, so there is no database container here. Images come from GHCR only: nothing
+# is built on the VM.
+#
+# Values come from the SOPS-encrypted .env, except the database connection (server, name, user
+# and password), which doco-cd reads from Azure Key Vault. Every required value uses `:?`, so a
+# missing one fails the deployment instead of falling back to a default.
+services:
+  gateway:
+    image: ${IMAGE_PREFIX:?set in .env}/openmrs-reference-application-3-gateway:${TAG:?set in .env}
+    restart: "unless-stopped"
+    depends_on:
+      - frontend
+      - backend
+      - portainer
+    extra_hosts:
+      # Lets gateway reach the `webhook` listener bound to 127.0.0.1:9000 on
+      # the host, for the /hooks/ proxy_pass in its nginx config.
+      - "host.docker.internal:host-gateway"
+
+  nginx:
+    image: nginx:alpine
+    restart: "unless-stopped"
+    depends_on:
+      - gateway
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+
+  frontend:
+    image: ${IMAGE_PREFIX:?set in .env}/openmrs-reference-application-3-frontend:${TAG:?set in .env}
+    restart: "unless-stopped"
+    environment:
+      SPA_PATH: ${SPA_PATH:?set in .env}
+      API_URL: ${API_URL:?set in .env}
+      SPA_CONFIG_URLS: ${SPA_CONFIG_URLS:?set in .env}
+      SPA_DEFAULT_LOCALE:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      timeout: 5s
+    depends_on:
+      - backend
+
+  backend:
+    image: ${IMAGE_PREFIX:?set in .env}/openmrs-reference-application-3-backend:${TAG:?set in .env}
+    restart: "unless-stopped"
+    environment:
+      OMRS_CONFIG_MODULE_WEB_ADMIN: ${OMRS_CONFIG_MODULE_WEB_ADMIN:?set in .env}
+      OMRS_CONFIG_AUTO_UPDATE_DATABASE: ${OMRS_CONFIG_AUTO_UPDATE_DATABASE:?set in .env}
+      OMRS_CONFIG_CREATE_TABLES: ${OMRS_CONFIG_CREATE_TABLES:?set in .env}
+      # From Azure Key Vault, through external_secrets in .doco-cd.yml.
+      OMRS_CONFIG_CONNECTION_SERVER: ${OMRS_CONFIG_CONNECTION_SERVER:?set in Key Vault}
+      OMRS_CONFIG_CONNECTION_DATABASE: ${OMRS_CONFIG_CONNECTION_DATABASE:?set in Key Vault}
+      OMRS_CONFIG_CONNECTION_USERNAME: ${OMRS_DB_USER:?set in Key Vault}
+      OMRS_CONFIG_CONNECTION_PASSWORD: ${OMRS_DB_PASSWORD:?set in Key Vault}
+      # Added to the end of the JDBC URL. The server requires TLS.
+      OMRS_CONFIG_CONNECTION_EXTRA_ARGS: ${OMRS_CONFIG_CONNECTION_EXTRA_ARGS:?set in .env}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs"]
+      timeout: 5s
+    volumes:
+      - openmrs-data:/openmrs/data
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    restart: "unless-stopped"
+    environment:
+      TRUSTED_ORIGINS: https://${CERT_WEB_DOMAINS:?set in .env},http://localhost
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-data:/data
+
+volumes:
+  openmrs-data: ~
+  portainer-data: ~
