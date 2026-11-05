@@ -1,0 +1,9 @@
+# Used by doco-cd, on top of docker-compose.yml. Removes the build sections so the
+# deployment only pulls the images CI publishes, and never compiles on the VM.
+services:
+  gateway:
+    build: !reset null
+  frontend:
+    build: !reset null
+  backend:
+    build: !reset null

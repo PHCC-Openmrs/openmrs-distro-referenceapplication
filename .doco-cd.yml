@@ -7,10 +7,9 @@
 # and volumes (db-data, openmrs-data, ...) instead of starting a fresh stack.
 name: openmrs-distro-referenceapplication
 
-# Same files as COMPOSE_FILE in the VM's .env.
 compose_files:
   - docker-compose.yml
-  - docker-compose.grafana.yml
+  - docker-compose.doco-cd.yml
 
 # Non-secret settings, SOPS-encrypted in git. doco-cd decrypts it with SOPS_AGE_KEY
 # in its own copy of the repo. To change a value: sops edit .env
