@@ -1601,10 +1601,16 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 // its own - without this check, anyone with mutate (which they already need to
                 // create the operation) could complete it directly here, skipping Submit ->
                 // Approve entirely. Require the same privilege an approver would need instead.
-                privelege = Boolean.TRUE.equals(parameter1.getApprovalRequired())
+                // A type approved somewhere other than its own location (a requisition, by the
+                // store it takes stock from) always needs that approver.
+                StockOperationPrivelegeTarget approvalTarget = parameter1.getStockOperationType()
+                        .getApprovalPrivilegeTarget();
+                boolean needsApprover = Boolean.TRUE.equals(parameter1.getApprovalRequired())
+                        || approvalTarget != StockOperationPrivelegeTarget.AtLocation;
+                privelege = needsApprover
                         ? Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE
                         : Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE;
-                target = StockOperationPrivelegeTarget.AtLocation;
+                target = needsApprover ? approvalTarget : StockOperationPrivelegeTarget.AtLocation;
             } else if (parameter1.getStatus() == StockOperationStatus.DISPATCHED) {
                 privelege = Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS;
                 target = StockOperationPrivelegeTarget.Destination;
@@ -1620,13 +1626,13 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     public void approveStockOperation(StockOperationDTO stockOperationDTO) {
         processStockOperationAction(stockOperationDTO, StockOperationAction.Action.APPROVE, null,
                 parameter1 -> new Pair<>(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE,
-                        StockOperationPrivelegeTarget.AtLocation));
+                        parameter1.getStockOperationType().getApprovalPrivilegeTarget()));
     }
 
     public void rejectStockOperation(StockOperationDTO stockOperationDTO, String reason) {
         processStockOperationAction(stockOperationDTO, StockOperationAction.Action.REJECT, reason,
                 parameter1 -> new Pair<>(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE,
-                        StockOperationPrivelegeTarget.AtLocation));
+                        parameter1.getStockOperationType().getApprovalPrivilegeTarget()));
     }
 
     public void returnStockOperation(StockOperationDTO stockOperationDTO, String reason) {
@@ -1638,7 +1644,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 target = StockOperationPrivelegeTarget.Destination;
             } else {
                 privelege = Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE;
-                target = StockOperationPrivelegeTarget.AtLocation;
+                target = parameter1.getStockOperationType().getApprovalPrivilegeTarget();
             }
             return new Pair<String, StockOperationPrivelegeTarget>(privelege, target);
         });
@@ -1663,6 +1669,11 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             }
             return new Pair<String, StockOperationPrivelegeTarget>(privelege, target);
         });
+    }
+
+    @Override
+    public boolean stockOperationHasMovedStock(Integer stockOperationId) {
+        return stockOperationId != null && dao.hasStockItemTransactions(stockOperationId);
     }
 
     public void reverseStockOperation(StockOperationDTO stockOperationDTO, String reason) {
@@ -1784,12 +1795,16 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 
     private void validateStockInventoryAfterOperation(StockOperation stockOperation,
                                                       StockOperationType stockOperationType, MessageSourceService messageSourceService) {
+        Party takenFrom = stockOperationType.getPartyStockIsTakenFrom(stockOperation);
+        // A line without a batch or quantity moves nothing (e.g. a requisition submitted before
+        // requisitions moved stock), so there is no balance to check for it.
         List<StockOperationItem> applicableStockOperationItems = stockOperation.getStockOperationItems().stream()
-                .filter(p -> !p.getVoided()).collect(Collectors.toList());
+                .filter(p -> !p.getVoided() && p.getStockBatch() != null && p.getQuantity() != null)
+                .collect(Collectors.toList());
         List<StockItemInventorySearchFilter.ItemGroupFilter> itemsToSearch = applicableStockOperationItems.stream()
-                .filter(p -> !p.getVoided()).map(p -> {
+                .map(p -> {
                     StockItemInventorySearchFilter.PartyStockItemBatch group = new StockItemInventorySearchFilter.PartyStockItemBatch(
-                            stockOperation.getSource().getId(),
+                            takenFrom.getId(),
                             p.getStockItem().getId(),
                             p.getStockBatch().getId());
                     return group;
@@ -1884,6 +1899,20 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         }
         if (!errors.isEmpty()) {
             throw new StockManagementException(String.join(", ", errors));
+        }
+    }
+
+    /**
+     * A requisition moves the batches its lines name, so each line needs a batch and a quantity before
+     * it is reserved - one drafted before requisitions moved stock has neither.
+     */
+    private void validateItemsHaveBatchAndQuantity(StockOperation stockOperation, MessageSourceService messageSourceService) {
+        boolean incomplete = stockOperation.getStockOperationItems().stream()
+                .anyMatch(p -> !p.getVoided() && (p.getStockBatch() == null || p.getQuantity() == null
+                        || p.getStockItemPackagingUOM() == null));
+        if (incomplete) {
+            throw new StockManagementException(
+                    messageSourceService.getMessage("stockmanagement.stockoperation.batchandquantityrequired"));
         }
     }
 
@@ -2105,9 +2134,13 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                     || (stockOperation.isUpdateable() && (action.equals(StockOperationAction.Action.COMPLETE) || action
                     .equals(StockOperationAction.Action.DISPATCH)))) {
                 if (!stockOperationType.isQuantityOptional()) {
+                    if (StockOperationType.REQUISITION.equals(stockOperationType.getOperationType())) {
+                        validateItemsHaveBatchAndQuantity(stockOperation, messageSourceService);
+                    }
+                    Party takenFrom = stockOperationType.getPartyStockIsTakenFrom(stockOperation);
                     if (stockOperationType.shouldVerifyNegativeStockAmountsAtSource()
-                            && !GlobalProperties.getNegativeStockBalanceAllowed() && stockOperation.getSource() != null
-                            && stockOperation.getSource().getLocation() != null) {
+                            && !GlobalProperties.getNegativeStockBalanceAllowed() && takenFrom != null
+                            && takenFrom.getLocation() != null) {
                         validateStockInventoryAfterOperation(stockOperation, stockOperationType, messageSourceService);
                     }
 
@@ -2121,10 +2154,11 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 // These types leave the source balance untouched until now, so the check made at
                 // submission time can be stale: other operations on the same batch may have been
                 // approved in between.
+                Party takenFrom = stockOperationType.getPartyStockIsTakenFrom(stockOperation);
                 if (stockOperationType.appliesStockAtCompletion() && !stockOperationType.isQuantityOptional()
                         && stockOperationType.shouldVerifyNegativeStockAmountsAtSource()
-                        && !GlobalProperties.getNegativeStockBalanceAllowed() && stockOperation.getSource() != null
-                        && stockOperation.getSource().getLocation() != null) {
+                        && !GlobalProperties.getNegativeStockBalanceAllowed() && takenFrom != null
+                        && takenFrom.getLocation() != null) {
                     validateStockInventoryAfterOperation(stockOperation, stockOperationType, messageSourceService);
                 }
             }

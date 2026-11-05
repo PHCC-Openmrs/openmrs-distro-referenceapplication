@@ -5483,6 +5483,14 @@ public class StockManagementDao extends DaoBase {
 		return query.list();
 	}
 	
+	/** Whether a stock operation has moved any stock. */
+	public boolean hasStockItemTransactions(Integer stockOperationId) {
+		Query query = getSession().createQuery("select count(t) from stockmanagement.StockItemTransaction t "
+		        + "where t.stockOperation.id = :id");
+		query.setParameter("id", stockOperationId);
+		return ((Number) query.uniqueResult()).longValue() > 0;
+	}
+	
 	/** Whether any of a stock operation's rows belong to a medication dispense. */
 	public boolean hasMedicationDispenseTransactions(Integer stockOperationId) {
 		Query query = getSession().createQuery("select count(t) from stockmanagement.StockItemTransaction t "

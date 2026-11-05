@@ -65,6 +65,14 @@ public interface StockManagementService extends OpenmrsService {
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS)
 	StockOperation getStockOperationByUuid(String uuid);
 	
+	/**
+	 * Whether the stock operation has moved any stock. An approved requisition normally has, and
+	 * then needs no Stock Issue; one approved before requisitions moved stock has not.
+	 */
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS)
+	boolean stockOperationHasMovedStock(Integer stockOperationId);
+	
 	@Transactional(readOnly = true)
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS)
 	List<StockOperationItem> getStockOperationItemsByStockOperation(Integer stockOperationId);

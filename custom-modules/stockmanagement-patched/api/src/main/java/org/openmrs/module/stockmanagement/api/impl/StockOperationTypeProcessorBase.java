@@ -5,6 +5,7 @@ import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockOperationPrivelegeTarget;
 import org.openmrs.module.stockmanagement.api.StockOperationTypeProcessor;
 import org.openmrs.module.stockmanagement.api.utils.Action2;
 import org.openmrs.module.stockmanagement.api.model.*;
@@ -54,6 +55,16 @@ public abstract class StockOperationTypeProcessorBase implements StockOperationT
 	@Override
 	public boolean appliesStockAtCompletion() {
 		return false;
+	}
+	
+	@Override
+	public Party getPartyStockIsTakenFrom(StockOperation operation) {
+		return operation.getSource();
+	}
+	
+	@Override
+	public StockOperationPrivelegeTarget getApprovalPrivilegeTarget() {
+		return StockOperationPrivelegeTarget.AtLocation;
 	}
 	
 	@Override
