@@ -14,9 +14,13 @@ import classNames from 'classnames';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useConfig, useLayoutType } from '@openmrs/esm-framework';
+import { openmrsFetch, restBaseUrl, useConfig, useLayoutType } from '@openmrs/esm-framework';
+import useSWR from 'swr';
 import { type z } from 'zod';
 import { type ConfigObject } from '../../../config-schema';
+import { ResourceRepresentation, toQueryParams } from '../../../core/api/api';
+import { LocationStockItem } from '../../../core/api/types/stockItem/StockItem';
+import { type StockItemInventory } from '../../../core/api/types/stockItem/StockItemInventory';
 import { DATE_PICKER_CONTROL_FORMAT, DATE_PICKER_FORMAT, formatForDatePicker, today } from '../../../constants';
 import {
   operationFromString,
@@ -34,6 +38,12 @@ export interface StockItemFormProps {
   stockOperationType: StockOperationType;
   stockOperationItem: BaseStockOperationItemFormData;
   sourceUuid?: string;
+  /**
+   * Requisitions only: the store the stock is being requested from. The requested quantity is
+   * checked against what that store has on hand, and the figure is shown under the quantity.
+   */
+  supplyingPartyUuid?: string;
+  supplyingPartyName?: string;
   onSave?: (data: BaseStockOperationItemFormData) => void;
   onBack?: () => void;
 }
@@ -42,6 +52,8 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
   stockOperationType,
   stockOperationItem,
   sourceUuid,
+  supplyingPartyUuid,
+  supplyingPartyName,
   onSave,
   onBack,
 }) => {
@@ -139,12 +151,61 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
     requestedBaseQuantity > availableBaseQuantity;
 
   const insufficientStockMessage = matchingBatchAvailability
-    ? t(
-        'insufficientStockInBatch',
-        'Only {{quantity}} {{uom}} available in this batch at the source location',
-        { quantity: matchingBatchAvailability.quantity, uom: matchingBatchAvailability.quantityUoM },
-      )
+    ? t('insufficientStockInBatch', 'Only {{quantity}} {{uom}} available in this batch at the source location', {
+        quantity: matchingBatchAvailability.quantity,
+        uom: matchingBatchAvailability.quantityUoM,
+      })
     : t('outOfStockInBatch', 'This batch has no stock available at the source location');
+
+  // Requisition: what the supplying store has of this item, across all its batches, in base
+  // (dispensing) units - grouped by LocationStockItem so the batches collapse into one row.
+  const supplyAvailabilityUrl =
+    supplyingPartyUuid && stockOperationItem?.stockItemUuid
+      ? `${restBaseUrl}/stockmanagement/stockiteminventory${toQueryParams({
+          v: ResourceRepresentation.Default,
+          stockItemUuid: stockOperationItem.stockItemUuid,
+          partyUuid: supplyingPartyUuid,
+          groupBy: LocationStockItem,
+        })}`
+      : null;
+  const { data: supplyAvailabilityResponse, isLoading: isLoadingSupplyAvailability } = useSWR<{
+    data: { results: Array<StockItemInventory> };
+  }>(supplyAvailabilityUrl, openmrsFetch);
+
+  const supplyAvailableBaseQuantity = useMemo(
+    () =>
+      (supplyAvailabilityResponse?.data?.results ?? []).reduce(
+        (total, row) => total + (Number(row.quantity) || 0) * (Number.parseFloat(String(row.quantityFactor)) || 1),
+        0,
+      ),
+    [supplyAvailabilityResponse],
+  );
+
+  // Shown in the unit the user has selected, so "15 Box" is compared against "10 Box".
+  const selectedUom = useMemo(
+    () => item?.packagingUnits?.find((unit) => unit.uuid === watchedPackagingUOMUuid),
+    [item, watchedPackagingUOMUuid],
+  );
+  const supplyAvailableInSelectedUom = selectedUom?.factor
+    ? Math.floor((supplyAvailableBaseQuantity / selectedUom.factor) * 100) / 100
+    : supplyAvailableBaseQuantity;
+  const supplyUomName = selectedUom?.packagingUomName ?? item?.dispensingUnitName ?? '';
+  const supplyStoreName = supplyingPartyName || t('supplyingStore', 'the supplying store');
+
+  const exceedsSupplyStock =
+    !!supplyAvailabilityUrl &&
+    !isLoadingSupplyAvailability &&
+    !!supplyAvailabilityResponse &&
+    requestedBaseQuantity > supplyAvailableBaseQuantity;
+
+  const exceedsSupplyStockMessage =
+    supplyAvailableBaseQuantity > 0
+      ? t('requestExceedsSupplyStock', 'Only {{quantity}} {{uom}} available at {{store}}', {
+          quantity: supplyAvailableInSelectedUom.toLocaleString(),
+          uom: supplyUomName,
+          store: supplyStoreName,
+        })
+      : t('supplyStoreOutOfStock', '{{store}} has none of this item in stock', { store: supplyStoreName });
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     onSave?.(data);
@@ -242,8 +303,21 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
                 id={`qty`}
                 {...field}
                 label={t('quantity', 'Quantity')}
-                invalidText={error?.message || (insufficientStock ? insufficientStockMessage : undefined)}
-                invalid={!!error?.message || insufficientStock}
+                helperText={
+                  supplyAvailabilityUrl && !exceedsSupplyStock && !isLoadingSupplyAvailability
+                    ? t('availableAtSupplyStore', 'Available at {{store}}: {{quantity}} {{uom}}', {
+                        store: supplyStoreName,
+                        quantity: supplyAvailableInSelectedUom.toLocaleString(),
+                        uom: supplyUomName,
+                      })
+                    : undefined
+                }
+                invalidText={
+                  error?.message ||
+                  (insufficientStock ? insufficientStockMessage : undefined) ||
+                  (exceedsSupplyStock ? exceedsSupplyStockMessage : undefined)
+                }
+                invalid={!!error?.message || insufficientStock || exceedsSupplyStock}
               />
             )}
           />
@@ -304,7 +378,7 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
           className={styles.button}
           kind="primary"
           type="submit"
-          disabled={form.formState.isSubmitting || insufficientStock}
+          disabled={form.formState.isSubmitting || insufficientStock || exceedsSupplyStock}
         >
           {t('save', 'Save')}
         </Button>

@@ -9,6 +9,7 @@ interface StockListItem {
   hasExpiration: boolean;
   expiryNotice: number;
   reorderLevel: number | null | undefined;
+  reorderLevelUoMUuid?: string | null;
   commonName?: string | null;
   drugName?: string | null;
   conceptName?: string | null;

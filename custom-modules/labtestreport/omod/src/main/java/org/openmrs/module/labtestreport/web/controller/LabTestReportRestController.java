@@ -206,9 +206,10 @@ public class LabTestReportRestController {
 	@ResponseBody
 	public ResponseEntity<String> diseaseSummary(@RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate,
-	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid,
+	        @RequestParam(value = "programUuid", required = false) String programUuid) throws JsonProcessingException {
 		return jsonResponse(Context.getService(DiseaseSummaryService.class).getActivityReport(startDate, endDate,
-		    locationUuid));
+		    locationUuid, programUuid));
 	}
 
 	@RequestMapping(value = "/ewars-report.json", method = RequestMethod.GET)
@@ -284,9 +285,10 @@ public class LabTestReportRestController {
 	        @RequestParam(value = "ageGroup", required = false) String ageGroup,
 	        @RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate,
-	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid,
+	        @RequestParam(value = "programUuid", required = false) String programUuid) throws JsonProcessingException {
 		List<PatientRow> rows = Context.getService(DiseaseSummaryService.class).getPatientsForActivityRow(rowKey,
-		    gender, ageGroup, startDate, endDate, locationUuid);
+		    gender, ageGroup, startDate, endDate, locationUuid, programUuid);
 		return jsonResponse(rows);
 	}
 

@@ -3,7 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@carbon/react';
 import useStockList from './useStockList';
 import useFilteredOperationTypesByRoles from '../stock-operations/stock-operations-forms/hooks/useFilteredOperationTypesByRoles';
-import { findRequisitionOperationType, launchReorderOperation } from './launch-reorder-operation.utils';
+import {
+  findRequisitionOperationType,
+  launchReorderOperation,
+  type ReorderItem,
+} from './launch-reorder-operation.utils';
 import styles from './stock-home-detail-card.scss';
 
 const MAX_ITEMS = 5;
@@ -30,8 +34,8 @@ const StockHomeNearingStockoutCard = () => {
     return <p className={styles.content}>{t('noItemsNearingStockout', 'No items nearing stockout')}</p>;
   }
 
-  const handleReorder = (displayName: string) => {
-    launchReorderOperation(t, requisitionOperationType, displayName);
+  const handleReorder = (item: ReorderItem) => {
+    launchReorderOperation(t, requisitionOperationType, item);
   };
 
   return (
@@ -50,7 +54,7 @@ const StockHomeNearingStockoutCard = () => {
                 {item?.reorderLevel} ({percentRemaining}%)
               </p>
             </div>
-            <Button kind="ghost" size="sm" onClick={() => handleReorder(item.displayName)}>
+            <Button kind="ghost" size="sm" onClick={() => handleReorder(item)}>
               {t('reorder', 'Reorder')}
             </Button>
           </div>

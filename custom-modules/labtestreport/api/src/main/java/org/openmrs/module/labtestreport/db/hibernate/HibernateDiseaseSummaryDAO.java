@@ -92,12 +92,13 @@ public class HibernateDiseaseSummaryDAO implements DiseaseSummaryDAO {
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Object[]> getActivityEvents(Collection<Integer> conceptIds, Date startDate, Date endDate,
-	        String locationUuid) throws DAOException {
+	        String locationUuid, String programUuid) throws DAOException {
 		SQLQuery query = sessionFactory.getCurrentSession().createSQLQuery(ACTIVITY_EVENTS_SQL);
 		query.setParameterList("conceptIds", conceptIds);
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
 		query.setParameter("locationUuid", locationUuid);
+		query.setParameter("programUuid", programUuid);
 		return query.list();
 	}
 

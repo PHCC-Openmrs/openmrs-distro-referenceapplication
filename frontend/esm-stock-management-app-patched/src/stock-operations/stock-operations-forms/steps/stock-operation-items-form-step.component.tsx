@@ -61,8 +61,8 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
   // destination (Opening Stock, Stock Take, Adjustment, Disposal), and the side stock is drawn
   // from when it does (Transfer Out, Stock Issue, Return) - either way it holds the stock the
   // operation acts on. Receipt and Requisition are the exceptions: their source is an upstream
-  // party we hold nothing at, and the quantity worth showing is what the receiving location
-  // already has, so they use destinationUuid.
+  // party we hold nothing at, so they use destinationUuid - for a Receipt that's the receiving
+  // location's own stock, for a Requisition it's the supplying store's ("Request stock from").
   const sourceUuid = form.watch('sourceUuid');
   const destinationUuid = form.watch('destinationUuid');
   const availabilityPartyUuid = useMemo(() => {
@@ -92,7 +92,10 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
       },
       {
         key: 'itemDetails',
-        header: t('itemDetails', 'Item Details'),
+        // On a requisition this column shows the supplying store's stock (destinationUuid).
+        header: StockOperationTypeIsRequistion(operationFromString(stockOperationType.operationType))
+          ? t('availableAtSupplyingStore', 'Available at supplying store')
+          : t('itemDetails', 'Item Details'),
         styles: { width: '20% !important' },
       },
       ...(operationTypePermision.requiresBatchUuid || operationTypePermision.requiresActualBatchInfo
@@ -139,7 +142,7 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
         : []),
       { key: 'actions', header: t('actions', 'Actions') },
     ];
-  }, [operationTypePermision, t]);
+  }, [operationTypePermision, stockOperationType, t]);
 
   const tableRows = useMemo(() => {
     return observableOperationItems?.map((item, index) => {
@@ -181,7 +184,8 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
             stockItemUuid={stockItemUuid}
           />
         ),
-        quantity: quantity?.toLocaleString(),
+        // A row pre-filled by Reorder has no quantity yet - say so instead of leaving the cell blank.
+        quantity: quantity ? quantity.toLocaleString() : t('enterQuantityHint', 'Click edit to enter quantity'),
         quantityuom: stockItemPackagingUOMUuid ? (
           <QuantityUomCell stockItemPackagingUOMUuid={stockItemPackagingUOMUuid} stockItemUuid={stockItemUuid} />
         ) : (
@@ -236,7 +240,12 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
         title: t('validationError', 'Validation error'),
         subtitle:
           observableOperationItems && observableOperationItems.length > 0
-            ? t('mustUpdateBatchInformationForItems', 'You must update batch infomation for items')
+            ? observableOperationItems.some((item) => !item.quantity || !item.stockItemPackagingUOMUuid)
+              ? t(
+                  'mustEnterQuantityForItems',
+                  'Enter a quantity and unit for every item (use the edit button on the row)',
+                )
+              : t('mustUpdateBatchInformationForItems', 'You must update batch infomation for items')
             : t('mustAddAtLeastOneItem', 'You must add atleast one item'),
       });
     }

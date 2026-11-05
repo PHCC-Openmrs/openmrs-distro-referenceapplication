@@ -65,11 +65,13 @@ public interface DiseaseSummaryDAO {
 
 	/**
 	 * @param conceptIds the diagnosis concepts the Primary Health Activity layout counts
+	 * @param programUuid only include diagnoses of patients enrolled in this service-type program on the day the
+	 *            diagnosis was recorded, or null for every service
 	 * @return one row per distinct {conceptId, patientId, eventDay, ageGroup, gender} recorded within the
 	 *         filters (see queries/disease_activity_events.sql)
 	 */
-	List<Object[]> getActivityEvents(Collection<Integer> conceptIds, Date startDate, Date endDate, String locationUuid)
-	        throws DAOException;
+	List<Object[]> getActivityEvents(Collection<Integer> conceptIds, Date startDate, Date endDate, String locationUuid,
+	        String programUuid) throws DAOException;
 
 	/**
 	 * @return display columns for the given patients, in the column order of {@link #getPatientsForDiagnosisCell}

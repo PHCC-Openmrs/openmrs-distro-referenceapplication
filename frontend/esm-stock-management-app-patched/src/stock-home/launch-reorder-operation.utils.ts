@@ -1,19 +1,28 @@
 import { type TFunction } from 'i18next';
 import { showSnackbar } from '@openmrs/esm-framework';
 import { OperationType, type StockOperationType } from '../core/api/types/stockOperation/StockOperationType';
-import { launchStockoperationAddOrEditWorkSpace } from '../stock-operations/stock-operation.utils';
+import {
+  getStockOperationUniqueId,
+  launchStockoperationAddOrEditWorkSpace,
+} from '../stock-operations/stock-operation.utils';
+
+export interface ReorderItem {
+  uuid: string;
+  displayName: string;
+  hasExpiration?: boolean;
+  reorderLevelUoMUuid?: string | null;
+}
 
 /**
- * Opens a new Requisition operation - the actual "order more stock" workflow - instead
- * of the stock item edit workspace. There's no safe way to pre-fill a brand-new
- * operation's item list (the form's other tabs key off `stockOperation` being truthy to
- * mean "this operation already exists on the backend"), so this opens a blank
- * requisition and tells the user which item to add to it.
+ * Opens a new Requisition operation - the actual "order more stock" workflow - with the
+ * item the Reorder button was clicked for already added as a row on the Stock items step.
+ * The quantity is left blank for the user to fill in (edit button on the row); the unit is
+ * pre-selected from the item's reorder-level unit when it has one.
  */
 export function launchReorderOperation(
   t: TFunction,
   requisitionOperationType: StockOperationType | undefined,
-  itemDisplayName?: string,
+  item?: ReorderItem,
 ) {
   if (!requisitionOperationType) {
     showSnackbar({
@@ -28,14 +37,31 @@ export function launchReorderOperation(
     return;
   }
 
-  launchStockoperationAddOrEditWorkSpace(t, requisitionOperationType);
+  const initialItems = item
+    ? [
+        {
+          uuid: `new-item-${getStockOperationUniqueId()}`,
+          stockItemUuid: item.uuid,
+          hasExpiration: item.hasExpiration ?? false,
+          stockItemPackagingUOMUuid: item.reorderLevelUoMUuid ?? undefined,
+        },
+      ]
+    : undefined;
 
-  if (itemDisplayName) {
+  launchStockoperationAddOrEditWorkSpace(t, requisitionOperationType, undefined, undefined, initialItems);
+
+  if (item) {
     showSnackbar({
       kind: 'info',
       isLowContrast: true,
       title: t('reorder', 'Reorder'),
-      subtitle: t('addItemToRequisition', 'Add {{itemDisplayName}} to this requisition.', { itemDisplayName }),
+      subtitle: t(
+        'reorderItemAdded',
+        '{{itemDisplayName}} has been added to this requisition. Enter the quantity on the Stock items step.',
+        {
+          itemDisplayName: item.displayName,
+        },
+      ),
     });
   }
 }

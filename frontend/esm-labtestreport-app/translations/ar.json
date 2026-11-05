@@ -27,5 +27,11 @@
   "oralMedications": "الأدوية الفموية",
   "oralQty": "كمية الفموي",
   "oralQuantity": "كمية الدواء الفموي",
-  "reports": "التقارير"
+  "reports": "التقارير",
+  "allServiceTypes": "جميع أنواع الخدمات",
+  "serviceTypePrimaryHealth": "الرعاية الصحية الأولية",
+  "serviceTypeSrh": "الصحة الجنسية والإنجابية",
+  "serviceTypePediatric": "طب الأطفال",
+  "serviceTypeNutrition": "التغذية",
+  "serviceType": "نوع الخدمة"
 }
