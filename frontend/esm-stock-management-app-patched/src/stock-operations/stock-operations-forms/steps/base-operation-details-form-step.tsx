@@ -52,6 +52,12 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
     () => OperationType.STOCK_ISSUE_OPERATION_TYPE === stockOperationType.operationType,
     [stockOperationType],
   );
+  // On a requisition "From"/"To" read backwards to most users (stock moves from the store *to* the
+  // requester), so name the two sides by their role instead.
+  const isRequisitionOperation = useMemo(
+    () => OperationType.REQUISITION_OPERATION_TYPE === stockOperationType.operationType,
+    [stockOperationType],
+  );
   const handleNext = async () => {
     // The schema-level check for this only runs once every other part of the form is valid, so
     // it is also enforced here to flag a missing reason while still on this step.
@@ -199,6 +205,8 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
               titleText={
                 isStockIssueOperation
                   ? t('source', 'Source')
+                  : isRequisitionOperation
+                  ? t('requestingLocation', 'Requesting location (needs the stock)')
                   : stockOperationType?.hasDestination || stockOperation?.destinationUuid
                   ? t('from', 'From')
                   : t('location', 'Location')
@@ -215,7 +223,9 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
               itemToString={(item?: Party) => (item && item?.name ? `${item?.name}` : '')}
               shouldFilterItem={() => true}
               placeholder={
-                stockOperationType.hasDestination || stockOperation?.destinationUuid
+                isRequisitionOperation
+                  ? t('chooseRequestingLocation', 'Choose the location requesting stock')
+                  : stockOperationType.hasDestination || stockOperation?.destinationUuid
                   ? t('chooseASource', 'Choose a source')
                   : t('chooseALocation', 'Choose a location')
               }
@@ -237,6 +247,8 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
                 titleText={
                   isStockIssueOperation
                     ? t('destination', 'Destination')
+                    : isRequisitionOperation
+                    ? t('requestStockFrom', 'Request stock from (supplying store)')
                     : stockOperationType?.hasSource || stockOperation?.atLocationUuid
                     ? t('to', 'To')
                     : t('location', 'Location')
@@ -252,7 +264,9 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
                 itemToString={(item?: Party) => (item && item?.name ? `${item?.name}` : '')}
                 shouldFilterItem={() => true}
                 placeholder={
-                  stockOperationType?.hasSource || stockOperation?.atLocationUuid
+                  isRequisitionOperation
+                    ? t('chooseSupplyingStore', 'Choose the store to request from')
+                    : stockOperationType?.hasSource || stockOperation?.atLocationUuid
                     ? t('chooseADestination', 'Choose a destination')
                     : t('location', 'Location')
                 }

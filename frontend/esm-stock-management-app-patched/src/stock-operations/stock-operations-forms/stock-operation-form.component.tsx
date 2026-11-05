@@ -28,6 +28,7 @@ import {
   parseRemarksWithOtherReason,
 } from '../other-reason.utils';
 import useOperationTypePermisions from './hooks/useOperationTypePermisions';
+import useParties from './hooks/useParties';
 import BaseOperationDetailsFormStep from './steps/base-operation-details-form-step';
 import ReceivedItems from './steps/received-items.component';
 import StockOperationItemsFormStep from './steps/stock-operation-items-form-step.component';
@@ -48,12 +49,15 @@ type StockOperationFormProps = DefaultWorkspaceProps & {
   stockOperation?: StockOperationDTO;
   stockOperationType: StockOperationType;
   stockRequisitionUuid?: string;
+  /** Rows to start a new operation with (e.g. the item a Reorder button was clicked for). Ignored when editing. */
+  initialStockOperationItems?: Array<Partial<BaseStockOperationItemFormData>>;
 };
 
 const StockOperationForm: React.FC<StockOperationFormProps> = ({
   stockOperation,
   stockOperationType,
   stockRequisitionUuid,
+  initialStockOperationItems,
   closeWorkspace,
 }) => {
   const { t } = useTranslation();
@@ -61,6 +65,7 @@ const StockOperationForm: React.FC<StockOperationFormProps> = ({
     return operationFromString(stockOperationType.operationType);
   }, [stockOperationType]);
   const operationTypePermision = useOperationTypePermisions(stockOperationType);
+  const { parties } = useParties(stockOperationType);
   const stockOperationItemFormSchema = useMemo(() => {
     return getStockOperationItemFormSchema(operationType, t);
   }, [operationType, t]);
@@ -106,7 +111,9 @@ const StockOperationForm: React.FC<StockOperationFormProps> = ({
             { ...item, expiration: item.expiration ? parseDate(String(item.expiration)) : undefined },
             stockOperationItemFormSchema.keyof().options,
           ),
-        ) ?? [],
+        ) ??
+        (initialStockOperationItems as Array<BaseStockOperationItemFormData>) ??
+        [],
       sourceUuid: stockOperation?.sourceUuid ?? '',
       destinationUuid: stockOperation?.destinationUuid ?? '',
     },
@@ -141,6 +148,14 @@ const StockOperationForm: React.FC<StockOperationFormProps> = ({
         stockOperationType,
         stockOperationItem,
         sourceUuid: form.getValues('sourceUuid'),
+        // A requisition asks its destination ("Request stock from") for stock - the item form
+        // checks the requested quantity against what that store has.
+        ...(operationType === OperationType.REQUISITION_OPERATION_TYPE
+          ? {
+              supplyingPartyUuid: form.getValues('destinationUuid') || undefined,
+              supplyingPartyName: parties.find((p) => p.uuid === form.getValues('destinationUuid'))?.name,
+            }
+          : {}),
         onSave: (data) => {
           const items = (form.getValues('stockOperationItems') ?? []) as BaseStockOperationItemFormData[];
           const index = items.findIndex((i) => i.uuid === data.uuid);
@@ -163,7 +178,7 @@ const StockOperationForm: React.FC<StockOperationFormProps> = ({
       });
       setRenderItemForm(true);
     },
-    [stockOperationType, form, setItemFormProps, setRenderItemForm],
+    [stockOperationType, operationType, parties, form, setItemFormProps, setRenderItemForm],
   );
   const steps: TabItem[] = useMemo(() => {
     return [

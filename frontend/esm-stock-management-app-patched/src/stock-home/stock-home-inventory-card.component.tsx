@@ -8,7 +8,11 @@ import { useStockInventoryItems } from './stock-home-inventory-items.resource';
 import { useStockBatchQuantities } from './stock-home-batch-quantities.resource';
 import useStockList from './useStockList';
 import useFilteredOperationTypesByRoles from '../stock-operations/stock-operations-forms/hooks/useFilteredOperationTypesByRoles';
-import { findRequisitionOperationType, launchReorderOperation } from './launch-reorder-operation.utils';
+import {
+  findRequisitionOperationType,
+  launchReorderOperation,
+  type ReorderItem,
+} from './launch-reorder-operation.utils';
 import styles from './stock-home-detail-card.scss';
 
 const StockHomeInventoryCard = () => {
@@ -74,8 +78,8 @@ const StockHomeInventoryCard = () => {
     });
   };
 
-  const handleReorder = (displayName: string) => {
-    launchReorderOperation(t, requisitionOperationType, displayName);
+  const handleReorder = (item: ReorderItem) => {
+    launchReorderOperation(t, requisitionOperationType, item);
   };
 
   if (filteredData.length === 0 && understockedToShow.length === 0) {
@@ -112,7 +116,7 @@ const StockHomeInventoryCard = () => {
               {t('reorderLevelLabel', '· Reorder level:')} {item?.reorderLevel}
             </p>
           </div>
-          <Button kind="ghost" size="sm" onClick={() => handleReorder(item.displayName)}>
+          <Button kind="ghost" size="sm" onClick={() => handleReorder(item)}>
             {t('reorder', 'Reorder')}
           </Button>
         </div>
