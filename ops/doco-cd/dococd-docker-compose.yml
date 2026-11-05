@@ -15,8 +15,8 @@ name: doco-cd
 services:
   doco-cd:
     container_name: doco-cd
-    # Our copy of ghcr.io/kimdre/doco-cd:0.132.0. Pulling it needs a ghcr.io login on the host.
-    image: ghcr.io/phcc-openmrs/doco-cd:0.132.0
+    # Our copy of ghcr.io/kimdre/doco-cd. Pulling it needs a ghcr.io login on the host.
+    image: ghcr.io/phcc-openmrs/doco-cd:latest
     restart: unless-stopped
     # No published ports: polling is outbound-only.
     environment:
