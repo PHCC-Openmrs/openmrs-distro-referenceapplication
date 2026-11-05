@@ -159,9 +159,9 @@ export default function MedicineDistributionReport() {
       quantityPrescribed: (row: MedicineDistributionRow) => row.quantityPrescribed,
       quantityDispensed: (row: MedicineDistributionRow) => row.quantityDispensed,
       dispenseStatus: (row: MedicineDistributionRow) => row.dispenseStatus ?? '',
+      dispensedBy: (row: MedicineDistributionRow) => row.dispensedBy ?? '',
       location: (row: MedicineDistributionRow) => row.location ?? '',
       prescriber: (row: MedicineDistributionRow) => row.prescriber ?? '',
-      dispensedBy: (row: MedicineDistributionRow) => row.dispensedBy ?? '',
     }),
     [],
   );
@@ -220,10 +220,10 @@ export default function MedicineDistributionReport() {
         t('quantityDispensed', 'Quantity Dispensed'),
         t('quantityUnits', 'Quantity Units'),
         t('dispenseStatus', 'Dispense Status'),
+        t('dispensedBy', 'Dispensed By'),
         t('instructions', 'Instructions'),
         t('location', 'Location'),
         t('prescriber', 'Prescriber'),
-        t('dispensedBy', 'Dispensed By'),
       ],
       rows: detailSort.sortedRows.map((row) => [
         row.givenName,
@@ -246,10 +246,10 @@ export default function MedicineDistributionReport() {
         row.quantityDispensed ?? '',
         row.quantityUnits ?? '',
         dispenseStatusLabel(row),
+        row.dispensedBy ?? '',
         row.dosingInstructions ?? '',
         row.location ?? '',
         row.prescriber ?? '',
-        row.dispensedBy ?? '',
       ]),
     }),
     // dispenseStatusLabel only depends on t
@@ -603,6 +603,14 @@ export default function MedicineDistributionReport() {
                     className="left"
                   />
                   <SortableHeader
+                    label={t('dispensedBy', 'Dispensed By')}
+                    sortKey="dispensedBy"
+                    activeSortKey={detailSort.sortKey}
+                    direction={detailSort.direction}
+                    onSort={detailSort.toggleSort}
+                    className="left"
+                  />
+                  <SortableHeader
                     label={t('location', 'Location')}
                     sortKey="location"
                     activeSortKey={detailSort.sortKey}
@@ -613,14 +621,6 @@ export default function MedicineDistributionReport() {
                   <SortableHeader
                     label={t('prescriber', 'Prescriber')}
                     sortKey="prescriber"
-                    activeSortKey={detailSort.sortKey}
-                    direction={detailSort.direction}
-                    onSort={detailSort.toggleSort}
-                    className="left"
-                  />
-                  <SortableHeader
-                    label={t('dispensedBy', 'Dispensed By')}
-                    sortKey="dispensedBy"
                     activeSortKey={detailSort.sortKey}
                     direction={detailSort.direction}
                     onSort={detailSort.toggleSort}
@@ -649,9 +649,9 @@ export default function MedicineDistributionReport() {
                     <td>{withUnit(row.quantityPrescribed, row.quantityUnits) || '--'}</td>
                     <td>{withUnit(row.quantityDispensed, row.quantityUnits) || '--'}</td>
                     <td className="left">{dispenseStatusLabel(row)}</td>
+                    <td className="left">{row.dispensedBy || '--'}</td>
                     <td className="left">{row.location || '--'}</td>
                     <td className="left">{row.prescriber || '--'}</td>
-                    <td className="left">{row.dispensedBy || '--'}</td>
                   </tr>
                 ))}
                 {detailSort.sortedRows.length === 0 && (
