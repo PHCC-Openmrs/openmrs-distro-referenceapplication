@@ -70,6 +70,9 @@ requests to GitHub and GHCR.
    GIT_ACCESS_TOKEN=<PAT>
    # private age key that decrypts the repo's .env:
    SOPS_AGE_KEY=<private-age-key>
+   # Key Vault with the MySQL secrets, and an identity that can read them:
+   SECRET_PROVIDER_VAULT_URL=https://<key-vault-name>.vault.azure.net
+   AZURE_CLIENT_ID=<identity-client-id>
    # ghcr.io/phcc-openmrs packages are private:
    DOCKER_AUTH_CONFIG={"auths":{"ghcr.io":{"auth":"<base64 of user:read-packages-PAT>"}}}
    # default 60 (seconds):

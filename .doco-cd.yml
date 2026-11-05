@@ -12,10 +12,19 @@ compose_files:
   - docker-compose.yml
   - docker-compose.grafana.yml
 
-# SOPS-encrypted in git. doco-cd decrypts it with SOPS_AGE_KEY in its own copy
-# of the repo. To change a value: sops edit .env
+# Non-secret settings, SOPS-encrypted in git. doco-cd decrypts it with SOPS_AGE_KEY
+# in its own copy of the repo. To change a value: sops edit .env
 env_files:
   - .env
+
+# Read from Azure Key Vault on every poll, and take priority over .env. A changed
+# value redeploys the stack with no commit, so update the database first.
+external_secrets:
+  OMRS_DB_USER: openmrs-mysql-username
+  OMRS_DB_PASSWORD: openmrs-mysql-password
+  OMRS_CONFIG_CONNECTION_DATABASE: openmrs-mysql-dbname
+  OMRS_CONFIG_CONNECTION_SERVER: openmrs-mysql-dburl
+
 environment:
   # The images .github/workflows/deploy-onprem.yml pushes to GHCR.
   IMAGE_PREFIX: ghcr.io/phcc-openmrs

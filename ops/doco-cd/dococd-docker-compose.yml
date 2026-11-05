@@ -31,6 +31,11 @@ services:
       # Private age key that decrypts the repo's .env. An env var rather than a
       # file secret: with cap_drop ALL, root here can't read a 0600 file it doesn't own.
       SOPS_AGE_KEY: ${SOPS_AGE_KEY:?Set SOPS_AGE_KEY in .env}
+      # Key Vault holding the secrets in ../../.doco-cd.yml. AZURE_CLIENT_ID selects the
+      # VM's user-assigned managed identity.
+      SECRET_PROVIDER: azure_kv
+      SECRET_PROVIDER_VAULT_URL: ${SECRET_PROVIDER_VAULT_URL:?Set SECRET_PROVIDER_VAULT_URL in .env}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:?Set AZURE_CLIENT_ID in .env}
       # Only needed if the ghcr.io/phcc-openmrs packages are private, e.g.
       #   DOCKER_AUTH_CONFIG={"auths":{"ghcr.io":{"auth":"<base64 user:read-packages-PAT>"}}}
       DOCKER_AUTH_CONFIG: ${DOCKER_AUTH_CONFIG:-}
