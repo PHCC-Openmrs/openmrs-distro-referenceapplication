@@ -14,7 +14,11 @@ interface ReportTile {
   route: string;
   alertCount?: number;
   alertLoading?: boolean;
+  /** When set, a user holding just this privilege (without full programmatic access) still sees the tile. */
+  privilege?: string;
 }
+
+const HEALTH_PROMOTION_PRIVILEGE = 'App: reports.healthPromotion';
 
 interface ReportCategory {
   key: string;
@@ -34,8 +38,8 @@ export default function ReportsHome() {
   const isSuperUser = session?.user?.roles?.some(
     (role) => role.display === 'System Developer' || role.display === 'Application: Has Super User Privileges',
   );
-  const hasProgrammaticReportsAccess =
-    isSuperUser || session?.user?.privileges?.some((p) => p.display === 'App: reports.programmatic');
+  const hasPrivilege = (name: string) => session?.user?.privileges?.some((p) => p.display === name);
+  const hasProgrammaticReportsAccess = isSuperUser || hasPrivilege('App: reports.programmatic');
   const hasStockReportsAccess =
     isSuperUser ||
     session?.user?.privileges?.some(
@@ -157,6 +161,7 @@ export default function ReportsHome() {
             'Every Health Promotion Session Form submission with the participant, session and CHW details recorded on the form. Click a row to open that patient\'s chart.',
           ),
           route: 'health-promotion-report',
+          privilege: HEALTH_PROMOTION_PRIVILEGE,
         },
         {
           key: 'monthly-health-promotion-report',
@@ -166,6 +171,7 @@ export default function ReportsHome() {
             'Health Promotion sessions by session type and subject, age group and gender, with drill-down to the patients behind each count.',
           ),
           route: 'monthly-health-promotion-report',
+          privilege: HEALTH_PROMOTION_PRIVILEGE,
         },
       ],
     },
@@ -232,9 +238,20 @@ export default function ReportsHome() {
     },
   ];
 
-  const visibleCategories = categories.filter((category) =>
-    category.key === 'stock' ? hasStockReportsAccess : hasProgrammaticReportsAccess,
-  );
+  const visibleCategories = categories
+    .map((category) => {
+      if (category.key === 'stock') {
+        return hasStockReportsAccess ? category : { ...category, tiles: [] };
+      }
+      if (hasProgrammaticReportsAccess) {
+        return category;
+      }
+      return {
+        ...category,
+        tiles: category.tiles.filter((tile) => tile.privilege && hasPrivilege(tile.privilege)),
+      };
+    })
+    .filter((category) => category.tiles.length > 0);
 
   return (
     <div>
