@@ -1,32 +1,82 @@
-WITH cmam_encounters AS (
-  SELECT e.encounter_id, e.patient_id, e.encounter_datetime, e.location_id,
-    ROW_NUMBER() OVER (PARTITION BY e.patient_id ORDER BY e.encounter_datetime DESC, e.encounter_id DESC) AS rn
-  FROM encounter e
-  JOIN form f ON f.form_id = e.form_id
-  WHERE e.voided = 0
-    AND f.uuid = '6cb24522-aef4-42a7-a4b8-f3e8b4415416'
-    AND (:startDate IS NULL OR e.encounter_datetime >= :startDate)
-    AND (:endDate IS NULL OR e.encounter_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
+-- Drill-down behind one count of cmam_summary_report_above5.sql. The patient set and the per-dimension
+-- bucketing below MUST match that query exactly, so a count and its drill-down list always agree.
+-- Counterpart: cmam_patients_for_category.sql (under 5; identical apart from the age condition).
+WITH nutrition_enrollments AS (
+  SELECT pp.patient_id, pp.location_id,
+    ROW_NUMBER() OVER (PARTITION BY pp.patient_id ORDER BY pp.date_enrolled DESC, pp.patient_program_id DESC) AS rn
+  FROM patient_program pp
+  WHERE pp.voided = 0
+    AND pp.program_id = (SELECT program_id FROM program WHERE uuid = '2433ebba-8ffb-11f1-a103-1afee95a890c')
+    AND (:startDate IS NULL OR pp.date_completed IS NULL OR pp.date_completed >= :startDate)
+    AND (:endDate IS NULL OR pp.date_enrolled < DATE_ADD(:endDate, INTERVAL 1 DAY))
 ),
--- Counterpart to cmam_patients_for_category.sql (which covers those under 5): this report lists
--- only patients who were 5 or older at their most recent CMAM encounter.
--- A CMAM encounter alone isn't enough to count someone as a nutrition-program patient - it also
--- requires an actual (non-voided) enrollment in the Nutrition Registration program, so a one-off
--- or mistaken CMAM entry for a patient never formally admitted doesn't skew this list.
-latest_encounters AS (
-  SELECT ce.encounter_id, ce.patient_id
-  FROM cmam_encounters ce
-  JOIN person p ON p.person_id = ce.patient_id
-  WHERE ce.rn = 1
-    AND TIMESTAMPDIFF(YEAR, p.birthdate, ce.encounter_datetime) >= 5
-    AND EXISTS (
-      SELECT 1 FROM patient_program pp
-      WHERE pp.patient_id = ce.patient_id AND pp.voided = 0
-        AND pp.program_id = (SELECT program_id FROM program WHERE uuid = '2433ebba-8ffb-11f1-a103-1afee95a890c')
-    )
-    -- Attribute each patient to the location of their most recent CMAM encounter (picked above by
-    -- rn = 1), so this list matches the location-filtered summary counts it drills into.
-    AND (:locationUuid IS NULL OR ce.location_id = (SELECT location_id FROM location WHERE uuid = :locationUuid))
+cmam_patients AS (
+  SELECT ne.patient_id
+  FROM nutrition_enrollments ne
+  JOIN person p ON p.person_id = ne.patient_id AND p.voided = 0
+  WHERE ne.rn = 1
+    AND TIMESTAMPDIFF(YEAR, p.birthdate, CURDATE()) >= 5
+    AND (:locationUuid IS NULL OR ne.location_id = (SELECT location_id FROM location WHERE uuid = :locationUuid))
+),
+latest_diagnosis AS (
+  SELECT patient_id, label FROM (
+    SELECT o.person_id AS patient_id,
+      CASE
+        WHEN c.uuid = '51d873b5-3394-4780-87d3-5bfaf5cf0eb8' THEN COALESCE(vcn.name, 'Other')
+        WHEN o.value_text LIKE '%SAM%' OR o.value_text LIKE '%Severe%' THEN 'SAM'
+        WHEN o.value_text LIKE '%MAM%' OR o.value_text LIKE '%Moderate%' THEN 'MAM'
+        WHEN o.value_text LIKE '%Malnourished%' THEN 'Malnourished'
+        WHEN o.value_text LIKE '%Normal%' THEN 'Normal'
+        ELSE 'Other'
+      END AS label,
+      ROW_NUMBER() OVER (PARTITION BY o.person_id ORDER BY o.obs_datetime DESC, o.obs_id DESC) AS rn
+    FROM obs o
+    JOIN concept c ON c.concept_id = o.concept_id
+    JOIN cmam_patients cp ON cp.patient_id = o.person_id
+    LEFT JOIN concept_name vcn ON vcn.concept_id = o.value_coded AND vcn.locale = 'en' AND vcn.locale_preferred = 1
+    WHERE o.voided = 0
+      AND c.uuid IN ('6d4f0916-5913-4e48-82ea-265e379ffb6b', '51d873b5-3394-4780-87d3-5bfaf5cf0eb8')
+      AND (:endDate IS NULL OR o.obs_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
+  ) ranked
+  WHERE rn = 1
+),
+latest_status AS (
+  SELECT patient_id, value_coded FROM (
+    SELECT o.person_id AS patient_id, o.value_coded,
+      ROW_NUMBER() OVER (PARTITION BY o.person_id ORDER BY o.obs_datetime DESC, o.obs_id DESC) AS rn
+    FROM obs o
+    JOIN cmam_patients cp ON cp.patient_id = o.person_id
+    WHERE o.voided = 0
+      AND o.concept_id = (SELECT concept_id FROM concept WHERE uuid = '524fea02-d6e8-47c0-84ee-e7b889f08d4c')
+      AND (:endDate IS NULL OR o.obs_datetime < DATE_ADD(:endDate, INTERVAL 1 DAY))
+  ) ranked
+  WHERE rn = 1
+),
+next_appointment AS (
+  SELECT patient_id,
+    COALESCE(
+      MIN(CASE WHEN start_date_time >= CURDATE() THEN start_date_time END),
+      MAX(CASE WHEN start_date_time < CURDATE() THEN start_date_time END)
+    ) AS nextApptDate
+  FROM patient_appointment
+  WHERE voided = 0
+  GROUP BY patient_id
+),
+bucketed AS (
+  SELECT cp.patient_id,
+    ld.label AS diagnosisLabel,
+    ls.value_coded AS statusConceptId,
+    na.nextApptDate,
+    CASE
+      WHEN na.nextApptDate IS NULL THEN 'No Follow-up Scheduled'
+      WHEN DATEDIFF(na.nextApptDate, CURDATE()) < 0 THEN 'OVERDUE'
+      WHEN DATEDIFF(na.nextApptDate, CURDATE()) <= 7 THEN 'DUE SOON'
+      ELSE 'OK'
+    END AS alertLabel
+  FROM cmam_patients cp
+  LEFT JOIN latest_diagnosis ld ON ld.patient_id = cp.patient_id
+  LEFT JOIN latest_status ls ON ls.patient_id = cp.patient_id
+  LEFT JOIN next_appointment na ON na.patient_id = cp.patient_id
 )
 SELECT DISTINCT
   p.person_id                  AS patientId,
@@ -36,26 +86,15 @@ SELECT DISTINCT
   pi.identifier                AS identifier,
   p.gender                     AS sex,
   pi_nid.identifier            AS nationalId,
-  pa_phone.value                AS phoneNumber,
-  cd.name                      AS currentDiagnosis,
+  pa_phone.value               AS phoneNumber,
+  b.diagnosisLabel             AS currentDiagnosis,
   cls.name                     AS childLastStatus,
-  CASE
-    WHEN nextAppt.nextApptDate IS NULL THEN 'No Follow-up Scheduled'
-    WHEN DATEDIFF(nextAppt.nextApptDate, CURDATE()) < 0 THEN 'OVERDUE'
-    WHEN DATEDIFF(nextAppt.nextApptDate, CURDATE()) <= 7 THEN 'DUE SOON'
-    ELSE 'OK'
-  END                          AS alertStatus,
-  nvd.value_datetime            AS nextVisitDate,
+  b.alertLabel                 AS alertStatus,
+  -- The follow-up appointment the Alert Status is computed from.
+  b.nextApptDate               AS nextVisitDate,
   COALESCE(pn.middle_name, '') AS middleName
-FROM latest_encounters le
--- Alert Status is matched against the computed category (see cmam_summary_report_above5.sql)
--- rather than the raw recorded obs, so this stays consistent with the summary counts above it
--- (matched in the WHERE clause below via nvd, already joined for the nextVisitDate column). The
--- other two dimensions still match the literal recorded answer via matchDim.
-LEFT JOIN obs matchDim ON matchDim.encounter_id = le.encounter_id
-  AND matchDim.concept_id = (SELECT concept_id FROM concept WHERE uuid = :dimensionConceptUuid)
-  AND matchDim.value_coded = :categoryConceptId AND matchDim.voided = 0
-JOIN person p   ON p.person_id = le.patient_id
+FROM bucketed b
+JOIN person p   ON p.person_id = b.patient_id
 JOIN patient pt ON pt.patient_id = p.person_id
 LEFT JOIN person_name pn ON pn.person_id = p.person_id AND pn.voided = 0 AND pn.preferred = 1
 LEFT JOIN patient_identifier pi ON pi.patient_id = pt.patient_id AND pi.voided = 0 AND pi.preferred = 1
@@ -65,43 +104,20 @@ LEFT JOIN patient_identifier pi_nid
 LEFT JOIN person_attribute pa_phone
   ON pa_phone.person_id = p.person_id AND pa_phone.voided = 0
   AND pa_phone.person_attribute_type_id = (SELECT person_attribute_type_id FROM person_attribute_type WHERE name = 'Phone Number')
-LEFT JOIN obs ocd ON ocd.encounter_id = le.encounter_id
-  AND ocd.concept_id = (SELECT concept_id FROM concept WHERE uuid = '51d873b5-3394-4780-87d3-5bfaf5cf0eb8') AND ocd.voided = 0
-LEFT JOIN concept_name cd ON cd.concept_id = ocd.value_coded AND cd.locale = 'en' AND cd.locale_preferred = 1
-LEFT JOIN obs ocls ON ocls.encounter_id = le.encounter_id
-  AND ocls.concept_id = (SELECT concept_id FROM concept WHERE uuid = '524fea02-d6e8-47c0-84ee-e7b889f08d4c') AND ocls.voided = 0
-LEFT JOIN concept_name cls ON cls.concept_id = ocls.value_coded AND cls.locale = 'en' AND cls.locale_preferred = 1
-LEFT JOIN obs nvd ON nvd.encounter_id = le.encounter_id
-  AND nvd.concept_id = (SELECT concept_id FROM concept WHERE uuid = 'bff5c735-7f07-44e5-8cd3-13c03a77037f') AND nvd.voided = 0
-LEFT JOIN (
-  SELECT patient_id,
-    COALESCE(
-      MIN(CASE WHEN start_date_time >= CURDATE() THEN start_date_time END),
-      MAX(CASE WHEN start_date_time < CURDATE() THEN start_date_time END)
-    ) AS nextApptDate
-  FROM patient_appointment
-  WHERE voided = 0
-  GROUP BY patient_id
-) nextAppt ON nextAppt.patient_id = le.patient_id
+LEFT JOIN concept_name cls ON cls.concept_id = b.statusConceptId AND cls.locale = 'en' AND cls.locale_preferred = 1
 WHERE
-  (:dimensionConceptUuid <> '47266119-f616-4e8a-b094-518b4c2d660b' AND matchDim.encounter_id IS NOT NULL)
-  OR (
-    :dimensionConceptUuid = '47266119-f616-4e8a-b094-518b4c2d660b'
+  -- Current Diagnosis: bucket by label - the name of the category concept, or 'Other' for -2.
+  (:dimensionConceptUuid = '51d873b5-3394-4780-87d3-5bfaf5cf0eb8'
     AND (
-      (
-        :categoryConceptId = -1 AND nextAppt.nextApptDate IS NULL
-      )
-      OR (
-        :categoryConceptId <> -1
-        AND nextAppt.nextApptDate IS NOT NULL
-        AND (
-          CASE
-            WHEN DATEDIFF(nextAppt.nextApptDate, CURDATE()) < 0 THEN 'OVERDUE'
-            WHEN DATEDIFF(nextAppt.nextApptDate, CURDATE()) <= 7 THEN 'DUE SOON'
-            ELSE 'OK'
-          END
-        ) = (SELECT name FROM concept_name WHERE concept_id = :categoryConceptId AND locale = 'en' AND locale_preferred = 1)
-      )
-    )
-  )
+      (:categoryConceptId = -2 AND b.diagnosisLabel = 'Other')
+      OR b.diagnosisLabel = (SELECT name FROM concept_name WHERE concept_id = :categoryConceptId AND locale = 'en' AND locale_preferred = 1)
+    ))
+  -- Child Last Status: the recorded answer concept itself.
+  OR (:dimensionConceptUuid = '524fea02-d6e8-47c0-84ee-e7b889f08d4c' AND b.statusConceptId = :categoryConceptId)
+  -- Alert Status: computed label; -1 is the 'No Follow-up Scheduled' sentinel.
+  OR (:dimensionConceptUuid = '47266119-f616-4e8a-b094-518b4c2d660b'
+    AND (
+      (:categoryConceptId = -1 AND b.alertLabel = 'No Follow-up Scheduled')
+      OR b.alertLabel = (SELECT name FROM concept_name WHERE concept_id = :categoryConceptId AND locale = 'en' AND locale_preferred = 1)
+    ))
 ORDER BY familyName, givenName
