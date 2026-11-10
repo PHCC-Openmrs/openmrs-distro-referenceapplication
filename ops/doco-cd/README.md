@@ -31,7 +31,7 @@ requests to GitHub and GHCR.
  │        │                                                               │
  │        ▼                                                               │
  │  stack "openmrs-distro-referenceapplication"                           │
- │    gateway · nginx · frontend · backend · db · portainer · monitoring  │
+ │    caddy (TLS) · nginx · gateway · frontend · backend · monitoring     │
  │    (existing volumes reused)                                           │
  └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -100,7 +100,7 @@ requests to GitHub and GHCR.
 
 | Change | What happens |
 |---|---|
-| Compose files, `configuration/`, `nginx-proxy/`, `.doco-cd.yml` pushed to `main` | Deployed on the next poll (≤ 60s). |
+| Compose files, `configuration/`, `nginx-proxy/`, `caddy/`, `.doco-cd.yml` pushed to `main` | Deployed on the next poll (≤ 60s). |
 | New image pushed to `ghcr.io/phcc-openmrs/*:main` (via `Deploy to Onprem VM`) | Picked up at the **next commit to `main`**, since doco-cd watches git, not the registry (see Caveats). |
 
 ## Rollback
@@ -122,4 +122,11 @@ poll. To pin images to a known-good build, set `TAG: main-<good-full-sha>` in
 - The `nginx` service's `./nginx-proxy/nginx.conf` bind mount resolves into
   doco-cd's per-revision checkout, so `nginx` is recreated on every deploy
   (a brief blip on 80/443).
+- **TLS.** In `docker-compose-prod.yaml`, Caddy holds ports 80/443, gets and
+  renews the Let's Encrypt certificate for carepalestine.com
+  ([`caddy/Caddyfile`](../../caddy/Caddyfile)), and forwards plain HTTP to
+  `nginx:80`. nginx publishes no host ports. Like nginx, Caddy is recreated on
+  every deploy because of its bind mount. The certificate is kept in the
+  `caddy-data` volume, so a deploy doesn't request a new one. DNS for the
+  domain must point at the VM before the first deploy, or issuance fails.
 - `docker-compose.override.yml` is not used (it's for local builds).
