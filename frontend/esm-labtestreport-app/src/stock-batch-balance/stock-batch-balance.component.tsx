@@ -29,12 +29,18 @@ function isExpired(row: StockBatchBalanceRow): boolean {
   return parseDate(row.expirationDate).getTime() < startOfTomorrow.getTime();
 }
 
+// An expired batch with nothing left needs no action (nothing to dispose of or write off), so it is not flagged
+// Expired: it shows just "Empty". The tag, the Expired filter and the "Already Expired" card all use this rule.
+function isFlaggedExpired(row: StockBatchBalanceRow): boolean {
+  return row.quantity > 0 && isExpired(row);
+}
+
 function matchesExpiryFilter(row: StockBatchBalanceRow, filter: ExpiryFilter): boolean {
   switch (filter) {
     case 'expired':
-      return isExpired(row);
+      return isFlaggedExpired(row);
     case 'notExpired':
-      return !isExpired(row);
+      return !isFlaggedExpired(row);
     case 'noExpiry':
       return !row.expirationDate;
     default:
@@ -85,7 +91,7 @@ export default function StockBatchBalanceReport() {
       // Only batches still holding stock: an expired batch already used up needs no action.
       {
         label: t('expiredBatches', 'Already Expired'),
-        value: rows.filter((row) => row.quantity > 0 && isExpired(row)).length,
+        value: rows.filter(isFlaggedExpired).length,
       },
     ],
     [t, rows],
@@ -266,7 +272,7 @@ export default function StockBatchBalanceReport() {
                     <td className="left">{formatExpiry(row.expirationDate) || '—'}</td>
                     <td>{formatQuantity(row.quantity, row.unitName, row.bulkUnitName, row.bulkFactor)}</td>
                     <td className="left">
-                      {isExpired(row) && (
+                      {isFlaggedExpired(row) && (
                         <Tag type="red" size="sm">
                           {t('expired', 'Expired')}
                         </Tag>
