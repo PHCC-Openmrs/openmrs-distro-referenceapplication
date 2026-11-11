@@ -125,6 +125,7 @@
   "downloadOptions": "Download options",
   "drug": "Drug",
   "drugName": "Drug Name",
+  "duplicatePackagingUnit": "This packaging unit already exists with the same pack size. Use a different pack size.",
   "edit": "Edit",
   "editOperationTitle": "Edit {{operationType}}",
   "editStockItem": "Edit stock item",
