@@ -118,6 +118,35 @@ const PackagingUnits: React.FC<PackagingUnitsProps> = ({ stockItemUuid, handleTa
       return;
     }
 
+    // The same unit may appear more than once with different pack sizes (e.g. Box of 30 and
+    // Box of 100), but an identical unit + pack size pair is ambiguous, so block it.
+    const finalUnits = [
+      ...packagingUnits.map((unit) => ({ uomUuid: unit.packagingUomUuid, factor: Number(unit.factor) })),
+      ...(showNewUnitRow && hasValidNewUnit
+        ? [{ uomUuid: newUnit.packagingUomUuid, factor: Number(newUnit.factor) }]
+        : []),
+    ];
+    const seen = new Set<string>();
+    const duplicate = finalUnits.find((unit) => {
+      const key = `${unit.uomUuid}|${unit.factor}`;
+      if (seen.has(key)) {
+        return true;
+      }
+      seen.add(key);
+      return false;
+    });
+    if (duplicate) {
+      showSnackbar({
+        title: t('savePackagingUnitErrorTitle', 'Package Unit'),
+        subtitle: t(
+          'duplicatePackagingUnit',
+          'This packaging unit already exists with the same pack size. Use a different pack size.',
+        ),
+        kind: 'error',
+      });
+      return;
+    }
+
     const newPayload = newUnit
       ? {
           factor: newUnit.factor,
@@ -277,7 +306,6 @@ const PackagingUnits: React.FC<PackagingUnitsProps> = ({ stockItemUuid, handleTa
                     row={newUnit || {}}
                     id="new-package-unit"
                     isEditing
-                    excludedPackagingUomUuids={items.map((item) => item.packagingUomUuid)}
                     onChangePackageUnit={(value) => handleNewUnitPackageUnitChange(value)}
                     onChange={(value) => handleNewUnitFactorChange(value)}
                     onRemove={items.length > 0 ? handleRemoveNewUnitRow : undefined}
@@ -322,8 +350,7 @@ const PackagingUnitRow: React.FC<{
   onChange?: (value: string | number) => void;
   onChangePackageUnit?: (value: { uuid: string; display: string }) => void;
   onRemove?: () => void;
-  excludedPackagingUomUuids?: string[];
-}> = ({ isEditing, row, id, onChange, onChangePackageUnit, onRemove, excludedPackagingUomUuids }) => {
+}> = ({ isEditing, row, id, onChange, onChangePackageUnit, onRemove }) => {
   const { t } = useTranslation();
   const {
     control,
@@ -343,7 +370,6 @@ const PackagingUnitRow: React.FC<{
               placeholder={t('packagingUnitFilterPlaceholder', 'Filter')}
               control={control}
               onPackageUnitChange={(concept) => onChangePackageUnit(concept)}
-              excludedUuids={excludedPackagingUomUuids}
               invalid={!!errors.packagingUomUuid}
             />
           ) : (
