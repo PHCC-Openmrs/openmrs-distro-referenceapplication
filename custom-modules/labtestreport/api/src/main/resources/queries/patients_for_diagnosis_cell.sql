@@ -6,7 +6,8 @@ SELECT DISTINCT
   pi.identifier                AS identifier,
   p.gender                     AS sex,
   pi_nid.identifier            AS nationalId,
-  pa_phone.value                AS phoneNumber
+  pa_phone.value                AS phoneNumber,
+  COALESCE(pn.middle_name, '') AS middleName
 FROM (
   SELECT ed.diagnosis_coded AS concept_id, ed.patient_id, e.encounter_datetime AS event_date, e.location_id
   FROM encounter_diagnosis ed

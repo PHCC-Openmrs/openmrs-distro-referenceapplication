@@ -6,12 +6,14 @@ import org.openmrs.DrugOrder;
 import org.openmrs.MedicationDispense;
 import org.openmrs.Order;
 import org.openmrs.User;
+import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.MedicationDispenseService;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.HibernateUtil;
 import org.openmrs.api.impl.BaseOpenmrsService;
 import org.openmrs.module.stockmanagement.api.MedicationDispenseNotFoundException;
 import org.openmrs.module.stockmanagement.api.MedicationDispenseStockService;
+import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
@@ -112,9 +114,7 @@ public class MedicationDispenseStockServiceImpl extends BaseOpenmrsService imple
 				dao.getSession().refresh(order);
 			}
 
-			returnStock(dispense, "deleted");
-			dispenseService.voidMedicationDispense(dispense,
-			    StringUtils.isBlank(reason) ? "Deleted from the dispensing app" : reason);
+			voidLocked(dispense, StringUtils.isBlank(reason) ? "Deleted from the dispensing app" : reason);
 			if (fulfillerStatusSpecified && order != null) {
 				setFulfillerStatus(order, fulfillerStatus);
 			}
@@ -123,6 +123,43 @@ public class MedicationDispenseStockServiceImpl extends BaseOpenmrsService imple
 		finally {
 			revokeDispensePrivileges();
 		}
+	}
+
+	@Override
+	public List<MedicationDispense> cancelOrderDispenses(String orderUuid, String reason) {
+		if (StringUtils.isBlank(reason)) {
+			throw new StockManagementException(message("stockmanagement.dispense.cancelreasonrequired"));
+		}
+		grantDispensePrivileges();
+		try {
+			DrugOrder order = getDrugOrder(orderUuid);
+			dao.lockOrdersForUpdate(Collections.singleton(order.getOrderId()));
+			Concept completed = getCompletedStatus();
+			// Read the dispenses only once the order is locked, so none can be added or deleted meanwhile.
+			List<MedicationDispense> dispenses = dao.getCompletedMedicationDispensesForOrder(order.getOrderId(),
+			    completed);
+			Set<Integer> batchIds = new HashSet<>();
+			for (MedicationDispense dispense : dispenses) {
+				batchIds.addAll(stockBatchIdsToReturn(dispense));
+			}
+			dao.lockStockBatchesForUpdate(batchIds);
+			dao.getSession().refresh(order);
+
+			for (MedicationDispense dispense : dispenses) {
+				voidLocked(dispense, reason);
+			}
+			setFulfillerStatus(order, Order.FulfillerStatus.DECLINED);
+			return dispenses;
+		}
+		finally {
+			revokeDispensePrivileges();
+		}
+	}
+
+	/** Returns a dispense's stock and voids it; the caller holds the order and batch locks. */
+	private void voidLocked(MedicationDispense dispense, String reason) {
+		returnStock(dispense, "deleted");
+		Context.getMedicationDispenseService().voidMedicationDispense(dispense, reason);
 	}
 
 	private List<MedicationDispense> save(List<MedicationDispenseRequest> requests) {
@@ -208,8 +245,17 @@ public class MedicationDispenseStockServiceImpl extends BaseOpenmrsService imple
 			if (!isCompleted && !request.getStockLines().isEmpty()) {
 				throw new StockManagementException(message("stockmanagement.dispense.stocknotallowed"));
 			}
-			boolean fullyDispensed = isCompleted && request.isRestrictTotalQuantityDispensed()
-			        && isFullyDispensedAfter(dispense, order, completed);
+			if (isCompleted && !request.isUpdate() && isClosed(order)
+			        && !Context.hasPrivilege(Privileges.TASK_STOCKMANAGEMENT_UNDO)) {
+				throw new APIAuthenticationException(String.format(message("stockmanagement.dispense.orderclosed"),
+				    describe(dispense)));
+			}
+			double extra = request.getExtraQuantity().doubleValue();
+			if (extra > 0 && !isCompleted) {
+				throw new StockManagementException(message("stockmanagement.dispense.stocknotallowed"));
+			}
+			boolean fullyDispensed = isCompleted && (request.isRestrictTotalQuantityDispensed() || extra > 0)
+			        && isFullyDispensedAfter(dispense, order, completed, extra);
 
 			dispenseService.saveMedicationDispense(dispense);
 			for (DispenseStockLine line : request.getStockLines()) {
@@ -235,26 +281,42 @@ public class MedicationDispenseStockServiceImpl extends BaseOpenmrsService imple
 	 * Checks the dispense does not take the prescription past its ordered quantity (refills included), and
 	 * says whether it completes it. The total already dispensed is read from the database while the order
 	 * is locked, so two pharmacists dispensing the same prescription can't both use up what is left.
+	 * {@code extra} is the part of the dispense given beyond the prescription: it is not counted against the
+	 * ordered quantity, but is only allowed on the dispense that uses up everything left.
 	 */
-	private boolean isFullyDispensedAfter(MedicationDispense dispense, DrugOrder order, Concept completed) {
+	private boolean isFullyDispensedAfter(MedicationDispense dispense, DrugOrder order, Concept completed, double extra) {
 		if (order.getQuantity() == null || dispense.getQuantity() == null || dispense.getQuantityUnits() == null
 		        || !dispense.getQuantityUnits().equals(order.getQuantityUnits())) {
 			// Without an ordered quantity in the same unit there is nothing to compare against; the dispensing
 			// app itself refuses quantities in a different unit.
+			if (extra > 0) {
+				throw new StockManagementException(String.format(message("stockmanagement.dispense.extranotallowed"),
+				    describe(dispense)));
+			}
 			return false;
 		}
 		int refills = order.getNumRefills() == null ? 0 : order.getNumRefills();
 		double ordered = order.getQuantity() * (1 + refills);
 		double alreadyDispensed = dao.sumDispensedQuantityForOrder(order.getOrderId(), completed,
 		    dispense.getQuantityUnits(), dispense.getUuid());
-		double total = alreadyDispensed + dispense.getQuantity();
+		double prescribedPart = dispense.getQuantity() - extra;
+		double total = alreadyDispensed + prescribedPart;
+		if (extra > 0 && prescribedPart <= QUANTITY_TOLERANCE) {
+			throw new StockManagementException(String.format(message("stockmanagement.dispense.extranotallowed"),
+			    describe(dispense)));
+		}
+		String unit = " " + dispense.getQuantityUnits().getDisplayString();
 		if (total > ordered + QUANTITY_TOLERANCE) {
-			String unit = " " + dispense.getQuantityUnits().getDisplayString();
 			throw new StockManagementException(String.format(message("stockmanagement.dispense.quantityexceeded"),
 			    formatQuantity(Math.max(0, ordered - alreadyDispensed)) + unit, describe(dispense),
-			    formatQuantity(dispense.getQuantity()) + unit));
+			    formatQuantity(prescribedPart) + unit));
 		}
-		return total >= ordered - QUANTITY_TOLERANCE;
+		boolean usesUpRest = total >= ordered - QUANTITY_TOLERANCE;
+		if (extra > 0 && !usesUpRest) {
+			throw new StockManagementException(String.format(message("stockmanagement.dispense.extranotallowed"),
+			    describe(dispense)));
+		}
+		return usesUpRest;
 	}
 
 	private DispenseRequest toDispenseRequest(DispenseStockLine line, MedicationDispense dispense, DrugOrder order) {
@@ -385,6 +447,15 @@ public class MedicationDispenseStockServiceImpl extends BaseOpenmrsService imple
 		}
 		return dao.getUnlinkedDispenseTransactionsForOrder(dispense.getDrugOrder().getOrderId()).stream()
 		        .map(transaction -> transaction.getStockBatch().getId()).distinct().collect(Collectors.toList());
+	}
+
+	/**
+	 * Whether the prescription was closed, stopped or voided, so dispensing against it means undoing that,
+	 * which only an administrator may do.
+	 */
+	private static boolean isClosed(Order order) {
+		return order.getFulfillerStatus() == Order.FulfillerStatus.DECLINED || order.getVoided()
+		        || order.getDateStopped() != null;
 	}
 
 	private void setFulfillerStatus(Order order, Order.FulfillerStatus status) {

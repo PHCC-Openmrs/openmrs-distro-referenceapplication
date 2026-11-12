@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { useSession } from '@openmrs/esm-framework';
+import { userHasAccess, useSession } from '@openmrs/esm-framework';
+import { TASK_STOCKMANAGEMENT_UNDO } from '../constants';
 import { type StockOperationDTO } from '../core/api/types/stockOperation/StockOperationDTO';
 import {
   operationFromString,
@@ -15,6 +16,7 @@ import StockOperationIssueStockButton from './stock-operations-modal/stock-opera
 import StockOperationPrintButton from './stock-operations-modal/stock-operations-print-button.component';
 import StockOperationRejectButton from './stock-operations-modal/stock-operations-reject-button.component';
 import StockOperationReturnButton from './stock-operations-modal/stock-operations-return-button.component';
+import StockOperationReverseButton from './stock-operations-modal/stock-operations-reverse-button.component';
 import useOperationTypePermisions from './stock-operations-forms/hooks/useOperationTypePermisions';
 import styles from './stock-operations-table.scss';
 
@@ -40,6 +42,9 @@ const StockoperationActions: React.FC<Props> = ({ stockOperation, stockOperation
       familyName === stockOperation.submittedByFamilyName?.toLowerCase()
     );
   }, [user, stockOperation]);
+  // Deleting a completed operation reverses its stock; the backend refuses it for operations that belong to a
+  // dispense and for reversals that would leave a batch negative.
+  const canReverse = stockOperation.status === 'COMPLETED' && !!user && userHasAccess(TASK_STOCKMANAGEMENT_UNDO, user);
   const operationType = useMemo(() => {
     return operationFromString(stockOperationType.operationType);
   }, [stockOperationType]);
@@ -52,7 +57,8 @@ const StockoperationActions: React.FC<Props> = ({ stockOperation, stockOperation
         stockOperation.permission?.canEdit ||
         StockOperationTypeHasPrint(operationType) ||
         (stockOperation?.permission?.isRequisitionAndCanIssueStock ?? false) ||
-        stockOperation.permission?.isRequisitionAndCanIssueStock) && (
+        stockOperation.permission?.isRequisitionAndCanIssueStock ||
+        canReverse) && (
         <div className={styles.actionBtns}>
           <>
             {!stockOperation.permission?.canEdit && stockOperation.permission?.canApprove && (
@@ -97,6 +103,7 @@ const StockoperationActions: React.FC<Props> = ({ stockOperation, stockOperation
               stockOperation.operationType === OperationType.TRANSFER_OUT_OPERATION_TYPE) && (
               <StockOperationPrintButton operation={stockOperation} />
             )}
+            {canReverse && <StockOperationReverseButton operation={stockOperation} />}
           </>
         </div>
       )}

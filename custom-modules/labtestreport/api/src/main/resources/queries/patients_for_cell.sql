@@ -6,7 +6,8 @@ SELECT DISTINCT
   pi.identifier                AS identifier,
   p.gender                     AS sex,
   pi_nid.identifier            AS nationalId,
-  pa_phone.value                AS phoneNumber
+  pa_phone.value                AS phoneNumber,
+  COALESCE(pn.middle_name, '') AS middleName
 FROM orders o
 JOIN test_order tord ON tord.order_id = o.order_id
 JOIN encounter e     ON e.encounter_id = o.encounter_id

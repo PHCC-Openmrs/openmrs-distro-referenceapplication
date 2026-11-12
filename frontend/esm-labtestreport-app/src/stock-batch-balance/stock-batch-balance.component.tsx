@@ -15,6 +15,7 @@ import pageStyles from '../reports-shell/reports-page.scss';
 import { useStockBatchBalanceReport, type StockBatchBalanceRow } from './stock-batch-balance.resource';
 
 type ExpiryFilter = '' | 'expired' | 'notExpired' | 'noExpiry';
+type StockFilter = '' | 'inStock' | 'outOfStock';
 
 // A batch expiring today counts as expired, matching stock_current_onhand.sql's
 // "expiration <= CURDATE()".
@@ -28,14 +29,32 @@ function isExpired(row: StockBatchBalanceRow): boolean {
   return parseDate(row.expirationDate).getTime() < startOfTomorrow.getTime();
 }
 
+// An expired batch with nothing left needs no action (nothing to dispose of or write off), so it is not flagged
+// Expired: it shows just "Empty". The tag, the Expired filter and the "Already Expired" card all use this rule.
+function isFlaggedExpired(row: StockBatchBalanceRow): boolean {
+  return row.quantity > 0 && isExpired(row);
+}
+
 function matchesExpiryFilter(row: StockBatchBalanceRow, filter: ExpiryFilter): boolean {
   switch (filter) {
     case 'expired':
-      return isExpired(row);
+      return isFlaggedExpired(row);
     case 'notExpired':
-      return !isExpired(row);
+      return !isFlaggedExpired(row);
     case 'noExpiry':
       return !row.expirationDate;
+    default:
+      return true;
+  }
+}
+
+// Negative balances count as out of stock: there is nothing left to issue.
+function matchesStockFilter(row: StockBatchBalanceRow, filter: StockFilter): boolean {
+  switch (filter) {
+    case 'inStock':
+      return row.quantity > 0;
+    case 'outOfStock':
+      return row.quantity <= 0;
     default:
       return true;
   }
@@ -51,6 +70,7 @@ export default function StockBatchBalanceReport() {
   const [itemFilter, setItemFilter] = useState('');
   const [searchText, setSearchText] = useState('');
   const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>('');
+  const [stockFilter, setStockFilter] = useState<StockFilter>('');
 
   const { rows: rawRows, isLoading } = useStockBatchBalanceReport(locationUuid || undefined);
   const showLocationColumn = !locationUuid;
@@ -58,8 +78,10 @@ export default function StockBatchBalanceReport() {
   const itemOptions = useMemo(() => distinctItemNames(rawRows), [rawRows]);
   const rows = useMemo(
     () =>
-      filterByItemAndSearch(rawRows, itemFilter, searchText).filter((row) => matchesExpiryFilter(row, expiryFilter)),
-    [rawRows, itemFilter, searchText, expiryFilter],
+      filterByItemAndSearch(rawRows, itemFilter, searchText).filter(
+        (row) => matchesExpiryFilter(row, expiryFilter) && matchesStockFilter(row, stockFilter),
+      ),
+    [rawRows, itemFilter, searchText, expiryFilter, stockFilter],
   );
 
   const kpiItems = useMemo(
@@ -69,7 +91,7 @@ export default function StockBatchBalanceReport() {
       // Only batches still holding stock: an expired batch already used up needs no action.
       {
         label: t('expiredBatches', 'Already Expired'),
-        value: rows.filter((row) => row.quantity > 0 && isExpired(row)).length,
+        value: rows.filter(isFlaggedExpired).length,
       },
     ],
     [t, rows],
@@ -161,6 +183,18 @@ export default function StockBatchBalanceReport() {
               <SelectItem value="noExpiry" text={t('noExpiryDate', 'No expiry date')} />
             </Select>
           </div>
+          <div className={pageStyles.filterField}>
+            <Select
+              id="stockFilter"
+              labelText={t('stockAvailability', 'Stock')}
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value as StockFilter)}
+            >
+              <SelectItem value="" text={t('allBatches', 'All batches')} />
+              <SelectItem value="inStock" text={t('inStock', 'In stock')} />
+              <SelectItem value="outOfStock" text={t('outOfStock', 'Out of stock')} />
+            </Select>
+          </div>
         </div>
 
         <ExportButtons filenameBase="stock-batch-balance-report" mainSheet={mainExportSheet} disabled={isLoading} />
@@ -238,7 +272,7 @@ export default function StockBatchBalanceReport() {
                     <td className="left">{formatExpiry(row.expirationDate) || '—'}</td>
                     <td>{formatQuantity(row.quantity, row.unitName, row.bulkUnitName, row.bulkFactor)}</td>
                     <td className="left">
-                      {isExpired(row) && (
+                      {isFlaggedExpired(row) && (
                         <Tag type="red" size="sm">
                           {t('expired', 'Expired')}
                         </Tag>

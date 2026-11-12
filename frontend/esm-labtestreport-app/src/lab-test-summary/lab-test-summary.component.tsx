@@ -563,7 +563,7 @@ export default function LabTestSummaryReport() {
                       onClick={() => goToPatientChart(patient.patientUuid)}
                     >
                       <td className="left">
-                        {patient.givenName} {patient.familyName}
+                        {[patient.givenName, patient.middleName, patient.familyName].filter(Boolean).join(' ')}
                       </td>
                       <td className="left">{patient.identifier}</td>
                       <td className="left">{patient.sex}</td>

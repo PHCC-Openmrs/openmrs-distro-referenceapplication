@@ -3,8 +3,12 @@
 -- disease_summary_diagnosis_map.csv) and collapses repeats of the same patient/row/day, so the
 -- DISTINCT here only removes exact duplicates. Event sources, age bands and the location rule are the
 -- same as disease_summary_report.sql.
+-- With a service type (:programUuid) selected, an event only counts if the patient was enrolled in that
+-- service-type program on the day it was recorded (enrolling later that day still counts) -- the same
+-- moment the location rule uses, so a condition is judged by when it was recorded, not its onset date.
 WITH diagnosis_events AS (
-  SELECT ed.diagnosis_coded AS concept_id, ed.patient_id, e.encounter_datetime AS event_date, e.location_id
+  SELECT ed.diagnosis_coded AS concept_id, ed.patient_id, e.encounter_datetime AS event_date, e.location_id,
+    e.encounter_datetime AS recorded_at
   FROM encounter_diagnosis ed
   JOIN encounter e ON e.encounter_id = ed.encounter_id
   WHERE ed.voided = 0 AND ed.diagnosis_coded IN (:conceptIds)
@@ -18,7 +22,8 @@ WITH diagnosis_events AS (
         AND v.date_started <= cd.date_created
         AND (v.date_stopped IS NULL OR v.date_stopped >= cd.date_created)
       ORDER BY v.date_started DESC
-      LIMIT 1)
+      LIMIT 1),
+    cd.date_created
   FROM conditions cd
   WHERE cd.voided = 0 AND cd.condition_coded IN (:conceptIds)
 )
@@ -40,3 +45,13 @@ JOIN person p ON p.person_id = de.patient_id
 WHERE (:startDate IS NULL OR de.event_date >= :startDate)
   AND (:endDate IS NULL OR de.event_date < DATE_ADD(:endDate, INTERVAL 1 DAY))
   AND (:locationUuid IS NULL OR de.location_id = (SELECT location_id FROM location WHERE uuid = :locationUuid))
+  AND (:programUuid IS NULL OR EXISTS (
+    SELECT 1
+    FROM patient_program pp
+    JOIN program pr ON pr.program_id = pp.program_id
+    WHERE pp.patient_id = de.patient_id
+      AND pp.voided = 0
+      AND pr.uuid = :programUuid
+      AND pp.date_enrolled < DATE_ADD(DATE(de.recorded_at), INTERVAL 1 DAY)
+      AND (pp.date_completed IS NULL OR pp.date_completed >= DATE(de.recorded_at))
+  ))

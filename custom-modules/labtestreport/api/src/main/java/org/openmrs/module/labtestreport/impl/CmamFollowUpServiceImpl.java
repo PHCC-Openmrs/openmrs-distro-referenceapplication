@@ -53,6 +53,7 @@ public class CmamFollowUpServiceImpl extends BaseOpenmrsService implements CmamF
 			row.setChildLastStatus((String) r[9]);
 			row.setAlertStatus((String) r[10]);
 			row.setNextVisitDate((java.util.Date) r[11]);
+			row.setMiddleName((String) r[12]);
 			rows.add(row);
 		}
 		return rows;

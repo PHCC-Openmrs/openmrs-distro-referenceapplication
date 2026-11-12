@@ -8,6 +8,8 @@ import {
   ContentSwitcher,
   Switch,
   Search,
+  Select,
+  SelectItem,
 } from '@carbon/react';
 import { ChevronDown, ChevronRight } from '@carbon/react/icons';
 import { navigate, useLocations } from '@openmrs/esm-framework';
@@ -26,6 +28,7 @@ import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
 import {
   useDiseaseSummaryReport,
   useDiseaseDrilldown,
+  SERVICE_TYPES,
   type DiseaseActivityRow,
   type DiseaseDrilldownParams,
 } from './disease-summary.resource';
@@ -88,6 +91,7 @@ export default function DiseaseSummaryReport() {
   const [diagnosisListRow, setDiagnosisListRow] = useState<DiseaseActivityRow | null>(null);
   const [diagnosisSearch, setDiagnosisSearch] = useState('');
   const [locationUuid, setLocationUuid] = useState('');
+  const [programUuid, setProgramUuid] = useState('');
   const [hideEmptyRows, setHideEmptyRows] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'table' | 'graph'>('table');
@@ -101,11 +105,13 @@ export default function DiseaseSummaryReport() {
     primaryStartDate,
     primaryEndDate,
     locationUuid || undefined,
+    programUuid || undefined,
   );
   const { rows: compareRows, isLoading: compareLoading } = useDiseaseSummaryReport(
     compare.comparison.startDate,
     compare.comparison.endDate,
     locationUuid || undefined,
+    programUuid || undefined,
     compare.enabled,
   );
   const { patients, isLoading: patientsLoading } = useDiseaseDrilldown(selection);
@@ -114,6 +120,10 @@ export default function DiseaseSummaryReport() {
   const siteName = locationUuid
     ? locations?.find((location) => location.uuid === locationUuid)?.display ?? ''
     : t('allLocations', 'All locations');
+  const selectedServiceType = SERVICE_TYPES.find((serviceType) => serviceType.uuid === programUuid);
+  const serviceTypeName = selectedServiceType
+    ? t(selectedServiceType.labelKey, selectedServiceType.label)
+    : t('allServiceTypes', 'All service types');
   const periodLabel = compare.enabled
     ? compare.primary.label
     : primaryStartDate || primaryEndDate
@@ -201,6 +211,7 @@ export default function DiseaseSummaryReport() {
     const exportRows: ExportSheet['rows'] = [
       [t('primaryHealthActivityReport', 'Primary Health Activity Report')],
       [`${t('site', 'Site')}: ${siteName}`],
+      [`${t('serviceType', 'Service Type')}: ${serviceTypeName}`],
       [`${t('period', 'Period')}: ${periodLabel}`],
     ];
     let currentSection: string | null = null;
@@ -230,7 +241,7 @@ export default function DiseaseSummaryReport() {
       ],
       rows: exportRows,
     };
-  }, [t, rows, siteName, periodLabel]);
+  }, [t, rows, siteName, serviceTypeName, periodLabel]);
 
   const exportExtraSheets = useMemo<Array<ExportSheet>>(() => {
     if (!compare.enabled) {
@@ -276,6 +287,7 @@ export default function DiseaseSummaryReport() {
       startDate: primaryStartDate,
       endDate: primaryEndDate,
       locationUuid: locationUuid || undefined,
+      programUuid: programUuid || undefined,
     });
   }
 
@@ -371,6 +383,9 @@ export default function DiseaseSummaryReport() {
           <span>
             {t('site', 'Site')}: {siteName}
           </span>
+          <span>
+            {t('serviceType', 'Service Type')}: {serviceTypeName}
+          </span>
           <span>{periodLabel}</span>
         </div>
 
@@ -431,6 +446,21 @@ export default function DiseaseSummaryReport() {
 
         <div className={pageStyles.filterTile}>
           <LocationFilter id="diseaseSummaryLocationFilter" value={locationUuid} onChange={setLocationUuid} />
+          <div className={pageStyles.filterField}>
+            <Select
+              id="diseaseSummaryServiceTypeFilter"
+              labelText={t('serviceType', 'Service Type')}
+              value={programUuid}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setProgramUuid(e.target.value)}
+            >
+              <SelectItem value="" text={t('allServiceTypes', 'All service types')} />
+              {SERVICE_TYPES.map((serviceType) => (
+                <React.Fragment key={serviceType.uuid}>
+                  <SelectItem value={serviceType.uuid} text={t(serviceType.labelKey, serviceType.label)} />
+                </React.Fragment>
+              ))}
+            </Select>
+          </div>
           <div className={pageStyles.filterField}>
             <Checkbox
               id="hideEmptyDiseaseRows"
@@ -570,7 +600,7 @@ export default function DiseaseSummaryReport() {
                       onClick={() => navigate({ to: `\${openmrsSpaBase}/patient/${patient.patientUuid}/chart/visits` })}
                     >
                       <td className="left">
-                        {patient.givenName} {patient.familyName}
+                        {[patient.givenName, patient.middleName, patient.familyName].filter(Boolean).join(' ')}
                       </td>
                       <td className="left">{patient.identifier}</td>
                       <td className="left">{patient.sex}</td>

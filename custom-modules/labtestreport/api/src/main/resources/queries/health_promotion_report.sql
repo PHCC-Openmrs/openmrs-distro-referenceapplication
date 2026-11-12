@@ -102,7 +102,12 @@ LEFT JOIN obs sessionTypeObs ON sessionTypeObs.encounter_id = e.encounter_id AND
 -- The old coded Topic concept has a stable, seeded uuid; the new free-text one is created
 -- per-environment (see the comment on the topic column above), so it is matched by name instead.
 LEFT JOIN obs topicCodedObs ON topicCodedObs.encounter_id = e.encounter_id AND topicCodedObs.voided = 0
-  AND topicCodedObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '4442d405-4ff2-45d7-a272-1a4f3a134486')
+  -- the original coded "Topic" concept plus the per-category "Health Promotion Topic - <category>" concepts the form
+  -- now uses (only the selected category's topic question is ever answered, so this matches at most one obs)
+  AND topicCodedObs.concept_id IN (SELECT c.concept_id FROM concept c
+                                    WHERE c.uuid = '4442d405-4ff2-45d7-a272-1a4f3a134486'
+                                       OR c.concept_id IN (SELECT cn.concept_id FROM concept_name cn
+                                                            WHERE cn.name LIKE 'Health Promotion Topic - %' AND cn.voided = 0))
 LEFT JOIN obs topicTextObs ON topicTextObs.encounter_id = e.encounter_id AND topicTextObs.voided = 0
   AND topicTextObs.concept_id = (SELECT cn.concept_id
                                     FROM concept_name cn

@@ -14,8 +14,6 @@ interface PackagingUnitsConceptSelectorProps<T> {
   placeholder?: string;
   invalid?: boolean;
   invalidText?: ReactNode;
-  // Packaging units already defined on the stock item, hidden so the same unit can't be added twice
-  excludedUuids?: string[];
 
   // Control
   controllerName: string;
@@ -31,7 +29,7 @@ const PackagingUnitsConceptSelector = <T,>(props: PackagingUnitsConceptSelectorP
     isLoading,
   } = useConcept(packingUnitsUUID);
 
-  const availableUnits = (dispensingUnits ?? []).filter((unit) => !props.excludedUuids?.includes(unit.uuid));
+  const availableUnits = dispensingUnits ?? [];
 
   if (isLoading) return <TextInputSkeleton />;
 

@@ -25,7 +25,8 @@ SELECT
     WHERE pa_phone.person_id = p.person_id AND pa_phone.voided = 0
       AND pa_phone.person_attribute_type_id = (SELECT person_attribute_type_id FROM person_attribute_type WHERE name = 'Phone Number')
     ORDER BY pa_phone.person_attribute_id
-    LIMIT 1)                   AS phoneNumber
+    LIMIT 1)                   AS phoneNumber,
+  COALESCE(pn.middle_name, '') AS middleName
 FROM person p
 LEFT JOIN person_name pn ON pn.person_id = p.person_id AND pn.voided = 0 AND pn.preferred = 1
 WHERE p.person_id IN (:patientIds)

@@ -153,13 +153,6 @@ export const getStockOperationItemFormSchema = (operationType: OperationType, t:
     case OperationType.RECEIPT_OPERATION_TYPE:
     case OperationType.OPENING_STOCK_OPERATION_TYPE:
       return itemSchema.omit({ stockBatchUuid: true });
-    case OperationType.REQUISITION_OPERATION_TYPE:
-      return itemSchema.omit({
-        batchNo: true,
-        stockBatchUuid: true,
-        expiration: true,
-        purchasePrice: true,
-      });
     case OperationType.ADJUSTMENT_OPERATION_TYPE:
       return itemSchema
         .omit({
@@ -175,6 +168,7 @@ export const getStockOperationItemFormSchema = (operationType: OperationType, t:
           }),
         });
     case OperationType.DISPOSED_OPERATION_TYPE:
+    case OperationType.REQUISITION_OPERATION_TYPE: // moves the supplying store's batch once approved
     case OperationType.RETURN_OPERATION_TYPE:
     case OperationType.STOCK_ISSUE_OPERATION_TYPE:
     case OperationType.STOCK_TAKE_OPERATION_TYPE:

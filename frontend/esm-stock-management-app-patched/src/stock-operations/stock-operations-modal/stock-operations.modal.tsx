@@ -33,6 +33,7 @@ const StockOperationsModal: React.FC<StockOperationsModalProps> = ({ title, requ
     return: t('returnAction', 'Return'),
     'complete dispatch': t('completeDispatchAction', 'Complete Dispatch'),
     submit: t('submit', 'Submit'),
+    delete: t('deleteAction', 'Delete'),
   };
   const titleLabel = actionLabels[confirmType] ?? title;
   const handleMutate = useHandleMutate();
@@ -70,6 +71,9 @@ const StockOperationsModal: React.FC<StockOperationsModalProps> = ({ title, requ
         break;
       case 'approve':
         actionName = 'APPROVE';
+        break;
+      case 'delete':
+        actionName = 'REVERSE';
         break;
       case 'dispatchapproval':
         // messagePrefix = "dispatch";
@@ -134,6 +138,14 @@ const StockOperationsModal: React.FC<StockOperationsModalProps> = ({ title, requ
                 {t('confirmOperation', 'Would you really like to {{title}} the operation?', { title: titleLabel })}
               </h5>
             </section>
+            {confirmType === 'delete' && (
+              <p className={styles.section}>
+                {t(
+                  'deleteOperationWarning',
+                  'Its stock movements will be reversed, so quantities return to what they were before it was completed. The operation stays in the list marked as deleted.',
+                )}
+              </p>
+            )}
             <br />
             {requireReason && (
               <section className={styles.section}>
@@ -154,7 +166,13 @@ const StockOperationsModal: React.FC<StockOperationsModalProps> = ({ title, requ
           <Button kind="secondary" onClick={closeModal}>
             {getCoreTranslation('cancel')}
           </Button>
-          {isApproving ? <InlineLoading /> : <Button type="submit">{t('submit', 'Submit')}</Button>}
+          {isApproving ? (
+            <InlineLoading />
+          ) : (
+            <Button type="submit" disabled={confirmType === 'delete' && !notes.trim()}>
+              {t('submit', 'Submit')}
+            </Button>
+          )}
         </ModalFooter>
       </Form>
     </div>

@@ -30,6 +30,7 @@ import org.openmrs.module.labtestreport.NutritionSummaryRow;
 import org.openmrs.module.labtestreport.PatientEncounterDetailRow;
 import org.openmrs.module.labtestreport.PatientEncounterReportService;
 import org.openmrs.module.labtestreport.PatientEncounterSummaryRow;
+import org.openmrs.module.labtestreport.MonthlyHealthPromotionService;
 import org.openmrs.module.labtestreport.PatientRow;
 import org.openmrs.module.labtestreport.ReferralFormReportService;
 import org.openmrs.module.labtestreport.ReferralFormRow;
@@ -59,6 +60,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.ServletRequestDataBinder;
 import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -87,6 +90,66 @@ public class LabTestReportRestController {
 
 	/** Notifications need the time of day, which the reports' date-only format would drop, so they go out as epoch millis. */
 	private static final ObjectMapper NOTIFICATION_MAPPER = new ObjectMapper();
+
+	/** Lets a role see every programmatic report (and is what existing roles already hold). */
+	static final String PRIVILEGE_PROGRAMMATIC = "App: reports.programmatic";
+
+	/** Lets a role see only the two Health Promotion reports. */
+	static final String PRIVILEGE_HEALTH_PROMOTION = "App: reports.healthPromotion";
+
+	private static final String PRIVILEGE_STOCK_DASHBOARD = "App: stockmanagement.dashboard";
+
+	private static final String PRIVILEGE_STOCK_REPORTS = "App: reports.stockManagement";
+
+	static class ReportAccessDeniedException extends RuntimeException {
+
+		private static final long serialVersionUID = 1L;
+
+		ReportAccessDeniedException(String message) {
+			super(message);
+		}
+	}
+
+	/**
+	 * Runs before every handler in this controller (Spring invokes {@code @ModelAttribute} methods first) and rejects
+	 * the request with 403 unless the user holds a privilege for that report, so hiding a tile in the UI cannot be
+	 * bypassed by calling the URL directly. Super users pass every check ({@link Context#hasPrivilege}).
+	 */
+	@ModelAttribute
+	public void checkReportAccess(HttpServletRequest request) {
+		String path = request.getRequestURI();
+		String endpoint = path.substring(path.lastIndexOf('/') + 1);
+		if ("notifications.json".equals(endpoint)) {
+			return; // per-user inbox, guarded by its own authentication check
+		}
+		if (!Context.isAuthenticated()) {
+			throw new ReportAccessDeniedException("Authentication required");
+		}
+		boolean allowed;
+		if (endpoint.startsWith("health-promotion-") || endpoint.startsWith("monthly-health-promotion-")) {
+			allowed = Context.hasPrivilege(PRIVILEGE_PROGRAMMATIC) || Context.hasPrivilege(PRIVILEGE_HEALTH_PROMOTION);
+		} else if (endpoint.startsWith("stock-")) {
+			allowed = Context.hasPrivilege(PRIVILEGE_STOCK_DASHBOARD) || Context.hasPrivilege(PRIVILEGE_STOCK_REPORTS);
+		} else {
+			allowed = Context.hasPrivilege(PRIVILEGE_PROGRAMMATIC);
+		}
+		if (!allowed) {
+			throw new ReportAccessDeniedException("Missing privilege for " + endpoint);
+		}
+	}
+
+	/**
+	 * Answers a denied request with a real 403. A controller-local handler takes precedence over any global exception
+	 * handler in the webapp, which otherwise serialises the exception as a 200 JSON body that the UI would mistake for
+	 * report data.
+	 */
+	@ExceptionHandler(ReportAccessDeniedException.class)
+	@ResponseBody
+	public ResponseEntity<String> handleReportAccessDenied(ReportAccessDeniedException e) {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		return new ResponseEntity<>("{\"error\":\"forbidden\"}", headers, HttpStatus.FORBIDDEN);
+	}
 
 	@InitBinder
 	public void initBinder(HttpServletRequest request, ServletRequestDataBinder binder) {
@@ -205,9 +268,10 @@ public class LabTestReportRestController {
 	@ResponseBody
 	public ResponseEntity<String> diseaseSummary(@RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate,
-	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid,
+	        @RequestParam(value = "programUuid", required = false) String programUuid) throws JsonProcessingException {
 		return jsonResponse(Context.getService(DiseaseSummaryService.class).getActivityReport(startDate, endDate,
-		    locationUuid));
+		    locationUuid, programUuid));
 	}
 
 	@RequestMapping(value = "/ewars-report.json", method = RequestMethod.GET)
@@ -241,6 +305,41 @@ public class LabTestReportRestController {
 		return jsonResponse(rows);
 	}
 
+	@RequestMapping(value = "/monthly-health-promotion-report.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> monthlyHealthPromotionReport(
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "subject", required = false) String subject,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		return jsonResponse(Context.getService(MonthlyHealthPromotionService.class).getReport(startDate, endDate,
+		    locationUuid, subject));
+	}
+
+	@RequestMapping(value = "/monthly-health-promotion-subjects.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> monthlyHealthPromotionSubjects(
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		return jsonResponse(Context.getService(MonthlyHealthPromotionService.class).getSubjects(startDate, endDate,
+		    locationUuid));
+	}
+
+	@RequestMapping(value = "/monthly-health-promotion-drilldown.json", method = RequestMethod.GET)
+	@ResponseBody
+	public ResponseEntity<String> monthlyHealthPromotionDrilldown(@RequestParam("sessionType") String sessionType,
+	        @RequestParam(value = "subject", required = false) String subject,
+	        @RequestParam(value = "gender", required = false) String gender,
+	        @RequestParam(value = "ageGroup", required = false) String ageGroup,
+	        @RequestParam(value = "startDate", required = false) Date startDate,
+	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+		List<PatientRow> rows = Context.getService(MonthlyHealthPromotionService.class).getPatientsForCell(sessionType,
+		    subject, gender, ageGroup, startDate, endDate, locationUuid);
+		return jsonResponse(rows);
+	}
+
 	@RequestMapping(value = "/disease-drilldown.json", method = RequestMethod.GET)
 	@ResponseBody
 	public ResponseEntity<String> diseaseDrilldown(@RequestParam("rowKey") String rowKey,
@@ -248,9 +347,10 @@ public class LabTestReportRestController {
 	        @RequestParam(value = "ageGroup", required = false) String ageGroup,
 	        @RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate,
-	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
+	        @RequestParam(value = "locationUuid", required = false) String locationUuid,
+	        @RequestParam(value = "programUuid", required = false) String programUuid) throws JsonProcessingException {
 		List<PatientRow> rows = Context.getService(DiseaseSummaryService.class).getPatientsForActivityRow(rowKey,
-		    gender, ageGroup, startDate, endDate, locationUuid);
+		    gender, ageGroup, startDate, endDate, locationUuid, programUuid);
 		return jsonResponse(rows);
 	}
 

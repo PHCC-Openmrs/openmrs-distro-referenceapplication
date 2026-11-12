@@ -78,7 +78,21 @@ SELECT
       AND pa_phone.person_attribute_type_id IN (SELECT person_attribute_type_id FROM person_attribute_type
                                                  WHERE uuid = '14d4f066-15f5-102d-96e4-000c29c2a5d7' OR name = 'Phone Number')
     ORDER BY pa_phone.person_attribute_id DESC
-    LIMIT 1)                        AS phoneNumber
+    LIMIT 1)                        AS phoneNumber,
+  -- Who handed the medicine over: the distinct dispensers across this order's non-voided dispense
+  -- records (an order can be dispensed in several goes by different staff). Same name fallback as
+  -- prescriber.
+  (SELECT GROUP_CONCAT(DISTINCT COALESCE(
+            (SELECT NULLIF(TRIM(CONCAT(COALESCE(dn.given_name, ''), ' ', COALESCE(dn.family_name, ''))), '')
+               FROM person_name dn
+              WHERE dn.person_id = dpr.person_id AND dn.voided = 0
+              ORDER BY dn.preferred DESC, dn.person_name_id
+              LIMIT 1),
+            NULLIF(TRIM(dpr.name), ''))
+          SEPARATOR ', ')
+     FROM medication_dispense md
+     JOIN provider dpr ON dpr.provider_id = md.dispenser
+    WHERE md.drug_order_id = o.order_id AND md.voided = 0) AS dispensedBy
 FROM drug_order do
 JOIN orders o ON o.order_id = do.order_id
 JOIN person p ON p.person_id = o.patient_id

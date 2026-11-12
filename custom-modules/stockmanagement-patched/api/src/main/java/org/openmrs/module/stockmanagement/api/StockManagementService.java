@@ -65,6 +65,14 @@ public interface StockManagementService extends OpenmrsService {
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS)
 	StockOperation getStockOperationByUuid(String uuid);
 	
+	/**
+	 * Whether the stock operation has moved any stock. An approved requisition normally has, and
+	 * then needs no Stock Issue; one approved before requisitions moved stock has not.
+	 */
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS)
+	boolean stockOperationHasMovedStock(Integer stockOperationId);
+	
 	@Transactional(readOnly = true)
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS)
 	List<StockOperationItem> getStockOperationItemsByStockOperation(Integer stockOperationId);
@@ -308,6 +316,15 @@ public interface StockManagementService extends OpenmrsService {
 	@Authorized({ Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE,
 	        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE })
 	void cancelStockOperation(StockOperationDTO stockOperationDTO, String reason);
+	
+	/**
+	 * Deletes a completed operation by reversing it: every stock row it wrote is offset by an opposite row on
+	 * the same operation, and its status becomes REVERSED with who, when and why. Refused if it would leave
+	 * any batch negative, or if the operation belongs to a dispense (cancel the prescription instead).
+	 */
+	@Transactional(isolation = Isolation.READ_COMMITTED)
+	@Authorized(Privileges.TASK_STOCKMANAGEMENT_UNDO)
+	void reverseStockOperation(StockOperationDTO stockOperationDTO, String reason);
 	
 	@Transactional(isolation = Isolation.READ_COMMITTED)
 	@Authorized({ Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE })

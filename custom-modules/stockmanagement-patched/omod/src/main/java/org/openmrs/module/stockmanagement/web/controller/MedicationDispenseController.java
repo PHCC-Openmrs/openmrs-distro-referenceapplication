@@ -5,6 +5,7 @@ import ca.uhn.fhir.parser.DataFormatException;
 import ca.uhn.fhir.parser.IParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -49,10 +50,14 @@ import java.util.List;
  *                    "update": true,                        (only when editing)
  *                    "fulfillerStatus": "COMPLETED",        (absent = unchanged, null = cleared)
  *                    "restrictTotalQuantityDispensed": true,
+ *                    "extraQuantity": 5,                    (part of the quantity given beyond the prescription)
  *                    "stock": [ { "stockItem", "stockBatch", "stockItemPackagingUOM", "dispenseLocation", "quantity" } ] } ] }
  * → 200 { "dispenses": [ saved FHIR MedicationDispense, ... ] }
  *
  * DELETE /ws/rest/v1/stockmanagement/dispense/{uuid}   body (optional): { "fulfillerStatus": ..., "reason": ... }
+ *
+ * POST /ws/rest/v1/stockmanagement/dispense/order/{orderUuid}/cancel   body: { "reason": ... }
+ * → 200 { "voided": [ dispense uuid, ... ] }   (administrators only: voids every completed dispense with its stock)
  * </pre>
  *
  * On any error nothing is saved. 409 means the request waited too long for, or deadlocked on, a lock held
@@ -131,6 +136,29 @@ public class MedicationDispenseController {
 		}
 	}
 
+	@RequestMapping(value = "/order/{orderUuid}/cancel", method = RequestMethod.POST)
+	public ResponseEntity<String> cancelOrder(@PathVariable("orderUuid") String orderUuid,
+	        @RequestBody(required = false) String body) {
+		if (!Context.isAuthenticated()) {
+			return error(HttpStatus.UNAUTHORIZED, "Not logged in");
+		}
+		try {
+			JsonNode root = StringUtils.isBlank(body) ? objectMapper.createObjectNode() : objectMapper.readTree(body);
+			List<MedicationDispense> voided = Context.getService(MedicationDispenseStockService.class)
+			        .cancelOrderDispenses(orderUuid, text(root, "reason"));
+
+			ObjectNode result = objectMapper.createObjectNode();
+			ArrayNode uuids = result.putArray("voided");
+			for (MedicationDispense dispense : voided) {
+				uuids.add(dispense.getUuid());
+			}
+			return json(HttpStatus.OK, result.toString());
+		}
+		catch (Exception e) {
+			return handle(e);
+		}
+	}
+
 	private MedicationDispenseRequest toRequest(JsonNode item, IParser parser,
 	        MedicationDispenseTranslator<MedicationDispense> translator) {
 		JsonNode resourceJson = item.path("medicationDispense");
@@ -152,6 +180,13 @@ public class MedicationDispenseController {
 			request.setFulfillerStatus(toFulfillerStatus(item.get("fulfillerStatus")));
 		}
 		request.setRestrictTotalQuantityDispensed(item.path("restrictTotalQuantityDispensed").asBoolean(false));
+		if (item.hasNonNull("extraQuantity")) {
+			BigDecimal extra = new BigDecimal(item.get("extraQuantity").asText());
+			if (extra.signum() < 0) {
+				throw new IllegalArgumentException("\"extraQuantity\" can't be negative");
+			}
+			request.setExtraQuantity(extra);
+		}
 		for (JsonNode lineJson : item.path("stock")) {
 			DispenseStockLine line = new DispenseStockLine();
 			line.setStockItemUuid(text(lineJson, "stockItem"));

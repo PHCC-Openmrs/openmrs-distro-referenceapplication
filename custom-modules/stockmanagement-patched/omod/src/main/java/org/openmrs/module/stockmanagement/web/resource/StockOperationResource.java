@@ -10,6 +10,7 @@ import org.openmrs.Location;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockOperationPrivelegeTarget;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.*;
@@ -246,6 +247,11 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 			description.addProperty("cancelledByGivenName");
 			description.addProperty("cancelledByFamilyName");
 			description.addProperty("cancelledDate");
+			description.addProperty("reversalReason");
+			description.addProperty("reversedBy");
+			description.addProperty("reversedByGivenName");
+			description.addProperty("reversedByFamilyName");
+			description.addProperty("reversedDate");
 			description.addProperty("completedBy");
 			description.addProperty("completedByGivenName");
 			description.addProperty("completedByFamilyName");
@@ -390,7 +396,10 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
         boolean canCancel = stockOperationDTO.isApproveable();
         boolean canReceiveItems = stockOperationDTO.canReceiveItems();
         boolean canDisplayReceivedItems = stockOperationDTO.canDisplayReceivedItems();
-        boolean isRequisitionAndCanIssueStock = stockOperationDTO.isRequisitionAndCanIssueStock();
+        // An approved requisition moves its own stock; only one approved before that change (which
+        // moved nothing) still needs a Stock Issue to fulfil it.
+        boolean isRequisitionAndCanIssueStock = stockOperationDTO.isRequisitionAndCanIssueStock()
+                && !getStockManagementService().stockOperationHasMovedStock(stockOperationDTO.getId());
         StockOperationType stockOperationType = getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid());
         boolean canUpdateBatchInformation = stockOperationDTO.canUpdateBatchInformation(stockOperationType);
         Boolean userHasEditPermissions = null;
@@ -409,7 +418,20 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
             }else{
                 userHasEditPermissions = Boolean.valueOf(privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)));
             }
-            canApprove = canApprove && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE));
+            if (canApprove && stockOperationType != null
+                    && stockOperationType.getApprovalPrivilegeTarget() == StockOperationPrivelegeTarget.Destination) {
+                // Approving a requisition takes stock from the store it asks, so that store's approver
+                // decides - the same check approveStockOperation makes.
+                Party destination = StringUtils.isBlank(stockOperationDTO.getDestinationUuid()) ? null
+                        : getStockManagementService().getPartyByUuid(stockOperationDTO.getDestinationUuid());
+                canApprove = destination != null && destination.getLocation() != null
+                        && getStockManagementService().getPrivilegeScopes(Context.getAuthenticatedUser(),
+                            destination.getLocation(), stockOperationType,
+                            Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE))
+                        .stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE));
+            } else {
+                canApprove = canApprove && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE));
+            }
             canCancel = canCancel && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_CANCEL));
         }
 
@@ -526,7 +548,10 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 			modelImpl.property("uuid", new StringProperty()).property("cancelReason", new StringProperty())
 			        .property("cancelledBy", new IntegerProperty()).property("cancelledByGivenName", new StringProperty())
 			        .property("cancelledByFamilyName", new StringProperty())
-			        .property("cancelledDate", new DateTimeProperty()).property("completedBy", new IntegerProperty())
+			        .property("cancelledDate", new DateTimeProperty()).property("reversalReason", new StringProperty())
+			        .property("reversedBy", new IntegerProperty()).property("reversedByGivenName", new StringProperty())
+			        .property("reversedByFamilyName", new StringProperty()).property("reversedDate", new DateTimeProperty())
+			        .property("completedBy", new IntegerProperty())
 			        .property("completedByGivenName", new StringProperty())
 			        .property("completedByFamilyName", new StringProperty())
 			        .property("completedDate", new DateTimeProperty()).property("destinationUuid", new StringProperty())

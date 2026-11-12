@@ -60,6 +60,9 @@ public class LabTestReportServiceImpl extends BaseOpenmrsService implements LabT
 			row.setSex((String) r[5]);
 			row.setNationalId((String) r[6]);
 			row.setPhoneNumber((String) r[7]);
+			if (r.length > 8) {
+				row.setMiddleName((String) r[8]);
+			}
 			rows.add(row);
 		}
 		return rows;

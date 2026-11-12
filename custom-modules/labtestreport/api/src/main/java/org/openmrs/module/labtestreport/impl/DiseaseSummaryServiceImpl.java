@@ -98,7 +98,8 @@ public class DiseaseSummaryServiceImpl extends BaseOpenmrsService implements Dis
 	}
 
 	@Override
-	public DiseaseActivityReport getActivityReport(Date startDate, Date endDate, String locationUuid) {
+	public DiseaseActivityReport getActivityReport(Date startDate, Date endDate, String locationUuid,
+	        String programUuid) {
 		DiseaseActivityMapping mapping = getActivityMapping();
 		Map<String, DiseaseActivityRow> rowsByKey = new LinkedHashMap<>();
 		for (RowDefinition definition : DiseaseActivityLayout.ROWS) {
@@ -118,7 +119,7 @@ public class DiseaseSummaryServiceImpl extends BaseOpenmrsService implements Dis
 			rowsByKey.put(definition.key, row);
 		}
 
-		for (ActivityEvent event : getActivityEvents(mapping, startDate, endDate, locationUuid)) {
+		for (ActivityEvent event : getActivityEvents(mapping, startDate, endDate, locationUuid, programUuid)) {
 			DiseaseActivityRow row = rowsByKey.get(event.rowKey);
 			// Patients recorded with a gender other than M/F still count towards the row total, the
 			// same as the EWARS report, even though there's no column to show them in.
@@ -150,11 +151,12 @@ public class DiseaseSummaryServiceImpl extends BaseOpenmrsService implements Dis
 
 	@Override
 	public List<PatientRow> getPatientsForActivityRow(String rowKey, String gender, String ageGroup, Date startDate,
-	        Date endDate, String locationUuid) {
+	        Date endDate, String locationUuid, String programUuid) {
 		Set<String> rowKeys = new HashSet<>();
 		collectDiagnosisRowKeys(rowKey, rowKeys);
 		Set<Integer> patientIds = new LinkedHashSet<>();
-		for (ActivityEvent event : getActivityEvents(getActivityMapping(), startDate, endDate, locationUuid)) {
+		for (ActivityEvent event : getActivityEvents(getActivityMapping(), startDate, endDate, locationUuid,
+		    programUuid)) {
 			if (rowKeys.contains(event.rowKey) && (ageGroup == null || ageGroup.equals(event.ageGroup))
 			        && (gender == null || gender.equals(event.gender))) {
 				patientIds.add(event.patientId);
@@ -187,14 +189,15 @@ public class DiseaseSummaryServiceImpl extends BaseOpenmrsService implements Dis
 	 * also recorded as a condition, are one case).
 	 */
 	private List<ActivityEvent> getActivityEvents(DiseaseActivityMapping mapping, Date startDate, Date endDate,
-	        String locationUuid) {
+	        String locationUuid, String programUuid) {
 		List<ActivityEvent> events = new ArrayList<>();
 		Map<Integer, String> rowKeyByConceptId = mapping.getRowKeyByConceptId();
 		if (rowKeyByConceptId.isEmpty()) {
 			return events;
 		}
 		Set<String> seen = new HashSet<>();
-		for (Object[] r : dao.getActivityEvents(rowKeyByConceptId.keySet(), startDate, endDate, locationUuid)) {
+		for (Object[] r : dao.getActivityEvents(rowKeyByConceptId.keySet(), startDate, endDate, locationUuid,
+		    programUuid)) {
 			String rowKey = rowKeyByConceptId.get(toInteger(r[0]));
 			Integer patientId = toInteger(r[1]);
 			if (rowKey != null && seen.add(rowKey + "|" + patientId + "|" + r[2])) {
@@ -256,6 +259,9 @@ public class DiseaseSummaryServiceImpl extends BaseOpenmrsService implements Dis
 			row.setSex((String) r[5]);
 			row.setNationalId((String) r[6]);
 			row.setPhoneNumber((String) r[7]);
+			if (r.length > 8) {
+				row.setMiddleName((String) r[8]);
+			}
 			rows.add(row);
 		}
 		return rows;

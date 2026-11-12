@@ -155,6 +155,10 @@
       "route": "health-promotion-report"
     },
     {
+      "component": "monthlyHealthPromotionReport",
+      "route": "monthly-health-promotion-report"
+    },
+    {
       "component": "srhReport",
       "route": "srh-report"
     },

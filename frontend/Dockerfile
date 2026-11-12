@@ -220,7 +220,15 @@ ARG CACHE_BUST
 # by `openmrs build` from its own hard-pinned dependencies, so that config
 # has no way to override them; this is the only place that actually takes
 # effect.
-RUN npm install --no-save --legacy-peer-deps openmrs@${APP_SHELL_VERSION:-next} && \
+#
+# postcss-selector-parser is pinned because this install has no lockfile, so
+# its transitive deps float. 7.2.0 (published 2026-11-08) double-escapes the
+# CSS-module class names that css-loader 5 hands to postcss-modules-scope
+# (".abc\+x\=\=" becomes ".abc\\\+x\\\=\\\="). Those selectors then match
+# nothing, and every esm-styleguide component (left nav, page header, date
+# picker) renders unstyled. Installing it at the top level makes npm hoist
+# 7.1.8, which satisfies postcss-modules-scope's ^7.0.0 range.
+RUN npm install --no-save --legacy-peer-deps openmrs@${APP_SHELL_VERSION:-next} postcss-selector-parser@7.1.8 && \
     STYLEGUIDE_DIR=$(find node_modules -type d -path '*@openmrs/esm-styleguide' | head -n1) && \
     echo "Found esm-styleguide at: ${STYLEGUIDE_DIR}" && \
     test -n "${STYLEGUIDE_DIR}" && \

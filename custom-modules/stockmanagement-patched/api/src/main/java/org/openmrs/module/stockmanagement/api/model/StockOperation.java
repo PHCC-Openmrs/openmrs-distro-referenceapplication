@@ -64,6 +64,16 @@ public class StockOperation extends BaseChangeableOpenmrsData implements Seriali
 	@Column(name = "rejected_date")
 	private Date rejectedDate;
 	
+	@Column(name = "reversal_reason", length = 500)
+	private String reversalReason;
+	
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "reversed_by")
+	private User reversedBy;
+	
+	@Column(name = "reversed_date")
+	private Date reversedDate;
+	
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "destination_id")
 	private Party destination;
@@ -189,6 +199,30 @@ public class StockOperation extends BaseChangeableOpenmrsData implements Seriali
 	
 	public void setRejectedDate(Date rejectedDate) {
 		this.rejectedDate = rejectedDate;
+	}
+	
+	public String getReversalReason() {
+		return reversalReason;
+	}
+	
+	public void setReversalReason(String reversalReason) {
+		this.reversalReason = reversalReason;
+	}
+	
+	public User getReversedBy() {
+		return reversedBy;
+	}
+	
+	public void setReversedBy(User reversedBy) {
+		this.reversedBy = reversedBy;
+	}
+	
+	public Date getReversedDate() {
+		return reversedDate;
+	}
+	
+	public void setReversedDate(Date reversedDate) {
+		this.reversedDate = reversedDate;
 	}
 	
 	public Concept getReason() {

@@ -60,23 +60,23 @@ export const StockOperationTypeIsNegativeQtyAllowed = (operationType: OperationT
   return operationType === OperationType.ADJUSTMENT_OPERATION_TYPE;
 };
 
-// Operation types whose item quantity is always deducted from the source location's on-hand
-// batch (mirrors the backend's StockOperationTypeProcessor#getQuantityToApplyAtSource negating
-// the quantity for these three). Adjustment can also remove stock, but only when its entered
-// quantity is negative, so it's checked separately by callers instead of listed here.
+// Operation types whose item quantity is always deducted from an on-hand batch (mirrors the
+// backend's StockOperationTypeProcessor#getQuantityToApplyAtSource negating the quantity for
+// these). The batch is at the source location, except for a Requisition, which takes it from the
+// store it asks (its destination) - the item form is handed that store instead. Adjustment can
+// also remove stock, but only when its entered quantity is negative, so it's checked separately
+// by callers instead of listed here.
 export const StockOperationTypeReducesStockAtSource = (operationType: OperationType) => {
   return (
     operationType === OperationType.TRANSFER_OUT_OPERATION_TYPE ||
     operationType === OperationType.DISPOSED_OPERATION_TYPE ||
-    operationType === OperationType.STOCK_ISSUE_OPERATION_TYPE
+    operationType === OperationType.STOCK_ISSUE_OPERATION_TYPE ||
+    operationType === OperationType.REQUISITION_OPERATION_TYPE
   );
 };
 
 export const StockOperationTypeRequiresBatchUuid = (operationType: OperationType) => {
-  return (
-    !StockOperationTypeRequiresActualBatchInformation(operationType) &&
-    operationType !== OperationType.REQUISITION_OPERATION_TYPE
-  );
+  return !StockOperationTypeRequiresActualBatchInformation(operationType);
 };
 
 export const StockOperationTypeRequiresActualBatchInformation = (operationType: OperationType) => {
@@ -86,8 +86,10 @@ export const StockOperationTypeRequiresActualBatchInformation = (operationType: 
   );
 };
 
-export const StockOperationTypeIsQuantityOptional = (operationType: OperationType) => {
-  return operationType === OperationType.REQUISITION_OPERATION_TYPE;
+// No type leaves the quantity optional any more: an approved Requisition moves the stock it asks
+// for, so it needs a quantity (and a batch) like any other movement.
+export const StockOperationTypeIsQuantityOptional = (_operationType: OperationType) => {
+  return false;
 };
 
 export const StockOperationTypeCanCapturePurchasePrice = (operationType: OperationType) => {

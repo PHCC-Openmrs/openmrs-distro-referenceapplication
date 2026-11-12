@@ -2,6 +2,7 @@ package org.openmrs.module.stockmanagement.api;
 
 import org.openmrs.Location;
 import org.openmrs.User;
+import org.openmrs.module.stockmanagement.api.model.Party;
 import org.openmrs.module.stockmanagement.api.model.StockOperation;
 
 import java.math.BigDecimal;
@@ -38,6 +39,20 @@ public interface StockOperationTypeProcessor {
 	boolean appliesStockAtCompletion();
 
 	BigDecimal getQuantityToApplyAtSource(BigDecimal quantity);
+	
+	/**
+	 * The party whose stock this operation takes out, i.e. the one checked for a negative balance.
+	 * The source for every type except Requisition, which takes stock from the store it asks
+	 * (its destination).
+	 */
+	Party getPartyStockIsTakenFrom(StockOperation operation);
+	
+	/**
+	 * The location whose approver must approve (or reject or return) a submitted operation. The
+	 * operation's own location for every type except Requisition: approving one takes stock from
+	 * the supplying store, so that store decides.
+	 */
+	StockOperationPrivelegeTarget getApprovalPrivilegeTarget();
 	
 	/**
 	 * Called when the {@link StockOperation} status is initially created and the status is

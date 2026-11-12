@@ -31,6 +31,8 @@ export interface MedicineDistributionRow {
   /** Status of the most recent dispense (Completed, On hold, Refused...), or null if pharmacy has not acted yet. */
   dispenseStatus: string | null;
   prescriber: string | null;
+  /** Comma-separated names of the staff who recorded dispenses against this order, or null if none. */
+  dispensedBy: string | null;
 }
 
 export function useMedicineDistributionReport(startDate?: string, endDate?: string, locationUuid?: string) {

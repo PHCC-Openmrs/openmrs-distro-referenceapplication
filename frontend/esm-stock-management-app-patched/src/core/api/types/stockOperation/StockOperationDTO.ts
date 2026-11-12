@@ -9,6 +9,11 @@ export interface StockOperationDTO {
   cancelledByGivenName: string | null | undefined;
   cancelledByFamilyName: string | null | undefined;
   cancelledDate: Date;
+  reversalReason?: string | null;
+  reversedBy?: number;
+  reversedByGivenName?: string | null;
+  reversedByFamilyName?: string | null;
+  reversedDate?: Date;
   completedBy: number;
   completedByGivenName: string | null | undefined;
   completedByFamilyName: string | null | undefined;
