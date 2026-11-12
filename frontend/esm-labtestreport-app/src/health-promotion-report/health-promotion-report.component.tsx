@@ -335,9 +335,11 @@ export default function HealthPromotionReport() {
                 </tr>
               </thead>
               <tbody>
-                {sortedRows.map((row) => (
+                {sortedRows.map((row, index) => (
                   <tr
-                    key={row.encounterId}
+                    // encounterId alone is not unique: one encounter can yield several rows, and duplicate
+                    // keys make React reuse/skip DOM rows when the list is filtered.
+                    key={`${row.encounterId}-${index}`}
                     className={pageStyles.clickableRow}
                     onClick={() => goToPatientChart(row.patientUuid)}
                   >
