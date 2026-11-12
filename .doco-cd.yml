@@ -1,0 +1,41 @@
+# doco-cd deploy config for the onprem VM -- see ops/doco-cd/README.md.
+# doco-cd polls the branch set in Key Vault (openmrs-vm-deploy-branch) and applies this
+# stack whenever it moves.
+
+# Must match the compose project name the stack already runs under on the VM, so
+# doco-cd adopts the existing containers and the openmrs-data volume.
+name: openmrs-distro-referenceapplication
+
+# Required: doco-cd ignores COMPOSE_FILE, and without this it would deploy
+# docker-compose.yml, which runs MariaDB instead of using the MySQL server.
+compose_files:
+  - docker-compose-prod.yaml
+
+# Non-secret settings, including the image and tag, SOPS-encrypted in git. doco-cd
+# decrypts it with SOPS_AGE_KEY in its own copy of the repo. To change a value:
+# sops edit .env
+env_files:
+  - .env
+
+# Read from Azure Key Vault on every poll, and take priority over .env. A changed
+# value redeploys the stack with no commit, so update the database first.
+external_secrets:
+  OMRS_DB_USER: openmrs-mysql-username
+  OMRS_DB_PASSWORD: openmrs-mysql-password
+  OMRS_CONFIG_CONNECTION_DATABASE: openmrs-mysql-dbname
+  OMRS_CONFIG_CONNECTION_SERVER: openmrs-mysql-dburl
+  OMRS_CONFIG_ADMIN_USER_PASSWORD: openmrs-admin-password
+
+# TAG is the floating `main` tag, so pull on every deploy to pick up images
+# pushed since the last one.
+force_image_pull: true
+remove_orphans: true
+
+# OpenMRS backend startup (with liquibase updates) can take well over the 3m
+# default.
+timeout: 15m
+
+# doco-cd restarts containers it sees as unhealthy by default; the backend
+# reports unhealthy for several minutes while it boots, which would get it
+# restarted in a loop.
+reconciliation: false

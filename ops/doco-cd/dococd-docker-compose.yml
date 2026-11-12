@@ -1,0 +1,55 @@
+# Runs doco-cd (https://doco.cd) on the onprem VM, GitOps style: it polls this
+# repo's deployment branch and, whenever it moves, deploys the stack described by
+# ../../.doco-cd.yml. Nothing calls into the VM -- see README.md.
+#
+# Azure VMs fetch this file and read its secrets from Key Vault (doco-cd-up), with
+# no .env. To run it by hand, log in to ghcr.io, then start it from this directory
+# with the secrets in ./.env (gitignored):
+#   docker compose -f dococd-docker-compose.yml up -d
+#
+# This is its own compose project (doco-cd), separate from the stack it
+# deploys, so redeploying the stack never restarts doco-cd itself.
+
+name: doco-cd
+
+services:
+  doco-cd:
+    container_name: doco-cd
+    # Our copy of ghcr.io/kimdre/doco-cd. Pulling it needs a ghcr.io login on the host.
+    image: ghcr.io/phcc-openmrs/doco-cd:latest
+    restart: unless-stopped
+    # No published ports: polling is outbound-only.
+    environment:
+      TZ: ${TZ:-Asia/Kolkata}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      POLL_CONFIG: |
+        - url: https://github.com/PHCC-Openmrs/openmrs-distro-referenceapplication.git
+          reference: ${DOCO_CD_BRANCH:?Set DOCO_CD_BRANCH in .env}
+          interval: ${POLL_INTERVAL:-60}
+      GIT_ACCESS_TOKEN: ${GIT_ACCESS_TOKEN:?Set GIT_ACCESS_TOKEN in .env}
+      GIT_AUTH_DOMAINS: "${GIT_AUTH_DOMAINS:-- domains: [github.com]}"
+      # Private age key that decrypts the repo's .env. An env var rather than a
+      # file secret: with cap_drop ALL, root here can't read a 0600 file it doesn't own.
+      SOPS_AGE_KEY: ${SOPS_AGE_KEY:?Set SOPS_AGE_KEY in .env}
+      # Key Vault holding the secrets in ../../.doco-cd.yml. AZURE_CLIENT_ID selects the
+      # VM's user-assigned managed identity.
+      SECRET_PROVIDER: azure_kv
+      SECRET_PROVIDER_VAULT_URL: ${SECRET_PROVIDER_VAULT_URL:?Set SECRET_PROVIDER_VAULT_URL in .env}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:?Set AZURE_CLIENT_ID in .env}
+      # Only needed if the ghcr.io/phcc-openmrs packages are private, e.g.
+      #   DOCKER_AUTH_CONFIG={"auths":{"ghcr.io":{"auth":"<base64 user:read-packages-PAT>"}}}
+      DOCKER_AUTH_CONFIG: ${DOCKER_AUTH_CONFIG:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # doco-cd's git mirrors and per-revision checkouts.
+      - data:/data
+    cap_drop:
+      - ALL
+    healthcheck: # runs the image's built-in /healthcheck command
+      start_period: 15s
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  data:

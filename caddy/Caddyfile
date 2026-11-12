@@ -1,0 +1,13 @@
+# TLS for the production stack (docker-compose-prod.yaml). Caddy gets and renews the
+# Let's Encrypt certificate, redirects HTTP to HTTPS, and forwards plain HTTP to nginx,
+# which passes it on to the gateway.
+{
+	email {$CERT_CONTACT_EMAIL}
+}
+
+carepalestine.com {
+	reverse_proxy nginx:80 {
+		# The gateway logs the client IP from X-Real-IP; without it, it logs nginx's address.
+		header_up X-Real-IP {remote_host}
+	}
+}
