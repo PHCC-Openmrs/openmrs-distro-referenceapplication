@@ -61,55 +61,66 @@ jobs:
       tag: ${{ steps.tag.outputs.tag }}
       sha_tag: ${{ steps.tag.outputs.sha_tag }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      # The org only allows actions owned by PHCC-Openmrs, so this job uses
+      # git and the docker CLI preinstalled on the runner instead of
+      # actions/checkout and the docker/* actions.
+      - name: Check out the dispatched commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init -q .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          git -c "http.extraheader=${auth}" fetch -q --depth 1 origin "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
 
+      # Docker tags can't contain "/", so feature/foo becomes feature-foo.
       - name: Compute image tags
         id: tag
         run: |
-          echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-          echo "sha_tag=${GITHUB_REF_NAME}-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          branch="${GITHUB_REF_NAME//\//-}"
+          echo "tag=${branch}" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=${branch}-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.GHUB_DOCKER_USERNAME }}
-          password: ${{ secrets.GHUB_DOCKER_PASSWORD }}
+        env:
+          DOCKER_USERNAME: ${{ secrets.GHUB_DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.GHUB_DOCKER_PASSWORD }}
+        run: printf '%s' "$DOCKER_PASSWORD" | docker login "$REGISTRY" -u "$DOCKER_USERNAME" --password-stdin
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+      - name: Build and push images
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          SHA_TAG: ${{ steps.tag.outputs.sha_tag }}
+          BUILD_BACKEND: ${{ needs.changes.outputs.backend }}
+          BUILD_FRONTEND: ${{ needs.changes.outputs.frontend }}
+          BUILD_GATEWAY: ${{ needs.changes.outputs.gateway }}
+        run: |
+          set -euo pipefail
+          build() {  # <service> <context> [extra docker build args...]
+            local svc=$1 context=$2; shift 2
+            local image="${REGISTRY}/${IMAGE_NAMESPACE}/openmrs-reference-application-3-${svc}"
+            echo "::group::Build and push ${svc}"
+            docker buildx build --push "$@" \
+              -t "${image}:${TAG}" -t "${image}:${SHA_TAG}" "$context"
+            echo "::endgroup::"
+          }
+          # if-blocks, not `cond && build`: set -e is ignored inside a
+          # function called from an && list, which would hide a failed build.
+          if [ "$BUILD_BACKEND" = "true" ]; then
+            build backend .
+          fi
+          if [ "$BUILD_FRONTEND" = "true" ]; then
+            build frontend ./frontend --build-arg "CACHE_BUST=${GITHUB_RUN_ID}"
+          fi
+          if [ "$BUILD_GATEWAY" = "true" ]; then
+            build gateway ./gateway
+          fi
 
-      - name: Build and push backend
-        if: needs.changes.outputs.backend == 'true'
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/openmrs-reference-application-3-backend:${{ steps.tag.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/openmrs-reference-application-3-backend:${{ steps.tag.outputs.sha_tag }}
-
-      - name: Build and push frontend
-        if: needs.changes.outputs.frontend == 'true'
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
-        with:
-          context: ./frontend
-          push: true
-          build-args: |
-            CACHE_BUST=${{ github.run_id }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/openmrs-reference-application-3-frontend:${{ steps.tag.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/openmrs-reference-application-3-frontend:${{ steps.tag.outputs.sha_tag }}
-
-      - name: Build and push gateway
-        if: needs.changes.outputs.gateway == 'true'
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
-        with:
-          context: ./gateway
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/openmrs-reference-application-3-gateway:${{ steps.tag.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/openmrs-reference-application-3-gateway:${{ steps.tag.outputs.sha_tag }}
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout "$REGISTRY" || true
 
   update-env-tags:
     name: Pin built image tags in .env
@@ -142,10 +153,20 @@ jobs:
 
       # Check out the branch tip, not the dispatched SHA, so the commit lands
       # on top of anything pushed while the images were building.
-      - if: steps.gate.outputs.run == 'true'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: ${{ env.DEPLOY_BRANCH }}
+      - name: Check out the deploy branch
+        if: steps.gate.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init -q .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          # Kept in local config so the commit step can pull and push; the
+          # runner is discarded after the job.
+          git config http.extraheader "$auth"
+          git fetch -q origin "$DEPLOY_BRANCH"
+          git checkout -q -B "$DEPLOY_BRANCH" FETCH_HEAD
 
       - name: Install sops
         if: steps.gate.outputs.run == 'true'

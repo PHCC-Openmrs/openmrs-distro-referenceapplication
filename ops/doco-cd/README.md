@@ -110,7 +110,7 @@ requests to GitHub and GHCR.
 run by hand (Actions → **Deploy to Prod** → pick `all`, `backend`, `frontend`
 or `gateway`). It:
 
-1. Builds and pushes the selected images as `<branch>` and `<branch>-<sha>`,
+1. Builds and pushes the selected images as `<branch>` and `<branch>-<sha>` (with any `/` in the branch name turned into `-`),
    like `Deploy to Onprem VM`.
 2. In the `prod` environment, runs `sops set` to write `<branch>-<sha>` into
    `.env` as `BACKEND_TAG`, `FRONTEND_TAG` and/or `GATEWAY_TAG`. Only the
