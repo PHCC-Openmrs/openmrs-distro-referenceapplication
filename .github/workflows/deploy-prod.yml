@@ -98,22 +98,11 @@ jobs:
           BUILD_GATEWAY: ${{ needs.changes.outputs.gateway }}
         run: |
           set -euo pipefail
-          # The Maven repo (~/.m2) and node_modules live inside the image
-          # build, not on the runner, so they're cached as BuildKit layers in
-          # GHCR (<image>:buildcache) rather than with actions/cache, which the
-          # org doesn't allow. mode=max keeps the intermediate build-stage
-          # layers too (forked module mvn installs, yarn install/build per
-          # fork), so only steps whose inputs changed run again. A failed
-          # cache export doesn't fail the build.
-          docker buildx create --name ci --driver docker-container --use >/dev/null
-
           build() {  # <service> <context> [extra docker build args...]
             local svc=$1 context=$2; shift 2
             local image="${REGISTRY}/${IMAGE_NAMESPACE}/openmrs-reference-application-3-${svc}"
             echo "::group::Build and push ${svc}"
             docker buildx build --push "$@" \
-              --cache-from "type=registry,ref=${image}:buildcache" \
-              --cache-to "type=registry,ref=${image}:buildcache,mode=max,image-manifest=true,oci-mediatypes=true,ignore-error=true" \
               -t "${image}:${TAG}" -t "${image}:${SHA_TAG}" "$context"
             echo "::endgroup::"
           }
