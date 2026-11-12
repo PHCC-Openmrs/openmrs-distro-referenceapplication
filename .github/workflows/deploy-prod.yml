@@ -153,18 +153,39 @@ jobs:
 
       # Check out the branch tip, not the dispatched SHA, so the commit lands
       # on top of anything pushed while the images were building.
+      # The deploy branch only accepts changes through pull requests, and
+      # GITHUB_TOKEN can't be a ruleset bypass actor. So git talks to GitHub
+      # over SSH with DEPLOY_PROD_SSH_KEY, whose owner is on the bypass list.
       - name: Check out the deploy branch
         if: steps.gate.outputs.run == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          DEPLOY_PROD_SSH_KEY: ${{ secrets.DEPLOY_PROD_SSH_KEY }}
+          # GitHub's published ed25519 host key
+          # (SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU), pinned so
+          # the key is never offered to an impostor host.
+          GITHUB_HOST_KEY: github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
         run: |
           set -euo pipefail
-          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          if [ -z "$DEPLOY_PROD_SSH_KEY" ]; then
+            echo "::error::DEPLOY_PROD_SSH_KEY secret is not set in the prod environment — cannot push the .env update."
+            exit 1
+          fi
+
+          ssh_dir="${RUNNER_TEMP}/deploy-ssh"
+          install -d -m 700 "$ssh_dir"
+          # printf adds the trailing newline ssh needs if the pasted secret lacks one.
+          (umask 077; printf '%s\n' "$DEPLOY_PROD_SSH_KEY" > "${ssh_dir}/key")
+          printf '%s\n' "$GITHUB_HOST_KEY" > "${ssh_dir}/known_hosts"
+          ssh-keygen -y -f "${ssh_dir}/key" >/dev/null || {
+            echo "::error::DEPLOY_PROD_SSH_KEY is not a valid passphrase-less private key."
+            exit 1
+          }
+
           git init -q .
-          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
-          # Kept in local config so the commit step can pull and push; the
-          # runner is discarded after the job.
-          git config http.extraheader "$auth"
+          git remote add origin "git@github.com:${GITHUB_REPOSITORY}.git"
+          # Kept in local config so the commit step can pull and push; the key
+          # lives in RUNNER_TEMP, which is wiped after the job.
+          git config core.sshCommand "ssh -i ${ssh_dir}/key -o IdentitiesOnly=yes -o UserKnownHostsFile=${ssh_dir}/known_hosts -o StrictHostKeyChecking=yes"
           git fetch -q origin "$DEPLOY_BRANCH"
           git checkout -q -B "$DEPLOY_BRANCH" FETCH_HEAD
 
@@ -219,8 +240,8 @@ jobs:
             exit 0
           fi
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "prod-deploy-bot"
+          git config user.email "prod-deploy-bot@users.noreply.github.com"
           git commit -m "Pin ${SERVICES// /, } image tag to ${SHA_TAG}" -- .env
 
           for attempt in 1 2 3; do
