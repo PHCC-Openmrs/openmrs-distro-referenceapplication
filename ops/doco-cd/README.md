@@ -102,21 +102,45 @@ requests to GitHub and GHCR.
 |---|---|
 | Compose files, `configuration/`, `nginx-proxy/`, `caddy/`, `.doco-cd.yml` pushed to `main` | Deployed on the next poll (≤ 60s). |
 | New image pushed to `ghcr.io/phcc-openmrs/*:main` (via `Deploy to Onprem VM`) | Picked up at the **next commit to `main`**, since doco-cd watches git, not the registry (see Caveats). |
+| `Deploy to Prod` run on `main` | Builds the selected images, commits their `main-<sha>` tags to `.env`, and that commit is deployed on the next poll. |
+
+## Deploy to Prod pipeline
+
+[`.github/workflows/deploy-prod.yml`](../../.github/workflows/deploy-prod.yml) is
+run by hand (Actions → **Deploy to Prod** → pick `all`, `backend`, `frontend`
+or `gateway`). It:
+
+1. Builds and pushes the selected images as `<branch>` and `<branch>-<sha>`,
+   like `Deploy to Onprem VM`.
+2. In the `prod` environment, runs `sops set` to write `<branch>-<sha>` into
+   `.env` as `BACKEND_TAG`, `FRONTEND_TAG` and/or `GATEWAY_TAG`. Only the
+   services built in that run are updated.
+3. Commits `.env` back to the branch as `github-actions[bot]`. doco-cd sees
+   the commit and deploys exactly those images.
+
+`docker-compose-prod.yaml` uses `${<SERVICE>_TAG:-${TAG}}`, so a service whose
+tag was never pinned still runs the floating `TAG`.
+
+The tag step runs only on `main` (plus the test branch
+`feature/doco-cd-prod-pipeline`, to be removed before merge). It needs:
+
+- A GitHub environment `prod` with the secret `SOPS_AGE_KEY`: the age private
+  key for the recipient in [`.sops.yaml`](../../.sops.yaml).
+- Workflow permissions that let `GITHUB_TOKEN` write contents, and branch
+  protection on `main` that allows `github-actions[bot]` to push.
 
 ## Rollback
 
 `git revert` the bad commit on `main`; doco-cd deploys the revert on its next
-poll. To pin images to a known-good build, set `TAG: main-<good-full-sha>` in
-`.doco-cd.yml` and push.
+poll. To pin images to a known-good build, `sops edit .env` and set
+`BACKEND_TAG` / `FRONTEND_TAG` / `GATEWAY_TAG` to `main-<good-full-sha>`, then push.
 
 ## Caveats
 
 - **Image-only updates.** `TAG` is the floating `main` tag, which isn't in
-  git, so pushing a new `:main` image without a commit isn't seen until the
-  next commit. For a true "git describes exactly what runs" setup, CI would
-  need to commit the new `main-<sha>` tag after pushing images (the Argo CD
-  Image Updater pattern). That requires changes to `deploy-onprem.yml` and
-  `docker-compose.yml`, which this setup deliberately leaves untouched.
+  git, so a new `:main` image pushed by `Deploy to Onprem VM` isn't seen until
+  the next commit. Use `Deploy to Prod` instead: it commits the immutable
+  `main-<sha>` tags, so git describes exactly what runs.
 - `reconciliation` is disabled. Otherwise doco-cd restarts the backend while
   it's still booting and reporting unhealthy.
 - The `nginx` service's `./nginx-proxy/nginx.conf` bind mount resolves into

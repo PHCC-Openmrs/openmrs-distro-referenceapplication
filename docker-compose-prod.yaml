@@ -27,7 +27,7 @@ services:
       - caddy-config:/config
 
   gateway:
-    image: ${IMAGE_PREFIX:?set in .env}/openmrs-reference-application-3-gateway:${TAG:?set in .env}
+    image: ${IMAGE_PREFIX:?set in .env}/openmrs-reference-application-3-gateway:${GATEWAY_TAG:-${TAG:?set in .env}}
     restart: "unless-stopped"
     depends_on:
       - frontend
@@ -48,7 +48,7 @@ services:
       - ./nginx-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
 
   frontend:
-    image: ${IMAGE_PREFIX:?set in .env}/openmrs-reference-application-3-frontend:${TAG:?set in .env}
+    image: ${IMAGE_PREFIX:?set in .env}/openmrs-reference-application-3-frontend:${FRONTEND_TAG:-${TAG:?set in .env}}
     restart: "unless-stopped"
     environment:
       SPA_PATH: ${SPA_PATH:?set in .env}
@@ -62,7 +62,7 @@ services:
       - backend
 
   backend:
-    image: ${IMAGE_PREFIX:?set in .env}/openmrs-reference-application-3-backend:${TAG:?set in .env}
+    image: ${IMAGE_PREFIX:?set in .env}/openmrs-reference-application-3-backend:${BACKEND_TAG:-${TAG:?set in .env}}
     restart: "unless-stopped"
     environment:
       OMRS_CONFIG_MODULE_WEB_ADMIN: ${OMRS_CONFIG_MODULE_WEB_ADMIN:?set in .env}
