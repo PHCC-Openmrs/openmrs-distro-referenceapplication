@@ -123,18 +123,23 @@ jobs:
         run: docker logout "$REGISTRY" || true
 
   update-env-tags:
-    name: Pin built image tags in .env
+    name: Open a PR that pins the built image tags in .env
     needs: [changes, build-and-push]
     runs-on: ubuntu-latest
     environment:
       name: prod
     permissions:
       contents: write
+      pull-requests: write
     env:
       # The branch doco-cd deploys prod from, set as a variable on the `prod`
       # environment (keep it in sync with Key Vault openmrs-vm-deploy-branch).
       # .env is only updated when the pipeline runs on this branch.
       DEPLOY_BRANCH: ${{ vars.PROD_DEPLOY_BRANCH }}
+      # The deploy branch only accepts changes through pull requests, so each
+      # run pushes the .env change to <prefix><run id> and opens a PR.
+      PR_BRANCH_PREFIX: deploy/prod-tags-
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Check deploy branch
         id: gate
@@ -151,22 +156,40 @@ jobs:
             echo "run=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # Check out the branch tip, not the dispatched SHA, so the commit lands
-      # on top of anything pushed while the images were building.
-      - name: Check out the deploy branch
+      # Every .env change rewrites sops_mac, so two open tag PRs always
+      # conflict. Build on top of the newest open tag PR (if any) so this PR
+      # carries its pending tags too; that PR is closed as superseded below.
+      - name: Check out the deploy branch or the open tag PR
+        id: base
         if: steps.gate.outputs.run == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git init -q .
           git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
-          # Kept in local config so the commit step can pull and push; the
-          # runner is discarded after the job.
+          # Kept in local config so later steps can push; the runner is
+          # discarded after the job.
           git config http.extraheader "$auth"
-          git fetch -q origin "$DEPLOY_BRANCH"
-          git checkout -q -B "$DEPLOY_BRANCH" FETCH_HEAD
+
+          prev=$(curl -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pulls?state=open&base=${DEPLOY_BRANCH}&per_page=100" |
+            jq -c --arg prefix "$PR_BRANCH_PREFIX" --arg repo "$GITHUB_REPOSITORY" '
+              [.[] | select(.head.repo.full_name == $repo and (.head.ref | startswith($prefix)))]
+              | sort_by(.created_at) | last // empty')
+
+          if [ -n "$prev" ]; then
+            prev_number=$(jq -r .number <<<"$prev")
+            prev_ref=$(jq -r .head.ref <<<"$prev")
+            echo "Building on open tag PR #${prev_number} (${prev_ref})."
+            git fetch -q origin "$prev_ref"
+            echo "prev_number=${prev_number}" >> "$GITHUB_OUTPUT"
+            echo "prev_ref=${prev_ref}" >> "$GITHUB_OUTPUT"
+          else
+            git fetch -q origin "$DEPLOY_BRANCH"
+          fi
+          git checkout -q -B "${PR_BRANCH_PREFIX}${GITHUB_RUN_ID}" FETCH_HEAD
 
       - name: Install sops
         if: steps.gate.outputs.run == 'true'
@@ -206,29 +229,57 @@ jobs:
           echo "services=${updated[*]}" >> "$GITHUB_OUTPUT"
           echo "Pinned ${updated[*]:-nothing} to ${SHA_TAG}"
 
-      - name: Commit and push
+      - name: Commit, push and open the PR
         if: steps.gate.outputs.run == 'true'
         env:
           SHA_TAG: ${{ needs.build-and-push.outputs.sha_tag }}
           SERVICES: ${{ steps.set.outputs.services }}
-          BRANCH: ${{ env.DEPLOY_BRANCH }}
+          PREV_NUMBER: ${{ steps.base.outputs.prev_number }}
+          PREV_REF: ${{ steps.base.outputs.prev_ref }}
         run: |
           set -euo pipefail
+          api() {  # <method> <path> [json body]
+            curl -fsSL -X "$1" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}$2" ${3:+--data "$3"}
+          }
+
           if git diff --quiet -- .env; then
             echo "No tag changes to commit."
             exit 0
           fi
 
+          services="${SERVICES// /, }"
+          title="Pin ${services} image tag to ${SHA_TAG}"
+          pr_branch="${PR_BRANCH_PREFIX}${GITHUB_RUN_ID}"
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Pin ${SERVICES// /, } image tag to ${SHA_TAG}" -- .env
+          git commit -q -m "$title" -- .env
+          git push -q origin "HEAD:refs/heads/${pr_branch}"
 
-          for attempt in 1 2 3; do
-            if git push origin "HEAD:${BRANCH}"; then
-              exit 0
-            fi
-            echo "Push rejected (attempt ${attempt}); rebasing onto origin/${BRANCH}."
-            git pull --rebase origin "$BRANCH"
-          done
-          echo "::error::Could not push the .env update to ${BRANCH}."
-          exit 1
+          # shellcheck disable=SC2016 # backticks are literal Markdown
+          body=$(printf 'Built by [Deploy to Prod run %s](%s) from `%s`.\n\nSets `.env` image tags for **%s** to `%s`. Merging this deploys them: doco-cd picks up the commit on `%s`.' \
+            "$GITHUB_RUN_ID" "$run_url" "$GITHUB_SHA" "$services" "$SHA_TAG" "$DEPLOY_BRANCH")
+          if [ -n "$PREV_NUMBER" ]; then
+            body=$(printf '%s\n\nAlso includes the tags from #%s, which this supersedes.' "$body" "$PREV_NUMBER")
+          fi
+
+          pr=$(api POST /pulls "$(jq -n \
+            --arg title "$title" --arg head "$pr_branch" \
+            --arg base "$DEPLOY_BRANCH" --arg body "$body" \
+            '{title: $title, head: $head, base: $base, body: $body}')")
+          pr_number=$(jq -r .number <<<"$pr")
+          pr_url=$(jq -r .html_url <<<"$pr")
+          echo "Opened ${pr_url}"
+          echo "### Merge [#${pr_number}](${pr_url}) to deploy ${services} (\`${SHA_TAG}\`)" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -n "$PREV_NUMBER" ]; then
+            api POST "/issues/${PREV_NUMBER}/comments" \
+              "$(jq -n --arg b "Superseded by #${pr_number}, which includes these tags." '{body: $b}')" >/dev/null
+            api PATCH "/pulls/${PREV_NUMBER}" '{"state":"closed"}' >/dev/null
+            git push -q origin --delete "$PREV_REF" || true
+            echo "Closed superseded PR #${PREV_NUMBER}."
+          fi

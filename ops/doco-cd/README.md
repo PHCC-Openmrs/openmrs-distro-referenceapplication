@@ -102,7 +102,7 @@ requests to GitHub and GHCR.
 |---|---|
 | Compose files, `configuration/`, `nginx-proxy/`, `caddy/`, `.doco-cd.yml` pushed to `main` | Deployed on the next poll (≤ 60s). |
 | New image pushed to `ghcr.io/phcc-openmrs/*:main` (via `Deploy to Onprem VM`) | Picked up at the **next commit to `main`**, since doco-cd watches git, not the registry (see Caveats). |
-| `Deploy to Prod` run on the `PROD_DEPLOY_BRANCH` branch | Builds the selected images, commits their `<branch>-<sha>` tags to `.env`, and that commit is deployed on the next poll. |
+| `Deploy to Prod` run on the `PROD_DEPLOY_BRANCH` branch | Builds the selected images and opens a PR that sets their `<branch>-<sha>` tags in `.env`. Merging the PR deploys them on the next poll. |
 
 ## Deploy to Prod pipeline
 
@@ -115,14 +115,21 @@ or `gateway`). It:
 2. In the `prod` environment, runs `sops set` to write `<branch>-<sha>` into
    `.env` as `BACKEND_TAG`, `FRONTEND_TAG` and/or `GATEWAY_TAG`. Only the
    services built in that run are updated.
-3. Commits `.env` back to the branch as `github-actions[bot]`. doco-cd sees
-   the commit and deploys exactly those images.
+3. Pushes the `.env` change to `deploy/prod-tags-<run id>` and opens a PR into
+   the deploy branch (the run summary links it). `main` only accepts changes
+   through PRs. **Merging the PR deploys**: doco-cd sees the commit and runs
+   exactly those images.
+
+Each `.env` change rewrites sops's `sops_mac`, so two open tag PRs would always
+conflict. A new run therefore builds on top of the newest open tag PR and
+closes it as superseded. Only one tag PR is open at a time, and it carries every
+pending tag.
 
 `docker-compose-prod.yaml` uses `${<SERVICE>_TAG:-${TAG}}`, so a service whose
 tag was never pinned still runs the floating `TAG`.
 
 The tag step updates `.env` only when the pipeline runs on the branch named by
-the `prod` environment variable `PROD_DEPLOY_BRANCH`, and commits there. Keep it
+the `prod` environment variable `PROD_DEPLOY_BRANCH`, and opens its PR there. Keep it
 the same as Key Vault `openmrs-vm-deploy-branch`, which is the branch doco-cd
 deploys from (`feature/doco-cd-prod-pipeline` while testing, `main` later).
 Runs on any other branch still build and push images but leave `.env` alone.
@@ -131,8 +138,11 @@ It needs:
 - A GitHub environment `prod` with the variable `PROD_DEPLOY_BRANCH` and the
   secret `SOPS_AGE_KEY`: the age private key for the recipient in
   [`.sops.yaml`](../../.sops.yaml).
-- Workflow permissions that let `GITHUB_TOKEN` write contents, and branch
-  protection on `main` that allows `github-actions[bot]` to push.
+- Workflow permissions that let `GITHUB_TOKEN` write contents, and
+  **Settings → Actions → General → Allow GitHub Actions to create and approve
+  pull requests** turned on.
+- PRs opened with `GITHUB_TOKEN` don't trigger other workflows. If `main`
+  requires status checks, merging a tag PR needs a bypass.
 
 ## Rollback
 
@@ -144,7 +154,7 @@ poll. To pin images to a known-good build, `sops edit .env` and set
 
 - **Image-only updates.** `TAG` is the floating `main` tag, which isn't in
   git, so a new `:main` image pushed by `Deploy to Onprem VM` isn't seen until
-  the next commit. Use `Deploy to Prod` instead: it commits the immutable
+  the next commit. Use `Deploy to Prod` instead: its PR pins the immutable
   `main-<sha>` tags, so git describes exactly what runs.
 - `reconciliation` is disabled. Otherwise doco-cd restarts the backend while
   it's still booting and reporting unhealthy.
