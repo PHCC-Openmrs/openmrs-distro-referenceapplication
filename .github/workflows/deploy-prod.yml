@@ -1,0 +1,213 @@
+name: Deploy to Prod
+
+# Builds and pushes the selected images, then pins each newly built image's
+# immutable <branch>-<sha> tag in the SOPS-encrypted .env and commits it.
+# doco-cd on the prod VM picks up that commit and redeploys -- see
+# ops/doco-cd/README.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: Which service to build and deploy
+        type: choice
+        options:
+          - all
+          - backend
+          - frontend
+          - gateway
+        default: all
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: phcc-openmrs
+  SOPS_VERSION: v3.13.3
+  SOPS_SHA256: e5bec3346a873ae91d871550f3e698c1aad962aff462a080e40f25fde17fef6b
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect changed service paths
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.resolve.outputs.backend }}
+      frontend: ${{ steps.resolve.outputs.frontend }}
+      gateway: ${{ steps.resolve.outputs.gateway }}
+    steps:
+      - name: Resolve which services to build
+        id: resolve
+        env:
+          SELECTED_SERVICE: ${{ inputs.service }}
+        run: |
+          for s in backend frontend gateway; do
+            if [ "$SELECTED_SERVICE" = "all" ] || [ "$SELECTED_SERVICE" = "$s" ]; then
+              echo "$s=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "$s=false" >> "$GITHUB_OUTPUT"
+            fi
+          done
+
+  build-and-push:
+    name: Build and push images to GHCR
+    needs: changes
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      sha_tag: ${{ steps.tag.outputs.sha_tag }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Compute image tags
+        id: tag
+        run: |
+          echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=${GITHUB_REF_NAME}-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.GHUB_DOCKER_USERNAME }}
+          password: ${{ secrets.GHUB_DOCKER_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Build and push backend
+        if: needs.changes.outputs.backend == 'true'
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/openmrs-reference-application-3-backend:${{ steps.tag.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/openmrs-reference-application-3-backend:${{ steps.tag.outputs.sha_tag }}
+
+      - name: Build and push frontend
+        if: needs.changes.outputs.frontend == 'true'
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: ./frontend
+          push: true
+          build-args: |
+            CACHE_BUST=${{ github.run_id }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/openmrs-reference-application-3-frontend:${{ steps.tag.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/openmrs-reference-application-3-frontend:${{ steps.tag.outputs.sha_tag }}
+
+      - name: Build and push gateway
+        if: needs.changes.outputs.gateway == 'true'
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: ./gateway
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/openmrs-reference-application-3-gateway:${{ steps.tag.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/openmrs-reference-application-3-gateway:${{ steps.tag.outputs.sha_tag }}
+
+  update-env-tags:
+    name: Pin built image tags in .env
+    needs: [changes, build-and-push]
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+    permissions:
+      contents: write
+    env:
+      # The branch doco-cd deploys prod from, set as a variable on the `prod`
+      # environment (keep it in sync with Key Vault openmrs-vm-deploy-branch).
+      # .env is only updated when the pipeline runs on this branch.
+      DEPLOY_BRANCH: ${{ vars.PROD_DEPLOY_BRANCH }}
+    steps:
+      - name: Check deploy branch
+        id: gate
+        run: |
+          set -euo pipefail
+          if [ -z "$DEPLOY_BRANCH" ]; then
+            echo "::error::PROD_DEPLOY_BRANCH variable is not set on the prod environment."
+            exit 1
+          fi
+          if [ "$GITHUB_REF_NAME" != "$DEPLOY_BRANCH" ]; then
+            echo "::notice::Ran on ${GITHUB_REF_NAME}, but prod deploys from ${DEPLOY_BRANCH}; .env not updated."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Check out the branch tip, not the dispatched SHA, so the commit lands
+      # on top of anything pushed while the images were building.
+      - if: steps.gate.outputs.run == 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ env.DEPLOY_BRANCH }}
+
+      - name: Install sops
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/sops \
+            "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64"
+          echo "${SOPS_SHA256}  /tmp/sops" | sha256sum -c -
+          sudo install -m 0755 /tmp/sops /usr/local/bin/sops
+          sops --version
+
+      - name: Set image tags in .env
+        id: set
+        if: steps.gate.outputs.run == 'true'
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+          SHA_TAG: ${{ needs.build-and-push.outputs.sha_tag }}
+          BUILT_BACKEND: ${{ needs.changes.outputs.backend }}
+          BUILT_FRONTEND: ${{ needs.changes.outputs.frontend }}
+          BUILT_GATEWAY: ${{ needs.changes.outputs.gateway }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SOPS_AGE_KEY" ]; then
+            echo "::error::SOPS_AGE_KEY secret is not set in the prod environment — cannot update .env."
+            exit 1
+          fi
+
+          updated=()
+          for svc in backend frontend gateway; do
+            built_var="BUILT_${svc^^}"
+            if [ "${!built_var}" = "true" ]; then
+              sops set .env "[\"${svc^^}_TAG\"]" "\"${SHA_TAG}\""
+              updated+=("$svc")
+            fi
+          done
+
+          echo "services=${updated[*]}" >> "$GITHUB_OUTPUT"
+          echo "Pinned ${updated[*]:-nothing} to ${SHA_TAG}"
+
+      - name: Commit and push
+        if: steps.gate.outputs.run == 'true'
+        env:
+          SHA_TAG: ${{ needs.build-and-push.outputs.sha_tag }}
+          SERVICES: ${{ steps.set.outputs.services }}
+          BRANCH: ${{ env.DEPLOY_BRANCH }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- .env; then
+            echo "No tag changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Pin ${SERVICES// /, } image tag to ${SHA_TAG}" -- .env
+
+          for attempt in 1 2 3; do
+            if git push origin "HEAD:${BRANCH}"; then
+              exit 0
+            fi
+            echo "Push rejected (attempt ${attempt}); rebasing onto origin/${BRANCH}."
+            git pull --rebase origin "$BRANCH"
+          done
+          echo "::error::Could not push the .env update to ${BRANCH}."
+          exit 1
