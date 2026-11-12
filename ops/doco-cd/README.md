@@ -118,6 +118,13 @@ or `gateway`). It:
 3. Commits `.env` back to the branch as `github-actions[bot]`. doco-cd sees
    the commit and deploys exactly those images.
 
+Builds reuse BuildKit layer cache stored in GHCR as
+`openmrs-reference-application-3-<service>:buildcache`, which covers the Maven
+repo and the yarn installs/builds that happen inside the Dockerfiles. Only steps
+whose inputs changed run again (e.g. a fork whose commit moved, or edits to
+`distro/`). The first run after adding this, or after a cache tag is deleted,
+is a full build. Delete that tag in GHCR to force a clean build.
+
 `docker-compose-prod.yaml` uses `${<SERVICE>_TAG:-${TAG}}`, so a service whose
 tag was never pinned still runs the floating `TAG`.
 
