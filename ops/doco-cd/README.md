@@ -102,7 +102,7 @@ requests to GitHub and GHCR.
 |---|---|
 | Compose files, `configuration/`, `nginx-proxy/`, `caddy/`, `.doco-cd.yml` pushed to `main` | Deployed on the next poll (≤ 60s). |
 | New image pushed to `ghcr.io/phcc-openmrs/*:main` (via `Deploy to Onprem VM`) | Picked up at the **next commit to `main`**, since doco-cd watches git, not the registry (see Caveats). |
-| `Deploy to Prod` run on `main` | Builds the selected images, commits their `main-<sha>` tags to `.env`, and that commit is deployed on the next poll. |
+| `Deploy to Prod` run on the `PROD_DEPLOY_BRANCH` branch | Builds the selected images, commits their `<branch>-<sha>` tags to `.env`, and that commit is deployed on the next poll. |
 
 ## Deploy to Prod pipeline
 
@@ -121,11 +121,16 @@ or `gateway`). It:
 `docker-compose-prod.yaml` uses `${<SERVICE>_TAG:-${TAG}}`, so a service whose
 tag was never pinned still runs the floating `TAG`.
 
-The tag step runs only on `main` (plus the test branch
-`feature/doco-cd-prod-pipeline`, to be removed before merge). It needs:
+The tag step updates `.env` only when the pipeline runs on the branch named by
+the `prod` environment variable `PROD_DEPLOY_BRANCH`, and commits there. Keep it
+the same as Key Vault `openmrs-vm-deploy-branch`, which is the branch doco-cd
+deploys from (`feature/doco-cd-prod-pipeline` while testing, `main` later).
+Runs on any other branch still build and push images but leave `.env` alone.
+It needs:
 
-- A GitHub environment `prod` with the secret `SOPS_AGE_KEY`: the age private
-  key for the recipient in [`.sops.yaml`](../../.sops.yaml).
+- A GitHub environment `prod` with the variable `PROD_DEPLOY_BRANCH` and the
+  secret `SOPS_AGE_KEY`: the age private key for the recipient in
+  [`.sops.yaml`](../../.sops.yaml).
 - Workflow permissions that let `GITHUB_TOKEN` write contents, and branch
   protection on `main` that allows `github-actions[bot]` to push.
 

@@ -114,22 +114,41 @@ jobs:
   update-env-tags:
     name: Pin built image tags in .env
     needs: [changes, build-and-push]
-    # Prod deploys from main only. The feature branch is allowed while the
-    # pipeline is being tested -- remove it before merging to main.
-    if: github.ref_name == 'main' || github.ref_name == 'feature/doco-cd-prod-pipeline'
     runs-on: ubuntu-latest
     environment:
       name: prod
     permissions:
       contents: write
+    env:
+      # The branch doco-cd deploys prod from, set as a variable on the `prod`
+      # environment (keep it in sync with Key Vault openmrs-vm-deploy-branch).
+      # .env is only updated when the pipeline runs on this branch.
+      DEPLOY_BRANCH: ${{ vars.PROD_DEPLOY_BRANCH }}
     steps:
+      - name: Check deploy branch
+        id: gate
+        run: |
+          set -euo pipefail
+          if [ -z "$DEPLOY_BRANCH" ]; then
+            echo "::error::PROD_DEPLOY_BRANCH variable is not set on the prod environment."
+            exit 1
+          fi
+          if [ "$GITHUB_REF_NAME" != "$DEPLOY_BRANCH" ]; then
+            echo "::notice::Ran on ${GITHUB_REF_NAME}, but prod deploys from ${DEPLOY_BRANCH}; .env not updated."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
       # Check out the branch tip, not the dispatched SHA, so the commit lands
       # on top of anything pushed while the images were building.
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - if: steps.gate.outputs.run == 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ env.DEPLOY_BRANCH }}
 
       - name: Install sops
+        if: steps.gate.outputs.run == 'true'
         run: |
           set -euo pipefail
           curl -fsSL -o /tmp/sops \
@@ -140,6 +159,7 @@ jobs:
 
       - name: Set image tags in .env
         id: set
+        if: steps.gate.outputs.run == 'true'
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
           SHA_TAG: ${{ needs.build-and-push.outputs.sha_tag }}
@@ -166,10 +186,11 @@ jobs:
           echo "Pinned ${updated[*]:-nothing} to ${SHA_TAG}"
 
       - name: Commit and push
+        if: steps.gate.outputs.run == 'true'
         env:
           SHA_TAG: ${{ needs.build-and-push.outputs.sha_tag }}
           SERVICES: ${{ steps.set.outputs.services }}
-          BRANCH: ${{ github.ref_name }}
+          BRANCH: ${{ env.DEPLOY_BRANCH }}
         run: |
           set -euo pipefail
           if git diff --quiet -- .env; then
