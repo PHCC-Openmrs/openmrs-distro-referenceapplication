@@ -55,7 +55,16 @@ const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
   mergedArray = mergedArray.filter((item) => item.hasExpiration && item.quantity > 0);
 
   // Headline: everything expiring within 180 days, including batches already past expiry.
-  const filteredData = mergedArray.filter((item) => isExpiringWithinWindow(item, currentDate));
+  // Soonest expiry first (already-expired batches lead), so the most urgent rows are at the top of
+  // the Expiring stock modal. The API returns batches in insertion order, and batches with no
+  // expiration date go last rather than sorting as 1970.
+  const filteredData = mergedArray
+    .filter((item) => isExpiringWithinWindow(item, currentDate))
+    .sort((a, b) => {
+      const aTime = a.expiration ? new Date(a.expiration).getTime() : Infinity;
+      const bTime = b.expiration ? new Date(b.expiration).getTime() : Infinity;
+      return aTime === bTime ? 0 : aTime < bTime ? -1 : 1;
+    });
 
   // "In 6 months" sub-count: the ones that haven't expired yet.
   const sixMonthsExpiryStocks = filteredData.filter((item) => daysUntilExpiry(item.expiration, currentDate) >= 0);

@@ -54,11 +54,16 @@ const StockHomeInventoryCard = () => {
   // hold any of shouldn't count as this location's "expiring stock".
   mergedArray = mergedArray.filter((item) => item.hasExpiration && item.quantity > 0);
 
-  const expiringSoon = mergedArray.filter((item) => {
-    const expirationDate = new Date(item.expiration);
-    const differenceInDays = Math.ceil((expirationDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
-    return differenceInDays <= 180 && differenceInDays >= 0;
-  });
+  // Soonest expiry first, so the 3 alerts shown below (and the "View all expiring" modal) lead with
+  // the most urgent batches; the API returns batches in insertion order. Already-expired batches
+  // are not alerted on here.
+  const expiringSoon = mergedArray
+    .filter((item) => {
+      const expirationDate = new Date(item.expiration);
+      const differenceInDays = Math.ceil((expirationDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+      return differenceInDays <= 180 && differenceInDays >= 0;
+    })
+    .sort((a, b) => new Date(a.expiration).getTime() - new Date(b.expiration).getTime());
 
   const filteredData = expiringSoon.slice(0, 3);
   const understockedToShow = understockedItems.slice(0, 3);
