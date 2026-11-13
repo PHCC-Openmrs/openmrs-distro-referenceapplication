@@ -130,6 +130,11 @@ public class LabTestReportRestController {
 			allowed = Context.hasPrivilege(PRIVILEGE_PROGRAMMATIC) || Context.hasPrivilege(PRIVILEGE_HEALTH_PROMOTION);
 		} else if (endpoint.startsWith("stock-")) {
 			allowed = Context.hasPrivilege(PRIVILEGE_STOCK_DASHBOARD) || Context.hasPrivilege(PRIVILEGE_STOCK_REPORTS);
+		} else if ("medicine-distribution-report.json".equals(endpoint)) {
+			// Listed under Stock Reports in the UI, so the stock privileges open it too; programmatic
+			// keeps working for the roles that already had it.
+			allowed = Context.hasPrivilege(PRIVILEGE_STOCK_DASHBOARD) || Context.hasPrivilege(PRIVILEGE_STOCK_REPORTS)
+			        || Context.hasPrivilege(PRIVILEGE_PROGRAMMATIC);
 		} else {
 			allowed = Context.hasPrivilege(PRIVILEGE_PROGRAMMATIC);
 		}
