@@ -6,7 +6,7 @@ SELECT
   v.visit_id                    AS visitId,
   v.date_started                AS visitDate,
   COALESCE(l.name, '')          AS locationName,
-  COALESCE(GROUP_CONCAT(DISTINCT COALESCE(NULLIF(TRIM(pv.name), ''), TRIM(CONCAT(pvpn.given_name, ' ', pvpn.family_name))) SEPARATOR ', '), '') AS providerName,
+  COALESCE(GROUP_CONCAT(DISTINCT COALESCE(NULLIF(TRIM(pv.name), ''), TRIM(CONCAT_WS(' ', pvpn.given_name, NULLIF(TRIM(pvpn.middle_name), ''), pvpn.family_name))) SEPARATOR ', '), '') AS providerName,
   GROUP_CONCAT(DISTINCT pr.name ORDER BY pr.name SEPARATOR ', ') AS serviceType
 FROM visit v
 JOIN patient pt ON pt.patient_id = v.patient_id

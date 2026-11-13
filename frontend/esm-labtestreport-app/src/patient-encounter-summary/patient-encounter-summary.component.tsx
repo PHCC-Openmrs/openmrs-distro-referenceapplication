@@ -337,6 +337,7 @@ export default function PatientEncounterSummaryReport() {
       name: t('visitDetails', 'Visit Details'),
       headers: [
         t('givenName', 'Given Name'),
+        t('middleName', 'Middle Name'),
         t('familyName', 'Family Name'),
         t('sex', 'Sex'),
         t('nationalId', 'National ID'),
@@ -351,6 +352,7 @@ export default function PatientEncounterSummaryReport() {
         const patient = patientById.get(group.patientId);
         return [
           patient?.givenName ?? '',
+          patient?.middleName ?? '',
           patient?.familyName ?? '',
           group.sex,
           group.nationalId,
