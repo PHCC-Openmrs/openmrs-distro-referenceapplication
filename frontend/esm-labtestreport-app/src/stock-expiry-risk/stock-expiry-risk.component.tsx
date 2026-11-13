@@ -295,8 +295,10 @@ export default function StockExpiryRiskReport() {
                 </tr>
               </thead>
               <tbody>
-                {sortedRows.map((row) => (
-                  <tr key={`${row.stockItemId}-${row.locationId}-${row.batchNo}`}>
+                {sortedRows.map((row, index) => (
+                  // The same item/location/batch can appear in more than one row, so the index is
+                  // needed to keep keys unique. Duplicate keys make React leave stale rows in the DOM.
+                  <tr key={`${row.stockItemId}-${row.locationId}-${row.batchNo}-${index}`}>
                     <td className="left">{row.itemName}</td>
                     {showLocationColumn && <td className="left">{row.locationName ?? '—'}</td>}
                     <td className="left">{row.batchNo}</td>
