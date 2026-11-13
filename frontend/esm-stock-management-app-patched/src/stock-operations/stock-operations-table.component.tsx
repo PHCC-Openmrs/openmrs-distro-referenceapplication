@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import dayjs from 'dayjs';
 import {
   DataTable,
   DataTableSkeleton,
@@ -68,7 +69,9 @@ const StockOperations: React.FC<StockOperationsTableProps> = () => {
         // matches the same session-location scoping already applied to stock item quantities.
         locationUuid: sessionLocation?.uuid,
         operationDateMin: selectedFromDate?.toISOString(),
-        operationDateMax: selectedToDate?.toISOString(),
+        // The picker gives the start of the chosen day, and the backend filters operationDate <= max,
+        // so send the end of that day or every operation made on the "to" day is left out.
+        operationDateMax: selectedToDate ? dayjs(selectedToDate).endOf('day').toISOString() : undefined,
         status: selectedStatus.join(','),
         sourceTypeUuid: selectedSources.join(','),
         operationTypeUuid: selectedOperations.join(','),

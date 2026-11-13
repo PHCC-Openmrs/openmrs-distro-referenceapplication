@@ -1,4 +1,5 @@
 import useSWR from 'swr';
+import dayjs from 'dayjs';
 import { openmrsFetch, restBaseUrl } from '@openmrs/esm-framework';
 import { ResourceRepresentation, toQueryParams } from '../core/api/api';
 import { StockItemOnly } from '../core/api/types/stockItem/StockItem';
@@ -18,10 +19,10 @@ interface SnapshotPoint {
 
 const SNAPSHOT_DAYS_AGO = [28, 21, 14, 7, 0];
 
+// The user's calendar day. toISOString() would give the UTC day, which in Gaza is still
+// yesterday until 02:00 (03:00 in summer).
 function isoDaysAgo(daysAgo: number) {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  return date.toISOString().split('T')[0];
+  return dayjs().subtract(daysAgo, 'day').format('YYYY-MM-DD');
 }
 
 async function fetchSnapshot(

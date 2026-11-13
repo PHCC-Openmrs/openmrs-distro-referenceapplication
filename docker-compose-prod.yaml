@@ -77,6 +77,11 @@ services:
       OMRS_CONFIG_ADMIN_USER_PASSWORD: ${OMRS_CONFIG_ADMIN_USER_PASSWORD:?set in Key Vault}
       # Added to the end of the JDBC URL. The server requires TLS.
       OMRS_CONFIG_CONNECTION_EXTRA_ARGS: ${OMRS_CONFIG_CONNECTION_EXTRA_ARGS:?set in .env}
+      # Gaza time, wherever the VM is. The JVM's timezone decides how report dates
+      # (yyyy-MM-dd) become day boundaries and how timestamps are saved. TZ covers the OS
+      # clock and logs. The Azure MySQL time_zone server parameter must also be Asia/Gaza.
+      TZ: Asia/Gaza
+      OMRS_JAVA_SERVER_OPTS: "-Duser.timezone=Asia/Gaza"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs"]
       timeout: 5s
