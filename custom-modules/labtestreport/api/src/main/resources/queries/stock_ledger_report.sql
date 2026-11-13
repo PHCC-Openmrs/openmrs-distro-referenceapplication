@@ -37,7 +37,7 @@ tx AS (
     sit.stock_item_id  AS stockItemId,
     sit.party_id       AS partyId,
     sit.stock_batch_id AS batchId,
-    DATE(so.operation_date) AS txDate,
+    DATE(COALESCE(so.completed_date, so.operation_date)) AS txDate,
     sit.quantity * puom.factor AS qty
   FROM stockmgmt_stock_item_transaction sit
   JOIN stockmgmt_stock_item si ON si.stock_item_id = sit.stock_item_id

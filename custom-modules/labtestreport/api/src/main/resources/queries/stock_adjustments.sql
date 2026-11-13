@@ -18,7 +18,7 @@
 -- GROUP BY - remarks is free text on the operation header, so collapsing lines together would
 -- leave a quantity no single remark explains.
 SELECT
-  so.operation_date       AS operationDate,
+  COALESCE(so.completed_date, so.operation_date)       AS operationDate,
   so.operation_number     AS operationNumber,
   p.party_id              AS locationId,
   l.name                  AS locationName,
@@ -39,7 +39,7 @@ SELECT
   -- responsible_person points at users, not persons, and may be unset in favour of the free-text
   -- responsible_person_other the form offers instead. CONCAT_WS yields '' rather than NULL when
   -- every part is NULL, hence the NULLIF - without it the fallbacks would never be reached.
-  COALESCE(NULLIF(CONCAT_WS(' ', pn.given_name, pn.family_name), ''), u.username, so.responsible_person_other)
+  COALESCE(NULLIF(CONCAT_WS(' ', pn.given_name, NULLIF(TRIM(pn.middle_name), ''), pn.family_name), ''), u.username, so.responsible_person_other)
                           AS responsiblePerson
 FROM stockmgmt_stock_item_transaction sit
 JOIN stockmgmt_stock_item si ON si.stock_item_id = sit.stock_item_id
@@ -71,6 +71,6 @@ WHERE si.voided = 0
   AND so.status = 'COMPLETED'
   AND COALESCE(so.voided, 0) = 0
   AND (:locationUuid IS NULL OR l.uuid = :locationUuid)
-  AND (:startDate IS NULL OR DATE(so.operation_date) >= :startDate)
-  AND (:endDate IS NULL OR DATE(so.operation_date) < DATE_ADD(:endDate, INTERVAL 1 DAY))
-ORDER BY so.operation_date DESC, so.operation_number, si.common_name
+  AND (:startDate IS NULL OR DATE(COALESCE(so.completed_date, so.operation_date)) >= :startDate)
+  AND (:endDate IS NULL OR DATE(COALESCE(so.completed_date, so.operation_date)) < DATE_ADD(:endDate, INTERVAL 1 DAY))
+ORDER BY COALESCE(so.completed_date, so.operation_date) DESC, so.operation_number, si.common_name

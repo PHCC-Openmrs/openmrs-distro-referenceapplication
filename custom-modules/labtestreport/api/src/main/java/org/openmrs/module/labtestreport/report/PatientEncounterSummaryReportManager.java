@@ -84,7 +84,7 @@ public class PatientEncounterSummaryReportManager extends BaseReportManager {
 	 * headers, since the O3 Reports web preview just renders whatever columns the dataset returns.
 	 */
 	private static String buildPreviewSql() {
-		return "SELECT givenName AS `Given Name`, familyName AS `Family Name`, age AS `Age`, "
+		return "SELECT givenName AS `Given Name`, middleName AS `Middle Name`, familyName AS `Family Name`, age AS `Age`, "
 		        + "visitCount AS `Number of Visits`, mostRecentVisitDate AS `Most Recent Visit Date`, "
 		        + "location AS `Location`, serviceType AS `Service Type` "
 		        + "FROM (" + SqlResources.load("patient_encounter_summary.sql") + ") base";

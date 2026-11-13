@@ -59,7 +59,7 @@ WHERE si.voided = 0
   AND COALESCE(so.voided, 0) = 0
   AND si.stock_item_id = :stockItemId
   AND sit.party_id = :locationId
-  AND (:startDate IS NULL OR DATE(so.operation_date) >= :startDate)
-  AND (:endDate IS NULL OR DATE(so.operation_date) < DATE_ADD(:endDate, INTERVAL 1 DAY))
+  AND (:startDate IS NULL OR DATE(COALESCE(so.completed_date, so.operation_date)) >= :startDate)
+  AND (:endDate IS NULL OR DATE(COALESCE(so.completed_date, so.operation_date)) < DATE_ADD(:endDate, INTERVAL 1 DAY))
 GROUP BY sb.batch_no, sb.expiration, bv.vendorName, pv.name, un.name, bv.externalReference, bun.name, bulk.factor
 ORDER BY quantity DESC

@@ -50,7 +50,7 @@ WHERE si.voided = 0
   AND so.status = 'COMPLETED'
   AND COALESCE(so.voided, 0) = 0
   AND (:sourceLocationUuid IS NULL OR srcL.uuid = :sourceLocationUuid)
-  AND (:startDate IS NULL OR DATE(so.operation_date) >= :startDate)
-  AND (:endDate IS NULL OR DATE(so.operation_date) < DATE_ADD(:endDate, INTERVAL 1 DAY))
+  AND (:startDate IS NULL OR DATE(COALESCE(so.completed_date, so.operation_date)) >= :startDate)
+  AND (:endDate IS NULL OR DATE(COALESCE(so.completed_date, so.operation_date)) < DATE_ADD(:endDate, INTERVAL 1 DAY))
 GROUP BY si.stock_item_id, si.common_name, destP.party_id, destL.name, un.name, srcL.name, bun.name, bulk.factor
 ORDER BY quantity DESC

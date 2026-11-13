@@ -61,7 +61,7 @@ SELECT
   -- registration), so take the preferred name if there is one, else any non-voided name, else the
   -- provider's own name field.
   COALESCE(
-    (SELECT NULLIF(TRIM(CONCAT(COALESCE(prescriberName.given_name, ''), ' ', COALESCE(prescriberName.family_name, ''))), '')
+    (SELECT NULLIF(TRIM(CONCAT_WS(' ', prescriberName.given_name, NULLIF(TRIM(prescriberName.middle_name), ''), prescriberName.family_name)), '')
        FROM person_name prescriberName
       WHERE prescriberName.person_id = pr.person_id AND prescriberName.voided = 0
       ORDER BY prescriberName.preferred DESC, prescriberName.person_name_id
@@ -83,7 +83,7 @@ SELECT
   -- records (an order can be dispensed in several goes by different staff). Same name fallback as
   -- prescriber.
   (SELECT GROUP_CONCAT(DISTINCT COALESCE(
-            (SELECT NULLIF(TRIM(CONCAT(COALESCE(dn.given_name, ''), ' ', COALESCE(dn.family_name, ''))), '')
+            (SELECT NULLIF(TRIM(CONCAT_WS(' ', dn.given_name, NULLIF(TRIM(dn.middle_name), ''), dn.family_name)), '')
                FROM person_name dn
               WHERE dn.person_id = dpr.person_id AND dn.voided = 0
               ORDER BY dn.preferred DESC, dn.person_name_id

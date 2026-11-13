@@ -16,11 +16,16 @@
 -- that tells it apart from an issue to a location.
 SELECT
   sit.stock_item_transaction_id AS transactionId,
-  so.operation_date       AS operationDate,
+  -- When the stock actually moved, not when the operation was created: an adjustment or receipt that
+  -- needs approval is submitted on one day and only touches stock when it is approved (completed),
+  -- possibly a day later. Ordering by the submit date put it before movements that really came first.
+  COALESCE(so.completed_date, so.operation_date) AS operationDate,
   so.operation_number     AS operationNumber,
   so.uuid                 AS operationUuid,
   CASE
-    WHEN sit.patient_id IS NOT NULL THEN 'DISPENSED'
+    -- Only a Stock Issue is a dispense. Cancelling or editing a dispense gives its stock back as an
+    -- Adjustment that carries the same patient, which must not read as a second dispense.
+    WHEN sit.patient_id IS NOT NULL AND sot.operation_type = 'stockissue' THEN 'DISPENSED'
     WHEN sot.operation_type = 'initial' THEN 'OPENING_STOCK'
     WHEN sot.operation_type = 'receipt' THEN 'RECEIVED'
     WHEN sot.operation_type = 'transferout' THEN IF(sit.quantity < 0, 'TRANSFERRED_OUT', 'TRANSFERRED_IN')
@@ -42,13 +47,13 @@ SELECT
   -- The other side of the movement: where a transfer went to or came from, or the vendor a receipt
   -- came from. NULL for one-sided operations (adjustment, disposal, opening stock, dispense).
   COALESCE(cl.name, css.name) AS counterpartName,
-  NULLIF(CONCAT_WS(' ', ptn.given_name, ptn.family_name), '') AS patientName,
+  NULLIF(CONCAT_WS(' ', ptn.given_name, NULLIF(TRIM(ptn.middle_name), ''), ptn.family_name), '') AS patientName,
   -- Signed: positive is stock arriving at this location, negative is stock leaving it.
   sit.quantity * puom.factor AS quantity,
   rn.name                 AS reasonName,
   -- Who recorded the movement. The transaction's creator rather than the operation's
   -- responsible person, which most operation types never ask for.
-  COALESCE(NULLIF(CONCAT_WS(' ', crn.given_name, crn.family_name), ''), cu.username) AS recordedBy,
+  COALESCE(NULLIF(CONCAT_WS(' ', crn.given_name, NULLIF(TRIM(crn.middle_name), ''), crn.family_name), ''), cu.username) AS recordedBy,
   un.name                 AS unitName,
   bun.name                AS bulkUnitName,
   bulk.factor             AS bulkFactor
@@ -91,4 +96,4 @@ WHERE si.voided = 0
   AND (:stockItemId IS NULL OR sit.stock_item_id = :stockItemId)
   AND (:stockBatchId IS NULL OR sit.stock_batch_id = :stockBatchId)
 -- Within one operation the sending leg comes first, so a transfer reads "out" then "in".
-ORDER BY so.operation_date, so.stock_operation_id, sit.quantity, sit.stock_item_transaction_id
+ORDER BY COALESCE(so.completed_date, so.operation_date), so.stock_operation_id, sit.quantity, sit.stock_item_transaction_id
