@@ -115,7 +115,7 @@ or `gateway`). It:
 2. In the `prod` environment, runs `sops set` to write `<branch>-<sha>` into
    `.env` as `BACKEND_TAG`, `FRONTEND_TAG` and/or `GATEWAY_TAG`. Only the
    services built in that run are updated.
-3. Commits `.env` back to the branch as `github-actions[bot]`. doco-cd sees
+3. Commits `.env` back to the branch as `prod-deploy-bot`, pushed over SSH. doco-cd sees
    the commit and deploys exactly those images.
 
 `docker-compose-prod.yaml` uses `${<SERVICE>_TAG:-${TAG}}`, so a service whose
@@ -131,8 +131,13 @@ It needs:
 - A GitHub environment `prod` with the variable `PROD_DEPLOY_BRANCH` and the
   secret `SOPS_AGE_KEY`: the age private key for the recipient in
   [`.sops.yaml`](../../.sops.yaml).
-- Workflow permissions that let `GITHUB_TOKEN` write contents, and branch
-  protection on `main` that allows `github-actions[bot]` to push.
+- The `prod` environment secret `DEPLOY_PROD_SSH_KEY`: a passphrase-less SSH
+  private key whose GitHub account is on the `main` ruleset's bypass list.
+  `main` only accepts changes through PRs, and `GITHUB_TOKEN` can't be a
+  bypass actor, so the workflow fetches and pushes over SSH with this key
+  (GitHub's host key is pinned). Commits are authored as `prod-deploy-bot`.
+  Restrict the `prod` environment to the `main` branch, so no other branch's
+  workflow can use the key.
 
 ## Rollback
 
