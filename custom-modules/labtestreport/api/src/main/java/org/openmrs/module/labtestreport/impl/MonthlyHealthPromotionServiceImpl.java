@@ -38,6 +38,9 @@ public class MonthlyHealthPromotionServiceImpl extends BaseOpenmrsService implem
 
 	private static final String NO_SUBJECT = "Not specified";
 
+	/** Sessions recorded before the form asked for a category, or with it left blank. */
+	private static final String NO_CATEGORY = "Not specified";
+
 	private MonthlyHealthPromotionDAO dao;
 
 	public void setDao(MonthlyHealthPromotionDAO dao) {
@@ -56,6 +59,8 @@ public class MonthlyHealthPromotionServiceImpl extends BaseOpenmrsService implem
 		/** INDIVIDUAL, GROUP, or null if the form recorded neither. */
 		String typeKey;
 
+		String category;
+
 		String subject;
 
 		String ageGroup;
@@ -67,49 +72,61 @@ public class MonthlyHealthPromotionServiceImpl extends BaseOpenmrsService implem
 	}
 
 	@Override
-	public List<MonthlyHealthPromotionRow> getReport(Date startDate, Date endDate, String locationUuid, String subject) {
+	public List<MonthlyHealthPromotionRow> getReport(Date startDate, Date endDate, String locationUuid, String category,
+	        String subject) {
 		List<Session> sessions = loadSessions(startDate, endDate, locationUuid);
-		if (subject != null && !subject.trim().isEmpty()) {
-			// Filtered after follow-up detection, so a follow-up is still judged against the patient's whole history.
-			sessions.removeIf(session -> !session.subject.equalsIgnoreCase(subject.trim()));
-		}
+		// Filtered after follow-up detection, so a follow-up is still judged against the patient's whole history.
+		sessions.removeIf(session -> !matchesFilter(session.category, category)
+		        || !matchesFilter(session.subject, subject));
 
-		// Subjects are free text, so the rows are whatever was actually recorded. Grouped
-		// case-insensitively; the first spelling seen is the one displayed.
-		Map<String, String> subjectLabels = new TreeMap<>();
+		// Categories and subjects are whatever was actually recorded, ordered by category then subject.
+		// Grouped case-insensitively; the first spelling seen is the one displayed.
+		Map<String, String[]> categorySubjects = new TreeMap<>();
 		for (Session session : sessions) {
-			subjectLabels.putIfAbsent(session.subject.toLowerCase(Locale.ROOT), session.subject);
+			categorySubjects.putIfAbsent(session.category.toLowerCase(Locale.ROOT) + "\u0000"
+			        + session.subject.toLowerCase(Locale.ROOT), new String[] { session.category, session.subject });
 		}
 
 		List<MonthlyHealthPromotionRow> rows = new ArrayList<>();
 		for (String[] type : SESSION_TYPES) {
-			rows.add(buildRow(sessions, type[0], type[1], null));
-			for (String rowSubject : subjectLabels.values()) {
-				MonthlyHealthPromotionRow row = buildRow(sessions, type[0], type[1], rowSubject);
+			rows.add(buildRow(sessions, type[0], type[1], null, null));
+			for (String[] pair : categorySubjects.values()) {
+				MonthlyHealthPromotionRow row = buildRow(sessions, type[0], type[1], pair[0], pair[1]);
 				if (row.getTotal() > 0) {
 					rows.add(row);
 				}
 			}
 		}
-		rows.add(buildRow(sessions, ALL, "Grand Total", null));
+		rows.add(buildRow(sessions, ALL, "Grand Total", null, null));
 		return rows;
 	}
 
 	@Override
-	public List<String> getSubjects(Date startDate, Date endDate, String locationUuid) {
+	public List<String> getCategories(Date startDate, Date endDate, String locationUuid) {
 		Map<String, String> labels = new TreeMap<>();
 		for (Session session : loadSessions(startDate, endDate, locationUuid)) {
-			labels.putIfAbsent(session.subject.toLowerCase(Locale.ROOT), session.subject);
+			labels.putIfAbsent(session.category.toLowerCase(Locale.ROOT), session.category);
 		}
 		return new ArrayList<>(labels.values());
 	}
 
 	@Override
-	public List<PatientRow> getPatientsForCell(String sessionTypeKey, String subject, String gender, String ageGroup,
-	        Date startDate, Date endDate, String locationUuid) {
+	public List<String> getSubjects(Date startDate, Date endDate, String locationUuid, String category) {
+		Map<String, String> labels = new TreeMap<>();
+		for (Session session : loadSessions(startDate, endDate, locationUuid)) {
+			if (matchesFilter(session.category, category)) {
+				labels.putIfAbsent(session.subject.toLowerCase(Locale.ROOT), session.subject);
+			}
+		}
+		return new ArrayList<>(labels.values());
+	}
+
+	@Override
+	public List<PatientRow> getPatientsForCell(String sessionTypeKey, String category, String subject, String gender,
+	        String ageGroup, Date startDate, Date endDate, String locationUuid) {
 		Set<Integer> patientIds = new LinkedHashSet<>();
 		for (Session session : loadSessions(startDate, endDate, locationUuid)) {
-			if (matches(session, sessionTypeKey, subject) && (ageGroup == null || ageGroup.equals(session.ageGroup))
+			if (matches(session, sessionTypeKey, category, subject) && (ageGroup == null || ageGroup.equals(session.ageGroup))
 			        && (gender == null || gender.equals(session.gender))) {
 				patientIds.add(session.patientId);
 			}
@@ -137,10 +154,11 @@ public class MonthlyHealthPromotionServiceImpl extends BaseOpenmrsService implem
 	}
 
 	private MonthlyHealthPromotionRow buildRow(List<Session> sessions, String typeKey, String typeLabel,
-	        String subject) {
+	        String category, String subject) {
 		MonthlyHealthPromotionRow row = new MonthlyHealthPromotionRow();
 		row.setSessionTypeKey(typeKey);
 		row.setSessionType(typeLabel);
+		row.setCategory(category);
 		row.setSubject(subject);
 		for (String ageGroup : AGE_GROUPS) {
 			for (String gender : GENDERS) {
@@ -152,7 +170,7 @@ public class MonthlyHealthPromotionServiceImpl extends BaseOpenmrsService implem
 		Map<String, Set<Integer>> patientsByCell = new LinkedHashMap<>();
 		Set<Integer> totalPatients = new HashSet<>();
 		for (Session session : sessions) {
-			if (!matches(session, typeKey, subject)) {
+			if (!matches(session, typeKey, category, subject)) {
 				continue;
 			}
 			totalPatients.add(session.patientId);
@@ -170,7 +188,12 @@ public class MonthlyHealthPromotionServiceImpl extends BaseOpenmrsService implem
 		return row;
 	}
 
-	private static boolean matches(Session session, String typeKey, String subject) {
+	/** A null or blank filter matches everything; otherwise the value must match, ignoring case. */
+	private static boolean matchesFilter(String value, String filter) {
+		return filter == null || filter.trim().isEmpty() || value.equalsIgnoreCase(filter.trim());
+	}
+
+	private static boolean matches(Session session, String typeKey, String category, String subject) {
 		boolean typeMatches;
 		if (ALL.equals(typeKey)) {
 			typeMatches = true;
@@ -179,7 +202,7 @@ public class MonthlyHealthPromotionServiceImpl extends BaseOpenmrsService implem
 		} else {
 			typeMatches = typeKey.equals(session.typeKey);
 		}
-		return typeMatches && (subject == null || subject.equalsIgnoreCase(session.subject));
+		return typeMatches && matchesFilter(session.category, category) && matchesFilter(session.subject, subject);
 	}
 
 	/** Every session at the location, with follow-ups flagged, trimmed to the reporting period. */
@@ -191,10 +214,12 @@ public class MonthlyHealthPromotionServiceImpl extends BaseOpenmrsService implem
 			session.encounterId = ((Number) r[1]).intValue();
 			session.date = (Date) r[2];
 			session.typeKey = typeKeyOf((String) r[3]);
-			String topic = r[4] == null ? "" : ((String) r[4]).trim();
+			String category = r[4] == null ? "" : ((String) r[4]).trim();
+			session.category = category.isEmpty() ? NO_CATEGORY : category;
+			String topic = r[5] == null ? "" : ((String) r[5]).trim();
 			session.subject = topic.isEmpty() ? NO_SUBJECT : topic;
-			session.ageGroup = r[5] == null ? null : ageGroupOf(((Number) r[5]).doubleValue());
-			session.gender = (String) r[6];
+			session.ageGroup = r[6] == null ? null : ageGroupOf(((Number) r[6]).doubleValue());
+			session.gender = (String) r[7];
 			all.add(session);
 		}
 

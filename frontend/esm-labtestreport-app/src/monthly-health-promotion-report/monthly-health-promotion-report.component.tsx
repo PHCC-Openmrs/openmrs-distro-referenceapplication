@@ -16,6 +16,7 @@ interface MonthlyHealthPromotionRow {
   sessionTypeKey: string;
   sessionType: string;
   // Null for a session-type row and for the Grand Total.
+  category: string | null;
   subject: string | null;
   counts: Record<string, number>;
   total: number;
@@ -29,8 +30,20 @@ const AGE_GENDER_COLUMNS = AGE_GROUPS.flatMap((ageGroup) => [
   { key: `${ageGroup}_F`, ageGroup, genderCode: 'F', gender: 'Female' },
 ]);
 
-function useSubjects(startDate?: string, endDate?: string, locationUuid?: string) {
+function useCategories(startDate?: string, endDate?: string, locationUuid?: string) {
   const search = new URLSearchParams();
+  if (startDate) search.set('startDate', startDate);
+  if (endDate) search.set('endDate', endDate);
+  if (locationUuid) search.set('locationUuid', locationUuid);
+  const query = search.toString();
+  const url = `/module/labtestreport/api/monthly-health-promotion-categories.json${query ? `?${query}` : ''}`;
+  const { data } = useSWR<{ data: string[] }, Error>(url, openmrsFetch);
+  return data?.data ?? [];
+}
+
+function useSubjects(startDate?: string, endDate?: string, locationUuid?: string, category?: string) {
+  const search = new URLSearchParams();
+  if (category) search.set('category', category);
   if (startDate) search.set('startDate', startDate);
   if (endDate) search.set('endDate', endDate);
   if (locationUuid) search.set('locationUuid', locationUuid);
@@ -44,9 +57,11 @@ function useMonthlyHealthPromotionReport(
   startDate?: string,
   endDate?: string,
   locationUuid?: string,
+  category?: string,
   subject?: string,
 ) {
   const search = new URLSearchParams();
+  if (category) search.set('category', category);
   if (subject) search.set('subject', subject);
   if (startDate) search.set('startDate', startDate);
   if (endDate) search.set('endDate', endDate);
@@ -59,6 +74,7 @@ function useMonthlyHealthPromotionReport(
 
 interface Selection {
   sessionTypeKey: string;
+  category?: string | null;
   subject?: string | null;
   label: string;
   ageGroup?: string;
@@ -73,6 +89,7 @@ function useMonthlyHealthPromotionDrilldown(selection: Selection | null) {
   const search = new URLSearchParams();
   if (selection) {
     search.set('sessionType', selection.sessionTypeKey);
+    if (selection.category) search.set('category', selection.category);
     if (selection.subject) search.set('subject', selection.subject);
     if (selection.ageGroup) search.set('ageGroup', selection.ageGroup);
     if (selection.gender) search.set('gender', selection.gender);
@@ -95,11 +112,20 @@ export default function MonthlyHealthPromotionReport() {
   const [locationUuid, setLocationUuid] = useState('');
   // Applies as soon as it's picked, like the location filter (dates wait for the Filter button).
   const [appliedSubject, setAppliedSubject] = useState('');
-  const subjects = useSubjects(applied.startDate, applied.endDate, locationUuid || undefined);
+  const [appliedCategory, setAppliedCategory] = useState('');
+  const categories = useCategories(applied.startDate, applied.endDate, locationUuid || undefined);
+  // Only the chosen category's subjects are offered.
+  const subjects = useSubjects(
+    applied.startDate,
+    applied.endDate,
+    locationUuid || undefined,
+    appliedCategory || undefined,
+  );
   const { rows, isLoading } = useMonthlyHealthPromotionReport(
     applied.startDate,
     applied.endDate,
     locationUuid || undefined,
+    appliedCategory || undefined,
     appliedSubject || undefined,
   );
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -111,9 +137,10 @@ export default function MonthlyHealthPromotionReport() {
   const openDrilldown = (row: MonthlyHealthPromotionRow, column?: (typeof AGE_GENDER_COLUMNS)[number]) =>
     setSelection({
       sessionTypeKey: row.sessionTypeKey,
-      // Session-type and Grand Total rows cover every subject, unless the subject filter narrows them.
+      // Session-type and Grand Total rows cover every category and subject, unless the filters narrow them.
+      category: row.category ?? (appliedCategory || null),
       subject: row.subject ?? (appliedSubject || null),
-      label: row.subject ? `${row.sessionType} » ${row.subject}` : row.sessionType,
+      label: [row.sessionType, row.category, row.subject].filter(Boolean).join(' » '),
       ageGroup: column?.ageGroup,
       gender: column?.genderCode,
       cellLabel: column ? `${column.ageGroup} ${column.gender}` : undefined,
@@ -140,6 +167,7 @@ export default function MonthlyHealthPromotionReport() {
     const toExportRow = (row: MonthlyHealthPromotionRow, number: string) => [
       number,
       row.sessionType,
+      row.category ?? '',
       row.subject ?? '',
       ...AGE_GENDER_COLUMNS.map((col) => row.counts?.[col.key] ?? 0),
       row.total,
@@ -149,6 +177,7 @@ export default function MonthlyHealthPromotionReport() {
       headers: [
         '#',
         t('sessionType', 'Session type'),
+        t('sessionCategory', 'Session category'),
         t('sessionSubject', 'Session subject'),
         ...AGE_GROUPS.flatMap((ageGroup) => [`${ageGroup} Male`, `${ageGroup} Female`]),
         t('total', 'Total'),
@@ -190,6 +219,25 @@ export default function MonthlyHealthPromotionReport() {
             />
           </div>
           <LocationFilter id="monthlyHealthPromotionLocationFilter" value={locationUuid} onChange={setLocationUuid} />
+          <div className={pageStyles.filterField}>
+            <label htmlFor="monthlyHealthPromotionCategoryFilter">{t('sessionCategory', 'Session category')}</label>
+            <select
+              id="monthlyHealthPromotionCategoryFilter"
+              value={appliedCategory}
+              onChange={(e) => {
+                setAppliedCategory(e.target.value);
+                // The subject list follows the category, so a previously chosen subject may no longer apply.
+                setAppliedSubject('');
+              }}
+            >
+              <option value="">{t('allCategories', 'All categories')}</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className={pageStyles.filterField}>
             <label htmlFor="monthlyHealthPromotionSubjectFilter">{t('sessionSubject', 'Session subject')}</label>
             <select
@@ -234,6 +282,9 @@ export default function MonthlyHealthPromotionReport() {
                     {t('sessionType', 'Session type')}
                   </th>
                   <th rowSpan={2} className="left">
+                    {t('sessionCategory', 'Session category')}
+                  </th>
+                  <th rowSpan={2} className="left">
                     {t('sessionSubject', 'Session subject')}
                   </th>
                   {AGE_GROUPS.map((ageGroup) => (
@@ -251,9 +302,10 @@ export default function MonthlyHealthPromotionReport() {
               </thead>
               <tbody>
                 {bodyRows.map((row, index) => (
-                  <tr key={`${row.sessionTypeKey}|${row.subject ?? ''}`}>
+                  <tr key={`${row.sessionTypeKey}|${row.category ?? ''}|${row.subject ?? ''}`}>
                     <td className="left">{rowNumbers[index]}</td>
                     <td className="left">{row.subject ? '' : <strong>{row.sessionType}</strong>}</td>
+                    <td className="left">{row.category}</td>
                     <td className="left">{row.subject}</td>
                     {AGE_GENDER_COLUMNS.map((col) => (
                       <td key={col.key}>{countCell(row, row.counts?.[col.key] ?? 0, col)}</td>
@@ -265,7 +317,7 @@ export default function MonthlyHealthPromotionReport() {
               {grandTotalRow && (
                 <tfoot>
                   <tr>
-                    <td className="left" colSpan={3}>
+                    <td className="left" colSpan={4}>
                       <strong>{t('grandTotal', 'Grand Total')}</strong>
                     </td>
                     {AGE_GENDER_COLUMNS.map((col) => (
