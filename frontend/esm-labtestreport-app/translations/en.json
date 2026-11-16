@@ -552,5 +552,6 @@
   "monthlyHealthPromotionReportTileDesc": "Health Promotion sessions by session type and subject, age group and gender, with drill-down to the patients behind each count.",
   "sessionSubject": "Session subject",
   "year": "Year",
-  "allSubjects": "All subjects"
+  "allSubjects": "All subjects",
+  "sessionCategory": "Session category"
 }

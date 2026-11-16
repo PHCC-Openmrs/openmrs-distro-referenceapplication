@@ -5,14 +5,17 @@ import java.util.Map;
 
 /**
  * One row of the Monthly Health Promotion Report. A row is either a session-type row
- * ({@link #subject} is null: Individual Sessions, Group Sessions, Follow up cases), a session
- * subject row beneath one of those, or the Grand Total, with its age-group/gender breakdown.
+ * ({@link #category} and {@link #subject} are null: Individual Sessions, Group Sessions, Follow up
+ * cases), a session category and subject row beneath one of those, or the Grand Total, with its age-group/gender breakdown.
  */
 public class MonthlyHealthPromotionRow {
 
 	private String sessionTypeKey;
 
 	private String sessionType;
+
+	/** The Session Category recorded on the form, or null for a session-type or grand-total row. */
+	private String category;
 
 	/** The Topic recorded on the form, or null for a session-type or grand-total row. */
 	private String subject;
@@ -35,6 +38,14 @@ public class MonthlyHealthPromotionRow {
 
 	public void setSessionType(String sessionType) {
 		this.sessionType = sessionType;
+	}
+
+	public String getCategory() {
+		return category;
+	}
+
+	public void setCategory(String category) {
+		this.category = category;
 	}
 
 	public String getSubject() {

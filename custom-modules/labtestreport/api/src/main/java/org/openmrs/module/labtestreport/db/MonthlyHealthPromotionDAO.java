@@ -12,9 +12,9 @@ public interface MonthlyHealthPromotionDAO {
 
 	/**
 	 * @param locationUuid only include sessions at this location, or null for all locations
-	 * @return one row per Health Promotion Session submission (not date-filtered), each a 7-element array
+	 * @return one row per Health Promotion Session submission (not date-filtered), each an 8-element array
 	 *         matching the column order of queries/monthly_health_promotion_events.sql: patientId,
-	 *         encounterId, sessionDate, sessionType, topic, age, gender
+	 *         encounterId, sessionDate, sessionType, sessionCategory, topic, age, gender
 	 */
 	List<Object[]> getEvents(String locationUuid) throws DAOException;
 

@@ -1,6 +1,6 @@
 -- One row per Health Promotion Session Form submission (encounter), carrying just what the Monthly
 -- Health Promotion Report needs to place it in its grid: the session's effective date, Session Type,
--- Topic ("session subject") and the participant's age and gender. The service pivots these into the
+-- Session Category, Topic ("session subject") and the participant's age and gender. The service pivots these into the
 -- session type x subject x age-group/gender grid, works out which sessions are follow-ups, applies
 -- the date range, and filters the very same rows for a drill-down, so the clicked count and the
 -- patient list can never disagree.
@@ -19,6 +19,13 @@ SELECT
     WHERE cn.concept_id = sessionTypeObs.value_coded AND cn.voided = 0 AND cn.locale = 'en'
     ORDER BY cn.locale_preferred DESC, cn.concept_name_id
     LIMIT 1)                                           AS sessionType,
+  -- Session Category is coded, resolved through concept_name like Session Type. Sessions recorded
+  -- before the form asked for a category have none.
+  (SELECT cn.name
+     FROM concept_name cn
+    WHERE cn.concept_id = sessionCategoryObs.value_coded AND cn.voided = 0 AND cn.locale = 'en'
+    ORDER BY cn.locale_preferred DESC, cn.concept_name_id
+    LIMIT 1)                                           AS sessionCategory,
   COALESCE(
     topicTextObs.value_text,
     (SELECT cn.name
@@ -51,6 +58,8 @@ LEFT JOIN obs sessionDateObs ON sessionDateObs.encounter_id = e.encounter_id AND
   AND sessionDateObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = 'ceaca505-6dff-4940-8a43-8c060a0924d7')
 LEFT JOIN obs sessionTypeObs ON sessionTypeObs.encounter_id = e.encounter_id AND sessionTypeObs.voided = 0
   AND sessionTypeObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = 'c271aba7-1feb-4215-afde-6e37f2ef1800')
+LEFT JOIN obs sessionCategoryObs ON sessionCategoryObs.encounter_id = e.encounter_id AND sessionCategoryObs.voided = 0
+  AND sessionCategoryObs.concept_id = (SELECT concept_id FROM concept WHERE uuid = '836f6b2f-c606-53fa-9460-8ca31a0bb06c')
 LEFT JOIN obs topicCodedObs ON topicCodedObs.encounter_id = e.encounter_id AND topicCodedObs.voided = 0
   -- the original coded "Topic" concept plus the per-category "Health Promotion Topic - <category>" concepts the form
   -- now uses (only the selected category's topic question is ever answered, so this matches at most one obs)
