@@ -13,14 +13,22 @@ export interface StockOperationPrintData {
   orderedBy?: string;
   responsiblePerson?: string;
   authorizedBy?: string;
+  requestedBy?: string;
+  requestedDate?: Date;
+  requestedContact?: string;
+  approvedBy?: string;
+  approvedDate?: Date;
   items?: StockOperationItemData[];
   issueDate?: Date;
   receiptDate?: Date;
   receiverName?: string;
   issuerName?: string;
   documentTitle?: string;
+  operationTypeName?: string;
   source?: string;
   destination?: string;
+  deliverFrom?: string;
+  deliverTo?: string;
   remarks?: string;
 }
 
@@ -31,6 +39,8 @@ export interface StockOperationItemData {
   expiryDate?: Date;
   balanceOnHand?: number;
   balanceOnHandUoM?: string;
+  balanceOnHandDispensing?: number;
+  balanceOnHandDispensingUoM?: string;
   quantityRequired?: number;
   quantityRequiredUoM?: string;
   quantityIssued?: number;
@@ -47,6 +57,7 @@ export const BuildStockOperationData = async (
   parentOperation?: StockOperationDTO,
   operationItemsCost?: StockOperationItemCost[] | null,
   inventory?: StockItemInventory[] | null,
+  dispensingUnitNames?: Record<string, string> | null,
 ): Promise<StockOperationPrintData | null> => {
   const data: StockOperationPrintData = {};
   if (OperationType.REQUISITION_OPERATION_TYPE !== currentOperation.operationType) {
@@ -56,10 +67,36 @@ export const BuildStockOperationData = async (
       ? `${currentOperation.completedByFamilyName ?? ''} ${currentOperation.completedByGivenName ?? ''}`
       : '';
   }
+  // Requester: whoever submitted the request (falls back to whoever started it). When printing an issue/transfer that
+  // fulfils a requisition, the requisition's requester is used.
+  const requestSource = parentOperation ?? currentOperation;
+  const fullName = (given?: string | null, family?: string | null) => `${given ?? ''} ${family ?? ''}`.trim();
+  data.requestedBy =
+    fullName(requestSource?.submittedByGivenName, requestSource?.submittedByFamilyName) ||
+    fullName(requestSource?.creatorGivenName, requestSource?.creatorFamilyName);
+  data.requestedDate = requestSource?.submittedDate ?? requestSource?.dateCreated;
+  // Approver: whoever dispatched/approved the operation, otherwise whoever completed it.
+  if (currentOperation?.dispatchedDate) {
+    data.approvedBy = fullName(currentOperation.dispatchedByGivenName, currentOperation.dispatchedByFamilyName);
+    data.approvedDate = currentOperation.dispatchedDate;
+  } else if (currentOperation?.completedDate) {
+    data.approvedBy = fullName(currentOperation.completedByGivenName, currentOperation.completedByFamilyName);
+    data.approvedDate = currentOperation.completedDate;
+  }
+  data.operationTypeName = currentOperation?.operationTypeName ?? undefined;
   data.remarks = currentOperation.remarks;
   data.operationNumber = currentOperation?.operationNumber;
   data.operationDate = parentOperation?.operationDate ?? currentOperation?.operationDate;
   data.location = parentOperation?.atLocationName ?? currentOperation?.atLocationName;
+  // Only a requisition has two locations: the requesting one (location) and the supplying store it asks for stock from.
+  const requisitionOperation =
+    currentOperation?.operationType === OperationType.REQUISITION_OPERATION_TYPE ? currentOperation : parentOperation;
+  data.deliverFrom = requisitionOperation?.destinationName ?? undefined;
+  if (currentOperation?.operationType === OperationType.TRANSFER_OUT_OPERATION_TYPE) {
+    // A transfer moves stock between two locations: out of the source, to the destination.
+    data.deliverFrom = currentOperation.sourceName ?? undefined;
+    data.deliverTo = currentOperation.destinationName ?? undefined;
+  }
   data.source = currentOperation?.sourceName;
   data.destination = currentOperation?.destinationName;
   data.responsiblePerson = data.orderedBy = parentOperation?.responsiblePersonFamilyName
@@ -97,10 +134,23 @@ export const BuildStockOperationData = async (
       }
     }
     if (inventory) {
-      const itemInventory = inventory.find((x) => x.stockItemUuid === p.stockItemUuid);
-      if (itemInventory) {
-        item.balanceOnHand = itemInventory.quantity;
-        item.balanceOnHandUoM = itemInventory.quantityUoM;
+      // Total across the item's batches at the supplying store (same figure the requisition form shows as
+      // "Available at supplying store"), in the packaging unit plus the dispensing unit.
+      const itemInventory = inventory.filter((x) => x.stockItemUuid === p.stockItemUuid);
+      if (!itemInventory.length) {
+        // Same as the form's "Out of Stock": nothing on hand.
+        item.balanceOnHand = 0;
+      } else {
+        item.balanceOnHand = itemInventory.reduce((total, x) => total + (Number(x.quantity) || 0), 0);
+        item.balanceOnHandUoM = itemInventory[0].quantityUoM;
+        const dispensingUnit = p.stockItemUuid ? dispensingUnitNames?.[p.stockItemUuid] : undefined;
+        if (dispensingUnit && dispensingUnit !== item.balanceOnHandUoM) {
+          item.balanceOnHandDispensing = itemInventory.reduce(
+            (total, x) => total + (Number(x.quantity) || 0) * (Number.parseFloat(x.quantityFactor) || 1),
+            0,
+          );
+          item.balanceOnHandDispensingUoM = dispensingUnit;
+        }
       }
     }
     return item;
