@@ -6,7 +6,6 @@ import {
   operationFromString,
   OperationType,
   type StockOperationType,
-  StockOperationTypeHasPrint,
 } from '../core/api/types/stockOperation/StockOperationType';
 import StockOperationApprovalButton from './stock-operations-modal/stock-operations-approve-button.component';
 import StockOperationApproveDispatchButton from './stock-operations-modal/stock-operations-approve-dispatch-button.component';
@@ -50,15 +49,7 @@ const StockoperationActions: React.FC<Props> = ({ stockOperation, stockOperation
   }, [stockOperationType]);
   return (
     <>
-      {((!stockOperation.permission?.canEdit &&
-        (stockOperation.permission?.canApprove ||
-          stockOperation.permission?.canCancel ||
-          stockOperation.permission?.canReceiveItems)) ||
-        stockOperation.permission?.canEdit ||
-        StockOperationTypeHasPrint(operationType) ||
-        (stockOperation?.permission?.isRequisitionAndCanIssueStock ?? false) ||
-        stockOperation.permission?.isRequisitionAndCanIssueStock ||
-        canReverse) && (
+      {
         <div className={styles.actionBtns}>
           <>
             {!stockOperation.permission?.canEdit && stockOperation.permission?.canApprove && (
@@ -96,17 +87,12 @@ const StockoperationActions: React.FC<Props> = ({ stockOperation, stockOperation
             {stockOperation.permission?.isRequisitionAndCanIssueStock && (
               <StockOperationIssueStockButton operation={stockOperation} />
             )}
-            {(stockOperation.permission?.isRequisitionAndCanIssueStock ||
-              stockOperation.operationType === OperationType.STOCK_ISSUE_OPERATION_TYPE ||
-              stockOperation.operationType === OperationType.REQUISITION_OPERATION_TYPE ||
-              stockOperation.operationType === OperationType.RECEIPT_OPERATION_TYPE ||
-              stockOperation.operationType === OperationType.TRANSFER_OUT_OPERATION_TYPE) && (
-              <StockOperationPrintButton operation={stockOperation} />
-            )}
+            {/* Every operation type can be printed. */}
+            <StockOperationPrintButton operation={stockOperation} />
             {canReverse && <StockOperationReverseButton operation={stockOperation} />}
           </>
         </div>
-      )}
+      }
     </>
   );
 };

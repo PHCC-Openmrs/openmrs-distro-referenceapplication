@@ -7,9 +7,10 @@ import { type StockItemInventory } from '../../core/api/types/stockItem/StockIte
 import { type StockOperationDTO } from '../../core/api/types/stockOperation/StockOperationDTO';
 import { type StockOperationItemCost } from '../../core/api/types/stockOperation/StockOperationItemCost';
 
-import { showSnackbar } from '@openmrs/esm-framework';
+import { openmrsFetch, restBaseUrl, showSnackbar } from '@openmrs/esm-framework';
 import { extractErrorMessagesFromResponse } from '../../constants';
 import { ResourceRepresentation } from '../../core/api/api';
+import { LocationStockItem } from '../../core/api/types/stockItem/StockItem';
 import { OperationType } from '../../core/api/types/stockOperation/StockOperationType';
 import { type StockItemInventoryFilter } from '../../stock-items/stock-items.resource';
 import {
@@ -21,11 +22,45 @@ import {
 import { PrintGoodsReceivedNoteStockOperation } from '../stock-print-reports/GoodsReceivedNote';
 import { PrintRequisitionStockOperation } from '../stock-print-reports/RequisitionDocument';
 import { BuildStockOperationData } from '../stock-print-reports/StockOperationReport';
-import { PrintTransferOutStockOperation } from '../stock-print-reports/StockTransferDocument';
 
 interface StockOperationCancelButtonProps {
   operation: StockOperationDTO;
 }
+
+const TELEPHONE_ATTRIBUTE_TYPE_UUID = '14d4f066-15f5-102d-96e4-000c29c2a5d7';
+
+// The operation only carries the requester's name, so find their user by name and read the telephone number from
+// their person attributes. Returns "Name, phone" (or just the name when no number is recorded).
+const fetchRequesterContact = async (name?: string): Promise<string | undefined> => {
+  if (!name) {
+    return undefined;
+  }
+  try {
+    const res = await openmrsFetch<{
+      results: Array<{
+        person?: {
+          display?: string;
+          attributes?: Array<{ value?: unknown; attributeType?: { uuid?: string; display?: string } }>;
+        };
+      }>;
+    }>(
+      `${restBaseUrl}/user?q=${encodeURIComponent(
+        name,
+      )}&v=custom:(person:(display,attributes:(value,attributeType:(uuid,display))))`,
+    );
+    const normalise = (v?: string) => (v ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const match = res.data?.results?.find((u) => normalise(u.person?.display) === normalise(name));
+    const phone = match?.person?.attributes?.find(
+      (a) =>
+        a.attributeType?.uuid === TELEPHONE_ATTRIBUTE_TYPE_UUID || /phone|mobile/i.test(a.attributeType?.display ?? ''),
+    )?.value;
+    const phoneText = typeof phone === 'object' && phone !== null ? (phone as { display?: string }).display : phone;
+    return [name, phoneText].filter(Boolean).join(', ');
+  } catch (e) {
+    console.info(e);
+    return name;
+  }
+};
 
 const StockOperationPrintButton: React.FC<StockOperationCancelButtonProps> = ({ operation: _operation }) => {
   const { t } = useTranslation();
@@ -62,28 +97,47 @@ const StockOperationPrintButton: React.FC<StockOperationCancelButtonProps> = ({ 
           itemsCost = res.data?.results;
         }
       }
-      const enableBalance = true;
-      if (enableBalance && (parentOperation || parentOperation?.operationType === 'requisition')) {
-        const inventoryFilter: StockItemInventoryFilter = {};
-        if (operation?.uuid) {
-          inventoryFilter.locationUuid = operation.atLocationUuid;
-          inventoryFilter.stockOperationUuid = operation.uuid;
-        } else {
-          inventoryFilter.locationUuid = operation.atLocationUuid;
-          inventoryFilter.stockOperationUuid = operation.uuid;
-        }
-        inventoryFilter.v = ResourceRepresentation.Default;
-        inventoryFilter.groupBy = 'LocationStockItem';
-        inventoryFilter.includeStockItemName = 'true';
-
-        inventoryFilter.date = parentOperation?.dateCreated
-          ? new Date(parentOperation.dateCreated).toISOString()
-          : operation?.dateCreated
-          ? new Date(operation.dateCreated).toISOString()
-          : null;
-        // get stock item inventory
-        const res = await getStockItemInventory(inventoryFilter);
-        itemInventory = res.data?.results;
+      // Balance on Hand mirrors the "Item details" / "Available at supplying store" column of the operation form:
+      // for a requisition it is the supplying store ("Request stock from"), for every other operation the
+      // operation's own location (its source).
+      const requisition =
+        operation?.operationType === OperationType.REQUISITION_OPERATION_TYPE ? operation : parentOperation;
+      const isReceipt = operation?.operationType === OperationType.RECEIPT_OPERATION_TYPE;
+      const supplyingStoreUuid =
+        (requisition || isReceipt
+          ? requisition?.destinationUuid ?? operation?.destinationUuid
+          : operation?.sourceUuid) ??
+        operation?.sourceUuid ??
+        operation?.destinationUuid ??
+        operation?.atLocationUuid;
+      const dispensingUnitNames: Record<string, string> = {};
+      if (supplyingStoreUuid) {
+        const stockItemUuids = [
+          ...new Set(
+            (operation.stockOperationItems ?? _operation?.stockOperationItems ?? [])
+              .map((i) => i.stockItemUuid)
+              .filter((uuid): uuid is string => Boolean(uuid)),
+          ),
+        ];
+        const results = await Promise.all(
+          stockItemUuids.map(async (stockItemUuid) => {
+            const [inventoryRes, stockItemRes] = await Promise.all([
+              getStockItemInventory({
+                stockItemUuid,
+                partyUuid: supplyingStoreUuid,
+                groupBy: LocationStockItem,
+                v: ResourceRepresentation.Default,
+              }),
+              openmrsFetch(`${restBaseUrl}/stockmanagement/stockitem/${stockItemUuid}`),
+            ]);
+            if (stockItemRes?.data?.dispensingUnitName) {
+              dispensingUnitNames[stockItemUuid] = stockItemRes.data.dispensingUnitName;
+            }
+            // Grouped rows come back with a null stockItemUuid, so tag them with the item they were requested for.
+            return (inventoryRes.data?.results ?? []).map((row) => ({ ...row, stockItemUuid }));
+          }),
+        );
+        itemInventory = results.flat();
       }
       const data = await BuildStockOperationData(
         operation,
@@ -91,12 +145,12 @@ const StockOperationPrintButton: React.FC<StockOperationCancelButtonProps> = ({ 
         parentOperation,
         itemsCost,
         itemInventory,
+        dispensingUnitNames,
       );
       if (data) {
+        data.requestedContact = await fetchRequesterContact(data.requestedBy);
         if (operation?.operationType === OperationType.RECEIPT_OPERATION_TYPE) {
           await PrintGoodsReceivedNoteStockOperation(data, t);
-        } else if (operation?.operationType === OperationType.TRANSFER_OUT_OPERATION_TYPE) {
-          await PrintTransferOutStockOperation(data, t);
         } else {
           await PrintRequisitionStockOperation(data, t);
         }
