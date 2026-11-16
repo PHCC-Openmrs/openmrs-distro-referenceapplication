@@ -104,6 +104,11 @@ server {
   location /openmrs {
     set $backend http://backend:8080;
     proxy_read_timeout 300s;
+    # Uploads (e.g. the nursing form's ECG file) are capped at 5 MB by the
+    # Attachments module (attachments.maxUploadFileSize). nginx's own default
+    # of 1 MB would reject them first with a 413; allow 5 MB plus multipart
+    # overhead so the backend's limit is the one that applies.
+    client_max_body_size 6m;
     proxy_pass $backend;
   }
 
