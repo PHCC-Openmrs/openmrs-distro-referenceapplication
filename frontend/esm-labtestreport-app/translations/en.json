@@ -553,5 +553,10 @@
   "sessionSubject": "Session subject",
   "year": "Year",
   "allSubjects": "All subjects",
-  "sessionCategory": "Session category"
+  "sessionCategory": "Session category",
+  "allSessionTypes": "All session types",
+  "individualSessions": "Individual Sessions",
+  "groupSessions": "Group Sessions",
+  "followUpCases": "Follow up cases",
+  "monthlyHealthPromotionDistinctPatientsNote": "{{patientCount}} patients. A patient who attended more than one session type or subject is counted once in this list, but once per row in the number you clicked ({{expected}})."
 }

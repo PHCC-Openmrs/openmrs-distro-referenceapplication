@@ -72,12 +72,13 @@ public class MonthlyHealthPromotionServiceImpl extends BaseOpenmrsService implem
 	}
 
 	@Override
-	public List<MonthlyHealthPromotionRow> getReport(Date startDate, Date endDate, String locationUuid, String category,
-	        String subject) {
+	public List<MonthlyHealthPromotionRow> getReport(Date startDate, Date endDate, String locationUuid, String sessionType,
+	        String category, String subject) {
 		List<Session> sessions = loadSessions(startDate, endDate, locationUuid);
 		// Filtered after follow-up detection, so a follow-up is still judged against the patient's whole history.
-		sessions.removeIf(session -> !matchesFilter(session.category, category)
-		        || !matchesFilter(session.subject, subject));
+		boolean allTypes = sessionType == null || sessionType.trim().isEmpty();
+		sessions.removeIf(session -> (!allTypes && !matches(session, sessionType.trim(), null, null))
+		        || !matchesFilter(session.category, category) || !matchesFilter(session.subject, subject));
 
 		// Categories and subjects are whatever was actually recorded, ordered by category then subject.
 		// Grouped case-insensitively; the first spelling seen is the one displayed.
@@ -89,6 +90,9 @@ public class MonthlyHealthPromotionServiceImpl extends BaseOpenmrsService implem
 
 		List<MonthlyHealthPromotionRow> rows = new ArrayList<>();
 		for (String[] type : SESSION_TYPES) {
+			if (!allTypes && !type[0].equals(sessionType.trim())) {
+				continue;
+			}
 			rows.add(buildRow(sessions, type[0], type[1], null, null));
 			for (String[] pair : categorySubjects.values()) {
 				MonthlyHealthPromotionRow row = buildRow(sessions, type[0], type[1], pair[0], pair[1]);
@@ -97,8 +101,38 @@ public class MonthlyHealthPromotionServiceImpl extends BaseOpenmrsService implem
 				}
 			}
 		}
-		rows.add(buildRow(sessions, ALL, "Grand Total", null, null));
+		rows.add(grandTotalRow(rows, allTypes ? null : sessionType.trim()));
 		return rows;
+	}
+
+	/**
+	 * The Grand Total is the sum of the category/subject rows above it -- Individual and Group sessions, or just
+	 * the selected session type -- so the rows always add up to it. Follow up cases are a subset of those
+	 * sessions, so they are not added on top. A patient who appears in several rows is therefore counted once in
+	 * each, though the drill-down lists every patient only once.
+	 */
+	private MonthlyHealthPromotionRow grandTotalRow(List<MonthlyHealthPromotionRow> rows, String onlyTypeKey) {
+		MonthlyHealthPromotionRow grand = new MonthlyHealthPromotionRow();
+		grand.setSessionTypeKey(ALL);
+		grand.setSessionType("Grand Total");
+		for (String ageGroup : AGE_GROUPS) {
+			for (String gender : GENDERS) {
+				grand.getCounts().put(ageGroup + "_" + gender, 0L);
+			}
+		}
+		for (MonthlyHealthPromotionRow row : rows) {
+			boolean counted = row.getSubject() != null && (onlyTypeKey == null
+			        ? (INDIVIDUAL.equals(row.getSessionTypeKey()) || GROUP.equals(row.getSessionTypeKey()))
+			        : onlyTypeKey.equals(row.getSessionTypeKey()));
+			if (!counted) {
+				continue;
+			}
+			grand.setTotal(grand.getTotal() + row.getTotal());
+			for (Map.Entry<String, Long> cell : row.getCounts().entrySet()) {
+				grand.getCounts().merge(cell.getKey(), cell.getValue(), Long::sum);
+			}
+		}
+		return grand;
 	}
 
 	@Override
@@ -196,7 +230,8 @@ public class MonthlyHealthPromotionServiceImpl extends BaseOpenmrsService implem
 	private static boolean matches(Session session, String typeKey, String category, String subject) {
 		boolean typeMatches;
 		if (ALL.equals(typeKey)) {
-			typeMatches = true;
+			// Every Individual or Group session, which is what the Grand Total sums.
+			typeMatches = session.typeKey != null;
 		} else if (FOLLOW_UP.equals(typeKey)) {
 			typeMatches = session.followUp;
 		} else {
