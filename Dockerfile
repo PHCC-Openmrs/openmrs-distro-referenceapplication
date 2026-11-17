@@ -84,6 +84,14 @@ FROM openmrs/openmrs-core:2.8.x-amazoncorretto-21
 RUN sed -i -E 's#rm -fR "(\$\{OMRS_[A-Z_]+_DIR:\?\})/\*"#rm -fR "\1"/*#' /openmrs/startup-init.sh && \
     ! grep -q '_DIR:?}/\*"' /openmrs/startup-init.sh
 
+# Have Hibernate load lazy associations and collections (a queue entry's visit, its attributes, the
+# patient's identifiers, ...) for up to 100 parents in one query rather than one query per parent.
+# Serializing a page of 100 service-queue entries otherwise ran ~400 queries, each a round trip to
+# the database - several seconds per page against a remote DB. startup-init.sh turns this variable
+# into hibernate.default_batch_fetch_size=100 in the runtime properties; set it in the environment
+# to override.
+ENV OMRS_EXTRA_HIBERNATE_DEFAULT__BATCH__FETCH__SIZE=100
+
 # Do not copy the war if using the correct openmrs-core image version
 COPY --from=dev /openmrs/distribution/openmrs_core/openmrs.war /openmrs/distribution/openmrs_core/
 
