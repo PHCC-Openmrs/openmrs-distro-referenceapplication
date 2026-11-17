@@ -1,12 +1,10 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@carbon/react';
 import { WarningHex, WarningAlt } from '@carbon/react/icons';
-import { showModal, useSession } from '@openmrs/esm-framework';
-import { useStockInventory } from './stock-home-inventory-expiry.resource';
-import { useStockInventoryItems } from './stock-home-inventory-items.resource';
-import { useStockBatchQuantities } from './stock-home-batch-quantities.resource';
-import useStockList from './useStockList';
+import { showModal } from '@openmrs/esm-framework';
+import { useStockDashboardSummary } from './stock-home-dashboard-summary.resource';
+import { daysUntilExpiry, EXPIRY_WINDOW_DAYS } from './stock-home-metric-history.utils';
 import useFilteredOperationTypesByRoles from '../stock-operations/stock-operations-forms/hooks/useFilteredOperationTypesByRoles';
 import {
   findRequisitionOperationType,
@@ -17,53 +15,21 @@ import styles from './stock-home-detail-card.scss';
 
 const StockHomeInventoryCard = () => {
   const { t } = useTranslation();
-  const { sessionLocation } = useSession();
-  const { items: expiryItems, isLoading: inventoryLoading } = useStockInventory();
-  const { items: stockItems, isLoading } = useStockInventoryItems();
-  const { outOfStockItems, understockedItems, isLoading: stockListLoading } = useStockList();
+  const { expiringBatches, outOfStockItems, understockedItems, isLoading } = useStockDashboardSummary();
   const { operationTypes } = useFilteredOperationTypesByRoles();
   const requisitionOperationType = findRequisitionOperationType(operationTypes);
 
-  const stockItemUuids = useMemo(
-    () => Array.from(new Set(expiryItems.map((batch) => batch.stockItemUuid))),
-    [expiryItems],
-  );
-  const { quantityByBatch, isLoading: quantityLoading } = useStockBatchQuantities(
-    stockItemUuids,
-    sessionLocation?.uuid,
-  );
-
-  if (isLoading || inventoryLoading || quantityLoading || stockListLoading) {
+  if (isLoading) {
     return null;
   }
 
   const currentDate = new Date();
 
-  let mergedArray = expiryItems.map((batch) => {
-    const matchingItem = stockItems?.find((item) => batch?.stockItemUuid === item.uuid);
-    const batchQuantity = quantityByBatch.get(batch.uuid);
-    return {
-      ...batch,
-      ...matchingItem,
-      quantity: batchQuantity?.quantity ?? 0,
-      quantityUoM: batchQuantity?.quantityUoM,
-    };
+  // Not yet expired, and expiring within the window; the server already sorts soonest first.
+  const expiringSoon = expiringBatches.filter((item) => {
+    const differenceInDays = daysUntilExpiry(item.expiration, currentDate);
+    return differenceInDays <= EXPIRY_WINDOW_DAYS && differenceInDays >= 0;
   });
-
-  // quantityByBatch is now scoped to sessionLocation, so a batch this location doesn't actually
-  // hold any of shouldn't count as this location's "expiring stock".
-  mergedArray = mergedArray.filter((item) => item.hasExpiration && item.quantity > 0);
-
-  // Soonest expiry first, so the 3 alerts shown below (and the "View all expiring" modal) lead with
-  // the most urgent batches; the API returns batches in insertion order. Already-expired batches
-  // are not alerted on here.
-  const expiringSoon = mergedArray
-    .filter((item) => {
-      const expirationDate = new Date(item.expiration);
-      const differenceInDays = Math.ceil((expirationDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
-      return differenceInDays <= 180 && differenceInDays >= 0;
-    })
-    .sort((a, b) => new Date(a.expiration).getTime() - new Date(b.expiration).getTime());
 
   const filteredData = expiringSoon.slice(0, 3);
   const understockedToShow = understockedItems.slice(0, 3);
@@ -102,8 +68,9 @@ const StockHomeInventoryCard = () => {
           <div className={styles.cardText}>
             <p>{t('expiringStock', 'Expiring stock')}</p>
             <p>
-              <strong>{item?.drugName}</strong> {t('batchNumberLabel', 'Batch number:')} {item?.batchNo}{' '}
-              {t('quantityLabel', 'Quantity:')} {item?.quantity} {item?.dispensingUnitName}
+              <strong>{item?.drugName || item?.displayName}</strong> {t('batchNumberLabel', 'Batch number:')}{' '}
+              {item?.batchNo} {t('quantityLabel', 'Quantity:')} {item?.quantity}{' '}
+              {item?.quantityUoM ?? item?.dispensingUnitName}
             </p>
           </div>
         </div>

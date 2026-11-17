@@ -5437,6 +5437,34 @@ public class StockManagementDao extends DaoBase {
 		return query.list();
 	}
 
+	/**
+	 * Each stock item's quantity at one location as of several dates, in base units, from a single pass over
+	 * the transactions. For each date it counts what the inventory search counts when given that date: the
+	 * transactions dated on or before it, from batches that had not expired by then. Items with no
+	 * transactions are absent. Each value is [stockItemId, quantity as of asOfDates[0], [1], ...].
+	 */
+	public List<Object[]> getStockItemQuantitiesAsOf(Integer partyId, List<Date> asOfDates) {
+		if (partyId == null || asOfDates == null || asOfDates.isEmpty()) {
+			return new ArrayList<>();
+		}
+		StringBuilder hql = new StringBuilder("select sit.stockItem.id");
+		for (int i = 0; i < asOfDates.size(); i++) {
+			hql.append(", sum(case when sit.dateCreated <= :d").append(i)
+			        .append(" and (sb.expiration is null or sb.expiration > :d").append(i)
+			        .append(") then (sit.quantity * sipu.factor) else 0 end)");
+		}
+		hql.append(" from stockmanagement.StockItemTransaction sit join sit.stockItemPackagingUOM sipu"
+		        + " join sit.stockBatch sb where sit.party.id = :partyId and sit.dateCreated <= :latest"
+		        + " group by sit.stockItem.id");
+		Query query = getSession().createQuery(hql.toString());
+		query.setParameter("partyId", partyId);
+		for (int i = 0; i < asOfDates.size(); i++) {
+			query.setParameter("d" + i, asOfDates.get(i));
+		}
+		query.setParameter("latest", Collections.max(asOfDates));
+		return query.list();
+	}
+
 	public long countMedicationDispensesForOrder(Integer orderId, Concept status) {
 		Query query = getSession().createQuery("select count(md) from org.openmrs.MedicationDispense md "
 		        + "where md.drugOrder.id = :orderId and md.voided = false and md.status = :status");

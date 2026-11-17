@@ -343,6 +343,16 @@ public interface StockManagementService extends OpenmrsService {
 	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
 	StockInventoryResult getStockInventory(StockItemInventorySearchFilter filter,
 	        HashSet<RecordPrivilegeFilter> recordPrivilegeFilters);
+
+	/**
+	 * Everything the Overview page shows for a location: out-of-stock and understocked items, the weekly
+	 * out-of-stock trend, batches nearing expiry and completed disposals. Quantities are counted the same way
+	 * as the stock item inventory search (non-expired batches, in each item's preferred unit). Disposals are
+	 * left out when the user may not see stock operations.
+	 */
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	StockDashboardSummary getStockDashboardSummary(Location location);
 	
 	@Transactional(readOnly = true)
 	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)

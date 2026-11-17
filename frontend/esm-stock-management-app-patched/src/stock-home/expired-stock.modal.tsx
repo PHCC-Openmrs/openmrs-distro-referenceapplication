@@ -55,10 +55,10 @@ const ExpiredStockModal = ({ closeModal, expiredStock }: ExpiredStockModalProps)
               <TableBody>
                 {expiredStock.map((item, index) => (
                   <TableRow key={index}>
-                    <TableCell>{item?.drugName || 'N/A'}</TableCell>
+                    <TableCell>{item?.drugName || item?.displayName || 'N/A'}</TableCell>
                     <TableCell>{item?.batchNo || 'N/A'}</TableCell>
                     <TableCell>{item?.quantity || 'N/A'}</TableCell>
-                    <TableCell>{item?.dispensingUnitName || 'N/A'}</TableCell>
+                    <TableCell>{item?.quantityUoM || item?.dispensingUnitName || 'N/A'}</TableCell>
                     <TableCell>{formatDate(item?.expiration)}</TableCell>
                   </TableRow>
                 ))}

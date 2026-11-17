@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@carbon/react';
-import useStockList from './useStockList';
+import { useStockDashboardSummary } from './stock-home-dashboard-summary.resource';
 import useFilteredOperationTypesByRoles from '../stock-operations/stock-operations-forms/hooks/useFilteredOperationTypesByRoles';
 import {
   findRequisitionOperationType,
@@ -14,7 +14,7 @@ const MAX_ITEMS = 5;
 
 const StockHomeNearingStockoutCard = () => {
   const { t } = useTranslation();
-  const { understockedItems, isLoading } = useStockList();
+  const { understockedItems, isLoading } = useStockDashboardSummary();
   const { operationTypes } = useFilteredOperationTypesByRoles();
   const requisitionOperationType = findRequisitionOperationType(operationTypes);
 

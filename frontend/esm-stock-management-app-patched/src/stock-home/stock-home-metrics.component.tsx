@@ -1,20 +1,14 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ErrorState, showModal, useSession } from '@openmrs/esm-framework';
-import { ResourceRepresentation } from '../core/api/api';
-import { useDisposalList } from './useDisposalList';
-import { useStockInventory } from './stock-home-inventory-expiry.resource';
-import { useStockInventoryItems } from './stock-home-inventory-items.resource';
-import { useStockBatchQuantities } from './stock-home-batch-quantities.resource';
-import { useStockLevelHistory } from './stock-home-level-history.resource';
+import { InlineLoading } from '@carbon/react';
+import { ErrorState, showModal } from '@openmrs/esm-framework';
+import { useStockDashboardSummary } from './stock-home-dashboard-summary.resource';
 import {
   computeExpiringStockHistory,
   computeDisposedStockHistory,
   daysUntilExpiry,
   isExpiringWithinWindow,
 } from './stock-home-metric-history.utils';
-import { type StockOperationFilter } from '../stock-operations/stock-operations.resource';
-import useStockList from './useStockList';
 import MetricsCard from '../core/components/card/metrics-card-component';
 import styles from './stock-home.scss';
 
@@ -30,50 +24,28 @@ function matchesDisposalReason(reasonName: string | null | undefined, fragments:
   return normalizedReason !== '' && fragments.some((fragment) => normalizedReason.includes(fragment));
 }
 
-const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
+const StockManagementMetrics: React.FC = () => {
   const { t } = useTranslation();
-  const { sessionLocation } = useSession();
-  const { outOfStockItems, understockedItems, error } = useStockList();
-  const { items: expiryItems } = useStockInventory();
-  const { items: stockItems } = useStockInventoryItems();
-  const expiryItemUuids = React.useMemo(
-    () => Array.from(new Set(expiryItems.map((batch) => batch.stockItemUuid))),
-    [expiryItems],
-  );
-  const { quantityByBatch } = useStockBatchQuantities(expiryItemUuids, sessionLocation?.uuid);
+  const {
+    outOfStockItems,
+    understockedItems,
+    expiringBatches,
+    disposals,
+    outOfStockTrend,
+    outOfStockSparkline,
+    isLoading,
+    error,
+  } = useStockDashboardSummary();
 
   const currentDate = new Date();
 
-  let mergedArray = expiryItems.map((batch) => {
-    const matchingItem = stockItems?.find((item) => batch?.stockItemUuid === item.uuid);
-    const batchQuantity = quantityByBatch.get(batch.uuid);
-    return { ...batch, ...matchingItem, quantity: batchQuantity?.quantity ?? 0 };
-  });
-
-  // quantityByBatch is now scoped to sessionLocation, so a batch this location doesn't actually
-  // hold any of shouldn't count as this location's "expiring stock".
-  mergedArray = mergedArray.filter((item) => item.hasExpiration && item.quantity > 0);
-
-  // Headline: everything expiring within 180 days, including batches already past expiry.
-  // Soonest expiry first (already-expired batches lead), so the most urgent rows are at the top of
-  // the Expiring stock modal. The API returns batches in insertion order, and batches with no
-  // expiration date go last rather than sorting as 1970.
-  const filteredData = mergedArray
-    .filter((item) => isExpiringWithinWindow(item, currentDate))
-    .sort((a, b) => {
-      const aTime = a.expiration ? new Date(a.expiration).getTime() : Infinity;
-      const bTime = b.expiration ? new Date(b.expiration).getTime() : Infinity;
-      return aTime === bTime ? 0 : aTime < bTime ? -1 : 1;
-    });
+  // Headline: everything expiring within 180 days, including batches already past expiry. The
+  // server sends the location's batches with stock left, soonest expiry first (batches with no
+  // expiration date last), so the most urgent rows lead the Expiring stock modal.
+  const filteredData = expiringBatches.filter((item) => isExpiringWithinWindow(item, currentDate));
 
   // "In 6 months" sub-count: the ones that haven't expired yet.
   const sixMonthsExpiryStocks = filteredData.filter((item) => daysUntilExpiry(item.expiration, currentDate) >= 0);
-
-  const { items } = useDisposalList({
-    v: ResourceRepresentation.Full,
-    totalCount: true,
-    locationUuid: sessionLocation?.uuid,
-  });
 
   // One disposal operation can dispose of several stock items, and both the card's modal and
   // the "disposed stock" idea itself are per stock item - counting operations made a single
@@ -81,7 +53,7 @@ const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
   // items, carrying down the operation-level reason/date the per-item rows don't hold.
   const disposedStockItems = React.useMemo(
     () =>
-      (items ?? []).flatMap((operation) =>
+      disposals.flatMap((operation) =>
         (operation?.stockOperationItems ?? []).map((stockItem) => ({
           ...stockItem,
           reasonName: operation?.reasonName,
@@ -89,11 +61,10 @@ const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
           operationDate: operation?.operationDate,
         })),
       ),
-    [items],
+    [disposals],
   );
 
-  const { outOfStockTrend, outOfStockSparkline } = useStockLevelHistory(sessionLocation?.uuid, stockItems ?? []);
-  const expiringStockHistory = React.useMemo(() => computeExpiringStockHistory(mergedArray), [mergedArray]);
+  const expiringStockHistory = React.useMemo(() => computeExpiringStockHistory(expiringBatches), [expiringBatches]);
   const disposedStockHistory = React.useMemo(
     () => computeDisposedStockHistory(disposedStockItems),
     [disposedStockItems],
@@ -112,6 +83,15 @@ const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
         headerTitle={t('errorStockMetric', 'Error fetching stock metrics')}
         error={{ message: errorMessage }}
       />
+    );
+  }
+
+  // Until the counts arrive, show that they are loading rather than a row of zeros.
+  if (isLoading) {
+    return (
+      <div className={styles.cardContainer}>
+        <InlineLoading description={t('loading', 'Loading')} />
+      </div>
     );
   }
 
@@ -136,7 +116,7 @@ const StockManagementMetrics: React.FC = (filter: StockOperationFilter) => {
   const launchDisposedStockModal = () => {
     const dispose = showModal('disposed-stock-modal', {
       closeModal: () => dispose(),
-      disposedStock: items,
+      disposedStock: disposals,
     });
   };
 
