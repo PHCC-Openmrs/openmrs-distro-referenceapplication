@@ -10,6 +10,7 @@ import type { ExportSheet } from '../reports-shell/export-utils';
 import pageStyles from '../reports-shell/reports-page.scss';
 import type { PatientRow } from '../disease-summary/disease-summary.resource';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
+import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
 
 interface EwarsRow {
   diagnosisLabel: string;
@@ -61,9 +62,11 @@ function useEwarsDrilldown(selection: Selection | null) {
 
 export default function EwarsReport() {
   const { t } = useTranslation();
-  const [startDateInput, setStartDateInput] = useState('');
-  const [endDateInput, setEndDateInput] = useState('');
-  const [applied, setApplied] = useState<{ startDate?: string; endDate?: string }>({});
+  // Open on the last 30 days so the first load stays quick; widen or clear the range to see more.
+  const defaultRange = useDefaultReportDateRange();
+  const [startDateInput, setStartDateInput] = useState(defaultRange.startDate);
+  const [endDateInput, setEndDateInput] = useState(defaultRange.endDate);
+  const [applied, setApplied] = useState<{ startDate?: string; endDate?: string }>(defaultRange);
   const [locationUuid, setLocationUuid] = useState('');
   const { rows, isLoading } = useEwarsReport(applied.startDate, applied.endDate, locationUuid || undefined);
   const [selection, setSelection] = useState<Selection | null>(null);

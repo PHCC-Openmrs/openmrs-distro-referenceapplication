@@ -4868,4 +4868,36 @@ CREATE TRIGGER stockmgmt_location_after_delete
                              referencedTableName="users"
                              referencedColumnNames="user_id"/>
   </changeSet>
+
+  <changeSet author="claude" id="stockmanagement-2026-11-17-1000">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="stockmgmt_stock_operation" indexName="stockmgmt_stock_operation_date_ix"/>
+      </not>
+    </preConditions>
+    <comment>
+      The stock operations list filters by operation date; without an index every date-filtered
+      load scans all operations, which grows with history.
+    </comment>
+    <createIndex indexName="stockmgmt_stock_operation_date_ix" tableName="stockmgmt_stock_operation">
+      <column name="operation_date"/>
+    </createIndex>
+  </changeSet>
+
+  <changeSet author="claude" id="stockmanagement-2026-11-17-1001">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists tableName="stockmgmt_stock_operation" indexName="stockmgmt_stock_operation_report_date_ix"/>
+      </not>
+    </preConditions>
+    <comment>
+      The stock reports (labtestreport) date operations by approval: COALESCE(completed_date,
+      operation_date). They filter on completed_date, falling back to operation_date when it is unset,
+      which this index serves as one range scan.
+    </comment>
+    <createIndex indexName="stockmgmt_stock_operation_report_date_ix" tableName="stockmgmt_stock_operation">
+      <column name="completed_date"/>
+      <column name="operation_date"/>
+    </createIndex>
+  </changeSet>
 </databaseChangeLog>

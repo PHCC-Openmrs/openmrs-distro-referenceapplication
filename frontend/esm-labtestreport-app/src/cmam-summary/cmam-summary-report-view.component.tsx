@@ -15,6 +15,7 @@ import {
   type CmamDimension,
   type CmamSummaryRow,
 } from './cmam-summary.resource';
+import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
 
 interface Selection {
   dimension: CmamDimension;
@@ -54,9 +55,11 @@ export default function CmamSummaryReportView({
 }: CmamSummaryReportViewProps) {
   const { t } = useTranslation();
 
-  const [startDateInput, setStartDateInput] = useState('');
-  const [endDateInput, setEndDateInput] = useState('');
-  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>({});
+  // Open on the last 30 days so the first load stays quick; widen or clear the range to see more.
+  const defaultRange = useDefaultReportDateRange();
+  const [startDateInput, setStartDateInput] = useState(defaultRange.startDate);
+  const [endDateInput, setEndDateInput] = useState(defaultRange.endDate);
+  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>(defaultRange);
   // Location applies immediately (like Disease Summary), unlike the date range which waits for Filter.
   const [locationUuid, setLocationUuid] = useState('');
 

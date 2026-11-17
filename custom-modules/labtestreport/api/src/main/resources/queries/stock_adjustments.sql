@@ -71,6 +71,10 @@ WHERE si.voided = 0
   AND so.status = 'COMPLETED'
   AND COALESCE(so.voided, 0) = 0
   AND (:locationUuid IS NULL OR l.uuid = :locationUuid)
-  AND (:startDate IS NULL OR DATE(COALESCE(so.completed_date, so.operation_date)) >= :startDate)
-  AND (:endDate IS NULL OR DATE(COALESCE(so.completed_date, so.operation_date)) < DATE_ADD(:endDate, INTERVAL 1 DAY))
+  -- Same day as DATE(COALESCE(so.completed_date, so.operation_date)), spelled out on the bare columns
+  -- so the (completed_date, operation_date) index can serve the range; :startDate is midnight.
+  AND (:startDate IS NULL OR so.completed_date >= :startDate
+    OR (so.completed_date IS NULL AND so.operation_date >= :startDate))
+  AND (:endDate IS NULL OR so.completed_date < DATE_ADD(:endDate, INTERVAL 1 DAY)
+    OR (so.completed_date IS NULL AND so.operation_date < DATE_ADD(:endDate, INTERVAL 1 DAY)))
 ORDER BY COALESCE(so.completed_date, so.operation_date) DESC, so.operation_number, si.common_name

@@ -11,6 +11,7 @@ import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
 import { useReferralFormReport, type ReferralFormRow } from './referral-form-report.resource';
+import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
 
 const SEARCHABLE_FIELDS: Array<keyof ReferralFormRow> = [
   'givenName',
@@ -27,9 +28,11 @@ const LOCATION_TAG = 'Login Location';
 
 export default function ReferralFormReport() {
   const { t } = useTranslation();
-  const [startDateInput, setStartDateInput] = useState('');
-  const [endDateInput, setEndDateInput] = useState('');
-  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>({});
+  // Open on the last 30 days so the first load stays quick; widen or clear the range to see more.
+  const defaultRange = useDefaultReportDateRange();
+  const [startDateInput, setStartDateInput] = useState(defaultRange.startDate);
+  const [endDateInput, setEndDateInput] = useState(defaultRange.endDate);
+  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>(defaultRange);
   const [searchTerm, setSearchTerm] = useState('');
   const [locationUuid, setLocationUuid] = useState('');
   const locations = useLocations(LOCATION_TAG);

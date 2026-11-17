@@ -16,6 +16,7 @@ import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
 import { bulkExportCells, formatQuantity } from '../reports-shell/format-quantity';
 import pageStyles from '../reports-shell/reports-page.scss';
 import { useStockLedgerReport, type StockLedgerRow } from './stock-ledger.resource';
+import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
 
 interface LedgerItem {
   key: string;
@@ -409,9 +410,11 @@ export default function StockLedgerReport() {
   const { t } = useTranslation();
   const locations = useLocations(STOCK_LOCATION_TAG);
   const [locationUuid, setLocationUuid] = useState('');
-  const [startDateInput, setStartDateInput] = useState('');
-  const [endDateInput, setEndDateInput] = useState('');
-  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>({});
+  // Open on the last 30 days so the first load stays quick; widen or clear the range to see more.
+  const defaultRange = useDefaultReportDateRange();
+  const [startDateInput, setStartDateInput] = useState(defaultRange.startDate);
+  const [endDateInput, setEndDateInput] = useState(defaultRange.endDate);
+  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>(defaultRange);
   const [viewMode, setViewMode] = useState<'table' | 'graph' | 'trend'>('table');
   const [trendItemKey, setTrendItemKey] = useState<string | null>(null);
   const [itemFilter, setItemFilter] = useState('');

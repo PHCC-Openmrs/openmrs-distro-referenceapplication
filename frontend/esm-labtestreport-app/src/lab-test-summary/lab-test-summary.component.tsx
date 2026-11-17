@@ -15,6 +15,7 @@ import { useMonthComparison } from '../reports-shell/month-compare';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
 import pageStyles from '../reports-shell/reports-page.scss';
 import { useSummaryReport, useDrilldown, type DrilldownParams, type SummaryRow } from './lab-test-summary.resource';
+import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
 
 const AGE_GENDER_COLUMNS: Array<{ ageGroup: string; gender: string; label: string }> = [
   { ageGroup: '0-4', gender: 'M', label: '0-4 M' },
@@ -109,9 +110,11 @@ function groupByCategory(list: SummaryRow[]): CategoryGroup[] {
 
 export default function LabTestSummaryReport() {
   const { t } = useTranslation();
-  const [startDateInput, setStartDateInput] = useState('');
-  const [endDateInput, setEndDateInput] = useState('');
-  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>({});
+  // Open on the last 30 days so the first load stays quick; widen or clear the range to see more.
+  const defaultRange = useDefaultReportDateRange();
+  const [startDateInput, setStartDateInput] = useState(defaultRange.startDate);
+  const [endDateInput, setEndDateInput] = useState(defaultRange.endDate);
+  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>(defaultRange);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [searchText, setSearchText] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');

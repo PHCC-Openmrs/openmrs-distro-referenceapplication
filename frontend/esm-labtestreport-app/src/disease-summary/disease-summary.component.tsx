@@ -32,6 +32,7 @@ import {
   type DiseaseActivityRow,
   type DiseaseDrilldownParams,
 } from './disease-summary.resource';
+import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
 
 const AGE_GROUPS = ['0-4', '5-14', '15-18', '19-49', '50-65', '65+'];
 const AGE_GENDER_COLUMNS = AGE_GROUPS.flatMap((ageGroup) => [
@@ -84,9 +85,11 @@ function summarize(rows: Array<DiseaseActivityRow>) {
 
 export default function DiseaseSummaryReport() {
   const { t } = useTranslation();
-  const [startDateInput, setStartDateInput] = useState('');
-  const [endDateInput, setEndDateInput] = useState('');
-  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>({});
+  // Open on the last 30 days so the first load stays quick; widen or clear the range to see more.
+  const defaultRange = useDefaultReportDateRange();
+  const [startDateInput, setStartDateInput] = useState(defaultRange.startDate);
+  const [endDateInput, setEndDateInput] = useState(defaultRange.endDate);
+  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>(defaultRange);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [diagnosisListRow, setDiagnosisListRow] = useState<DiseaseActivityRow | null>(null);
   const [diagnosisSearch, setDiagnosisSearch] = useState('');

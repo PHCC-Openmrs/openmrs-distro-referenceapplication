@@ -42,4 +42,29 @@
             <column name="voided"/>
         </createIndex>
     </changeSet>
+
+    <!-- Reports filter by date: Medicine Distribution by orders.date_activated, Patient Encounter
+         Summary by visit.date_started. Core indexes neither, so a date-ranged report scanned the
+         whole table. -->
+    <changeSet id="labtestreport-report-date-idx-20261117-orders" author="labtestreport">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists tableName="orders" indexName="labtestreport_orders_date_activated_idx"/>
+            </not>
+        </preConditions>
+        <createIndex indexName="labtestreport_orders_date_activated_idx" tableName="orders">
+            <column name="date_activated"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="labtestreport-report-date-idx-20261117-visit" author="labtestreport">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists tableName="visit" indexName="labtestreport_visit_date_started_idx"/>
+            </not>
+        </preConditions>
+        <createIndex indexName="labtestreport_visit_date_started_idx" tableName="visit">
+            <column name="date_started"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>
