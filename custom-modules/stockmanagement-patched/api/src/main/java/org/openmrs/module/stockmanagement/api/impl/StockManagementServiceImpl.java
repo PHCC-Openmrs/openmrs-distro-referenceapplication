@@ -2676,6 +2676,168 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         return postProcessInventoryResult(filter, result);
     }
 
+    public StockDashboardSummary getStockDashboardSummary(Location location) {
+        StockDashboardSummary summary = new StockDashboardSummary();
+        if (location == null) {
+            return summary;
+        }
+
+        StockItemSearchFilter stockItemFilter = new StockItemSearchFilter();
+        stockItemFilter.setIncludeVoided(false);
+        List<StockItemDTO> stockItems = findStockItems(stockItemFilter).getData();
+        Map<Integer, StockItemDTO> stockItemsById = new HashMap<>();
+        for (StockItemDTO stockItem : stockItems) {
+            stockItemsById.put(stockItem.getId(), stockItem);
+        }
+
+        // A location the user may not see stock for reads as holding nothing, as the inventory search does.
+        Party party = dao.getPartyByLocation(location);
+        HashSet<RecordPrivilegeFilter> recordPrivilegeFilters = getRecordPrivilegeFilters(Context.getAuthenticatedUser(),
+                null, null, Privileges.APP_STOCKMANAGEMENT_STOCKITEMS);
+        boolean canSeeStock = party != null && recordPrivilegeFilters != null && !recordPrivilegeFilters.isEmpty()
+                && canSeePartyStock(party, recordPrivilegeFilters);
+
+        Map<Integer, StockItemInventory> quantityByItem = new HashMap<>();
+        if (canSeeStock) {
+            for (StockItemInventory row : getStockInventory(
+                    locationInventoryFilter(party, StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly),
+                    recordPrivilegeFilters).getData()) {
+                quantityByItem.put(row.getStockItemId(), row);
+            }
+        }
+
+        for (StockItemDTO stockItem : stockItems) {
+            StockItemInventory inventory = quantityByItem.get(stockItem.getId());
+            BigDecimal quantity = inventory == null || inventory.getQuantity() == null ? BigDecimal.ZERO
+                    : inventory.getQuantity();
+            String quantityUoM = inventory == null ? null : inventory.getQuantityUoM();
+            BigDecimal reorderLevel = stockItem.getReorderLevel();
+            if (quantity.signum() <= 0) {
+                summary.getOutOfStockItems().add(new StockDashboardSummary.ItemLevel(stockItem, quantity, quantityUoM));
+            } else if (reorderLevel != null && reorderLevel.signum() != 0 && quantity.compareTo(reorderLevel) < 0) {
+                summary.getUnderstockedItems().add(new StockDashboardSummary.ItemLevel(stockItem, quantity, quantityUoM));
+            }
+        }
+
+        addOutOfStockHistory(summary, party, canSeeStock, stockItems);
+
+        if (canSeeStock) {
+            addExpiringBatches(summary, party, recordPrivilegeFilters, stockItemsById);
+        }
+
+        StockOperationType disposal = dao.getStockOperationTypeByType(StockOperationType.DISPOSED);
+        if (disposal != null) {
+            StockOperationSearchFilter operationFilter = new StockOperationSearchFilter();
+            operationFilter.setLocationId(location.getId());
+            operationFilter.setOperationTypeId(Collections.singletonList(disposal.getId()));
+            operationFilter.setStatus(Collections.singletonList(StockOperationStatus.COMPLETED));
+            operationFilter.setIncludeVoided(false);
+            // Filtered to the operations the user may see; none at all without the stock operations privilege.
+            List<StockOperationDTO> disposals = findStockOperations(operationFilter).getData();
+            if (!disposals.isEmpty()) {
+                StockOperationItemSearchFilter itemFilter = new StockOperationItemSearchFilter();
+                itemFilter.setIncludeStockUnitName(true);
+                itemFilter.setIncludePackagingUnitName(true);
+                itemFilter.setStockOperationUuids(disposals.stream().map(StockOperationDTO::getUuid)
+                        .collect(Collectors.toList()));
+                Map<String, List<StockOperationItemDTO>> itemsByOperation = findStockOperationItems(itemFilter).getData()
+                        .stream().collect(Collectors.groupingBy(StockOperationItemDTO::getStockOperationUuid));
+                for (StockOperationDTO operation : disposals) {
+                    operation.setStockOperationItems(itemsByOperation.getOrDefault(operation.getUuid(), new ArrayList<>()));
+                }
+            }
+            summary.setDisposals(disposals);
+        }
+        return summary;
+    }
+
+    /** Whether the privilege filters reach the party's location, as the inventory query decides it. */
+    private boolean canSeePartyStock(Party party, HashSet<RecordPrivilegeFilter> recordPrivilegeFilters) {
+        PartySearchFilter partyFilter = new PartySearchFilter();
+        partyFilter.setIncludeVoided(true);
+        partyFilter.setLocationIds(recordPrivilegeFilters.stream().map(RecordPrivilegeFilter::getLocationId).distinct()
+                .collect(Collectors.toList()));
+        return dao.findParty(partyFilter).getData().stream().anyMatch(p -> party.getId().equals(p.getId()));
+    }
+
+    private StockItemInventorySearchFilter locationInventoryFilter(Party party,
+            StockItemInventorySearchFilter.InventoryGroupBy groupBy) {
+        StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
+        filter.setInventoryGroupBy(groupBy);
+        filter.setItemGroupFilters(Collections.singletonList(new StockItemInventorySearchFilter.ItemGroupFilter(
+                Collections.singletonList(party.getId()), (Integer) null, (Integer) null)));
+        filter.setRequireNonExpiredStockBatches(true);
+        filter.setDoSetQuantityUoM(true);
+        filter.setDoSetBatchFields(groupBy == StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+        return filter;
+    }
+
+    /**
+     * How many stock items were out of stock at the start of each of the last few weeks. Today's point is the
+     * out-of-stock list itself; the earlier ones come from one query that sums every week at once. Whether a
+     * quantity is above zero does not depend on its unit, so the base-unit sums need no conversion.
+     */
+    private void addOutOfStockHistory(StockDashboardSummary summary, Party party, boolean canSeeStock,
+            List<StockItemDTO> stockItems) {
+        List<Integer> pastDaysAgo = new ArrayList<>();
+        List<Date> pastDates = new ArrayList<>();
+        for (int daysAgo : StockDashboardSummary.HISTORY_DAYS_AGO) {
+            if (daysAgo > 0) {
+                pastDaysAgo.add(daysAgo);
+                pastDates.add(DateUtils.addDays(DateUtil.today(), -daysAgo));
+            }
+        }
+
+        Map<Integer, Object[]> pastQuantities = new HashMap<>();
+        if (canSeeStock) {
+            for (Object[] row : dao.getStockItemQuantitiesAsOf(party.getId(), pastDates)) {
+                pastQuantities.put((Integer) row[0], row);
+            }
+        }
+
+        for (int daysAgo : StockDashboardSummary.HISTORY_DAYS_AGO) {
+            int count;
+            if (daysAgo == 0) {
+                count = summary.getOutOfStockItems().size();
+            } else {
+                int column = pastDaysAgo.indexOf(daysAgo) + 1;
+                count = 0;
+                for (StockItemDTO stockItem : stockItems) {
+                    Object[] row = pastQuantities.get(stockItem.getId());
+                    Object quantity = row == null ? null : row[column];
+                    if (quantity == null || new BigDecimal(quantity.toString()).signum() <= 0) {
+                        count++;
+                    }
+                }
+            }
+            summary.getOutOfStockHistory().add(new StockDashboardSummary.HistoryPoint(daysAgo, count));
+        }
+    }
+
+    /**
+     * The location's batches with stock left that expire within the window (or have no expiry date), soonest
+     * first, for items that track expiry. Expired batches hold no stock as the inventory counts it.
+     */
+    private void addExpiringBatches(StockDashboardSummary summary, Party party,
+            HashSet<RecordPrivilegeFilter> recordPrivilegeFilters, Map<Integer, StockItemDTO> stockItemsById) {
+        Date cutoff = DateUtils.addDays(DateUtil.today(), StockDashboardSummary.EXPIRY_WINDOW_DAYS + 2);
+        List<StockItemInventory> rows = getStockInventory(
+                locationInventoryFilter(party, StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo),
+                recordPrivilegeFilters).getData();
+        for (StockItemInventory row : rows) {
+            StockItemDTO stockItem = stockItemsById.get(row.getStockItemId());
+            if (stockItem == null || !Boolean.TRUE.equals(stockItem.getHasExpiration()) || row.getStockBatchUuid() == null
+                    || row.getQuantity() == null || row.getQuantity().signum() <= 0
+                    || (row.getExpiration() != null && !row.getExpiration().before(cutoff))) {
+                continue;
+            }
+            summary.getExpiringBatches().add(new StockDashboardSummary.ExpiringBatch(stockItem, row.getStockBatchUuid(),
+                    row.getBatchNumber(), row.getExpiration(), row.getQuantity(), row.getQuantityUoM()));
+        }
+        summary.getExpiringBatches().sort(Comparator.comparing(StockDashboardSummary.ExpiringBatch::getExpiration,
+                Comparator.nullsLast(Comparator.naturalOrder())));
+    }
+
     public StockInventoryResult postProcessInventoryResult(StockItemInventorySearchFilter filter, StockInventoryResult result) {
         Map<Integer, String> partyNames = null;
         Map<Integer, StockBatchDTO> stockBatchNames = null;

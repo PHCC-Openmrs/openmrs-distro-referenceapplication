@@ -14,11 +14,12 @@ function daysAgoDate(daysAgo: number) {
 export const EXPIRY_WINDOW_DAYS = 180;
 
 interface ExpiringBatch {
-  expiration: Date | string;
+  expiration?: Date | string | null;
 }
 
-export function daysUntilExpiry(expiration: Date | string, asOf: Date = new Date()) {
-  return Math.ceil((new Date(expiration).getTime() - asOf.getTime()) / (1000 * 60 * 60 * 24));
+/** A missing expiration date reads as the epoch, i.e. long expired, as it always has here. */
+export function daysUntilExpiry(expiration: Date | string | null | undefined, asOf: Date = new Date()) {
+  return Math.ceil((new Date(expiration ?? 0).getTime() - asOf.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 /** Expires within the window, or has already expired. */
@@ -48,7 +49,7 @@ export function computeExpiringStockHistory(batches: Array<ExpiringBatch>) {
 }
 
 interface DisposedItem {
-  operationDate: Date | string;
+  operationDate?: Date | string | null;
 }
 
 /**

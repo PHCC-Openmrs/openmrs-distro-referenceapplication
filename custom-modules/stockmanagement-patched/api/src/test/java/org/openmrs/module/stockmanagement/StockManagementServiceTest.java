@@ -596,6 +596,51 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
     }
 	
 	@Test
+	public void getStockItemQuantitiesAsOf_shouldSumEachDateSeparatelyAndDropBatchesExpiredByThen() {
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		packagingUom.setFactor(BigDecimal.valueOf(2));
+		dao().saveStockItemPackagingUOM(packagingUom);
+		Date today = DateUtil.today();
+
+		StockBatch freshBatch = eu().newStockBatch(dao(), stockItem);
+		freshBatch.setExpiration(DateUtils.addDays(today, 100));
+		dao().saveStockBatch(freshBatch);
+		StockBatch expiredBatch = eu().newStockBatch(dao(), stockItem);
+		expiredBatch.setExpiration(DateUtils.addDays(today, -10));
+		dao().saveStockBatch(expiredBatch);
+
+		StockItemTransaction received = eu().newStockItemTransaction(dao(), stockItem, freshBatch, packagingUom);
+		received.setQuantity(BigDecimal.valueOf(5));
+		received.setDateCreated(DateUtils.addDays(today, -20));
+		dao().saveStockItemTransaction(received);
+		StockItemTransaction issued = eu().newStockItemTransaction(dao(), stockItem, freshBatch, packagingUom);
+		issued.setQuantity(BigDecimal.valueOf(-5));
+		issued.setDateCreated(DateUtils.addDays(today, -3));
+		dao().saveStockItemTransaction(issued);
+		StockItemTransaction receivedExpiring = eu().newStockItemTransaction(dao(), stockItem, expiredBatch, packagingUom);
+		receivedExpiring.setQuantity(BigDecimal.valueOf(4));
+		receivedExpiring.setDateCreated(DateUtils.addDays(today, -25));
+		dao().saveStockItemTransaction(receivedExpiring);
+		Context.flushSession();
+
+		List<Date> asOf = Arrays.asList(DateUtils.addDays(today, -28), DateUtils.addDays(today, -21),
+		    DateUtils.addDays(today, -14), DateUtils.addDays(today, -7), today);
+		List<Object[]> rows = dao().getStockItemQuantitiesAsOf(received.getParty().getId(), asOf);
+
+		Object[] row = rows.stream().filter(r -> stockItem.getId().equals(r[0])).findFirst().orElse(null);
+		assertNotNull(row);
+		// 28 days ago nothing had arrived; 21 days ago only the expiring batch (4 x 2); 14 days ago both
+		// batches (8 + 5 x 2); 7 days ago the expiring batch had expired; today the fresh batch is issued out.
+		BigDecimal[] expected = { BigDecimal.ZERO, BigDecimal.valueOf(8), BigDecimal.valueOf(18), BigDecimal.valueOf(10),
+		        BigDecimal.ZERO };
+		for (int i = 0; i < expected.length; i++) {
+			assertEquals("as of " + asOf.get(i), 0, expected[i].compareTo(new BigDecimal(row[i + 1].toString())));
+		}
+	}
+
+	@Test
 	public void findStockItemTransactions_shouldFilterOnAllCriteria() {
 		stockManagementService.setDao(dao());
 		StockItemTransaction so = eu().newStockItemTransaction(dao());
