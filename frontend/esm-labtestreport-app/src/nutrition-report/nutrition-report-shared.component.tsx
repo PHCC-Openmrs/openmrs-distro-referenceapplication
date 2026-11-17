@@ -16,6 +16,7 @@ import {
   type NutritionAgeBand,
   type NutritionSummaryRow,
 } from './nutrition-report.resource';
+import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
 
 const LOCATION_TAG = 'Login Location';
 
@@ -34,9 +35,11 @@ interface NutritionReportSharedProps {
 export default function NutritionReportShared({ band, title, filenameBase, ageBandMin, ageBandMax }: NutritionReportSharedProps) {
   const { t } = useTranslation();
 
-  const [startDateInput, setStartDateInput] = useState('');
-  const [endDateInput, setEndDateInput] = useState('');
-  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>({});
+  // Open on the last 30 days so the first load stays quick; widen or clear the range to see more.
+  const defaultRange = useDefaultReportDateRange();
+  const [startDateInput, setStartDateInput] = useState(defaultRange.startDate);
+  const [endDateInput, setEndDateInput] = useState(defaultRange.endDate);
+  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>(defaultRange);
   const [minAge, setMinAge] = useState<number | ''>(ageBandMin);
   const [maxAge, setMaxAge] = useState<number | ''>(ageBandMax);
   const [locationFilter, setLocationFilter] = useState('');

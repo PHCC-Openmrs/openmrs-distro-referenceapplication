@@ -18,6 +18,7 @@ import {
   type AdjustmentPurpose,
   type StockAdjustmentRow,
 } from './stock-adjustments.resource';
+import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
 
 const STOCK_LOCATION_TAG = 'Login Location';
 
@@ -43,9 +44,11 @@ export default function StockAdjustmentsReport() {
   const { t } = useTranslation();
   const locations = useLocations(STOCK_LOCATION_TAG);
   const [locationUuid, setLocationUuid] = useState('');
-  const [startDateInput, setStartDateInput] = useState('');
-  const [endDateInput, setEndDateInput] = useState('');
-  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>({});
+  // Open on the last 30 days so the first load stays quick; widen or clear the range to see more.
+  const defaultRange = useDefaultReportDateRange();
+  const [startDateInput, setStartDateInput] = useState(defaultRange.startDate);
+  const [endDateInput, setEndDateInput] = useState(defaultRange.endDate);
+  const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>(defaultRange);
   const [itemFilter, setItemFilter] = useState('');
   const [searchText, setSearchText] = useState('');
   const [purposeFilter, setPurposeFilter] = useState<'' | AdjustmentPurpose>('');

@@ -34,3 +34,13 @@ export function clampToCurrentMonth(value: string): string {
   const currentMonth = getCurrentMonthString();
   return value > currentMonth ? currentMonth : value;
 }
+
+/**
+ * Reports open on this many days (ending today) instead of the whole history, so the first load
+ * stays quick as data grows. Users widen or clear the range when they need more.
+ */
+export const DEFAULT_REPORT_RANGE_DAYS = 30;
+
+export function getDefaultReportDateRange(): { startDate: string; endDate: string } {
+  return { startDate: getDateDaysAgoString(DEFAULT_REPORT_RANGE_DAYS - 1), endDate: getTodayDateString() };
+}
