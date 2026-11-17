@@ -55,6 +55,12 @@ services:
       OMRS_CONFIG_CONNECTION_DATABASE: ${OMRS_CONFIG_CONNECTION_DATABASE:- openmrs}
       OMRS_CONFIG_CONNECTION_USERNAME: ${OMRS_DB_USER:-openmrs}
       OMRS_CONFIG_CONNECTION_PASSWORD: ${OMRS_DB_PASSWORD:-openmrs}
+      # MariaDB JDBC driver (already in the WAR) instead of MySQL Connector/J: on Gaza time the
+      # MySQL driver throws "HOUR_OF_DAY: 0 -> 1" reading a DATE whose midnight was skipped by a
+      # daylight-saving switch (39 dates 1957-2022, e.g. birthdate 1994-04-01). useMysqlMetadata
+      # keeps the reported product name "MySQL", so Liquibase dbms="mysql" changesets still apply.
+      OMRS_CONFIG_DATABASE: mariadb
+      OMRS_CONFIG_CONNECTION_ARGS: "?autoReconnect=true&sessionVariables=default_storage_engine=InnoDB&useUnicode=true&characterEncoding=UTF-8&useMysqlMetadata=true"
       # Gaza time, wherever the VM is. The JVM's timezone decides how report dates
       # (yyyy-MM-dd) become day boundaries and how timestamps are saved. TZ covers the OS
       # clock and logs.
