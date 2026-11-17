@@ -57,10 +57,12 @@ function useMonthlyHealthPromotionReport(
   startDate?: string,
   endDate?: string,
   locationUuid?: string,
+  sessionType?: string,
   category?: string,
   subject?: string,
 ) {
   const search = new URLSearchParams();
+  if (sessionType) search.set('sessionType', sessionType);
   if (category) search.set('category', category);
   if (subject) search.set('subject', subject);
   if (startDate) search.set('startDate', startDate);
@@ -80,6 +82,8 @@ interface Selection {
   ageGroup?: string;
   gender?: string;
   cellLabel?: string;
+  // The number that was clicked, to tell when the list is shorter (the Grand Total counts a patient once per row).
+  expectedCount?: number;
   startDate?: string;
   endDate?: string;
   locationUuid?: string;
@@ -113,6 +117,7 @@ export default function MonthlyHealthPromotionReport() {
   // Applies as soon as it's picked, like the location filter (dates wait for the Filter button).
   const [appliedSubject, setAppliedSubject] = useState('');
   const [appliedCategory, setAppliedCategory] = useState('');
+  const [appliedSessionType, setAppliedSessionType] = useState('');
   const categories = useCategories(applied.startDate, applied.endDate, locationUuid || undefined);
   // Only the chosen category's subjects are offered.
   const subjects = useSubjects(
@@ -125,6 +130,7 @@ export default function MonthlyHealthPromotionReport() {
     applied.startDate,
     applied.endDate,
     locationUuid || undefined,
+    appliedSessionType || undefined,
     appliedCategory || undefined,
     appliedSubject || undefined,
   );
@@ -134,9 +140,16 @@ export default function MonthlyHealthPromotionReport() {
   const grandTotalRow = useMemo(() => rows.find((row) => row.sessionTypeKey === GRAND_TOTAL_KEY), [rows]);
   const bodyRows = useMemo(() => rows.filter((row) => row.sessionTypeKey !== GRAND_TOTAL_KEY), [rows]);
 
-  const openDrilldown = (row: MonthlyHealthPromotionRow, column?: (typeof AGE_GENDER_COLUMNS)[number]) =>
+  const openDrilldown = (
+    row: MonthlyHealthPromotionRow,
+    value: number,
+    column?: (typeof AGE_GENDER_COLUMNS)[number],
+  ) =>
     setSelection({
-      sessionTypeKey: row.sessionTypeKey,
+      expectedCount: value,
+      // The Grand Total covers whichever session type the filter leaves, or all of them.
+      sessionTypeKey:
+        row.sessionTypeKey === GRAND_TOTAL_KEY ? appliedSessionType || GRAND_TOTAL_KEY : row.sessionTypeKey,
       // Session-type and Grand Total rows cover every category and subject, unless the filters narrow them.
       category: row.category ?? (appliedCategory || null),
       subject: row.subject ?? (appliedSubject || null),
@@ -148,34 +161,29 @@ export default function MonthlyHealthPromotionReport() {
       locationUuid: locationUuid || undefined,
     });
 
+  // The Individual / Group / Follow up rows are headings for the subject rows beneath them, so they carry no counts.
+  const isTypeHeadingRow = (row: MonthlyHealthPromotionRow) => row.sessionTypeKey !== GRAND_TOTAL_KEY && !row.subject;
+
   const countCell = (row: MonthlyHealthPromotionRow, value: number, column?: (typeof AGE_GENDER_COLUMNS)[number]) =>
     value > 0 ? (
-      <button className={pageStyles.linkCell} onClick={() => openDrilldown(row, column)}>
+      <button className={pageStyles.linkCell} onClick={() => openDrilldown(row, value, column)}>
         {value}
       </button>
     ) : (
       value
     );
 
-  // Numbers the session-type rows 1, 2, 3 like the paper report; subject rows beneath carry no number.
-  const rowNumbers = useMemo(() => {
-    let n = 0;
-    return bodyRows.map((row) => (row.subject ? '' : String(++n)));
-  }, [bodyRows]);
-
   const exportSheet = useMemo<ExportSheet>(() => {
-    const toExportRow = (row: MonthlyHealthPromotionRow, number: string) => [
-      number,
+    const toExportRow = (row: MonthlyHealthPromotionRow) => [
       row.sessionType,
       row.category ?? '',
       row.subject ?? '',
-      ...AGE_GENDER_COLUMNS.map((col) => row.counts?.[col.key] ?? 0),
-      row.total,
+      ...AGE_GENDER_COLUMNS.map((col) => (isTypeHeadingRow(row) ? '' : (row.counts?.[col.key] ?? 0))),
+      isTypeHeadingRow(row) ? '' : row.total,
     ];
     return {
       name: t('monthlyHealthPromotionReport', 'Monthly Health Promotion Report'),
       headers: [
-        '#',
         t('sessionType', 'Session type'),
         t('sessionCategory', 'Session category'),
         t('sessionSubject', 'Session subject'),
@@ -183,11 +191,11 @@ export default function MonthlyHealthPromotionReport() {
         t('total', 'Total'),
       ],
       rows: [
-        ...bodyRows.map((row, index) => toExportRow(row, rowNumbers[index])),
-        ...(grandTotalRow ? [toExportRow(grandTotalRow, '')] : []),
+        ...bodyRows.map((row) => toExportRow(row)),
+        ...(grandTotalRow ? [toExportRow(grandTotalRow)] : []),
       ],
     };
-  }, [t, bodyRows, rowNumbers, grandTotalRow]);
+  }, [t, bodyRows, grandTotalRow]);
 
   return (
     <div>
@@ -219,6 +227,19 @@ export default function MonthlyHealthPromotionReport() {
             />
           </div>
           <LocationFilter id="monthlyHealthPromotionLocationFilter" value={locationUuid} onChange={setLocationUuid} />
+          <div className={pageStyles.filterField}>
+            <label htmlFor="monthlyHealthPromotionSessionTypeFilter">{t('sessionType', 'Session type')}</label>
+            <select
+              id="monthlyHealthPromotionSessionTypeFilter"
+              value={appliedSessionType}
+              onChange={(e) => setAppliedSessionType(e.target.value)}
+            >
+              <option value="">{t('allSessionTypes', 'All session types')}</option>
+              <option value="individual">{t('individualSessions', 'Individual Sessions')}</option>
+              <option value="group">{t('groupSessions', 'Group Sessions')}</option>
+              <option value="followUp">{t('followUpCases', 'Follow up cases')}</option>
+            </select>
+          </div>
           <div className={pageStyles.filterField}>
             <label htmlFor="monthlyHealthPromotionCategoryFilter">{t('sessionCategory', 'Session category')}</label>
             <select
@@ -276,9 +297,6 @@ export default function MonthlyHealthPromotionReport() {
               <thead>
                 <tr>
                   <th rowSpan={2} className="left">
-                    #
-                  </th>
-                  <th rowSpan={2} className="left">
                     {t('sessionType', 'Session type')}
                   </th>
                   <th rowSpan={2} className="left">
@@ -301,23 +319,24 @@ export default function MonthlyHealthPromotionReport() {
                 </tr>
               </thead>
               <tbody>
-                {bodyRows.map((row, index) => (
+                {bodyRows.map((row) => (
                   <tr key={`${row.sessionTypeKey}|${row.category ?? ''}|${row.subject ?? ''}`}>
-                    <td className="left">{rowNumbers[index]}</td>
                     <td className="left">{row.subject ? '' : <strong>{row.sessionType}</strong>}</td>
                     <td className="left">{row.category}</td>
                     <td className="left">{row.subject}</td>
                     {AGE_GENDER_COLUMNS.map((col) => (
-                      <td key={col.key}>{countCell(row, row.counts?.[col.key] ?? 0, col)}</td>
+                      <td key={col.key}>
+                        {isTypeHeadingRow(row) ? '' : countCell(row, row.counts?.[col.key] ?? 0, col)}
+                      </td>
                     ))}
-                    <td>{countCell(row, row.total)}</td>
+                    <td>{isTypeHeadingRow(row) ? '' : countCell(row, row.total)}</td>
                   </tr>
                 ))}
               </tbody>
               {grandTotalRow && (
                 <tfoot>
                   <tr>
-                    <td className="left" colSpan={4}>
+                    <td className="left" colSpan={3}>
                       <strong>{t('grandTotal', 'Grand Total')}</strong>
                     </td>
                     {AGE_GENDER_COLUMNS.map((col) => (
@@ -346,6 +365,15 @@ export default function MonthlyHealthPromotionReport() {
           {patientsLoading && <InlineLoading description={t('loadingPatients', 'Loading patients...')} />}
           {!patientsLoading && patients.length === 0 && (
             <p>{t('noPatientsForSelection', 'No patients found for this selection.')}</p>
+          )}
+          {!patientsLoading && patients.length > 0 && selection.expectedCount !== patients.length && (
+            <p>
+              {t(
+                'monthlyHealthPromotionDistinctPatientsNote',
+                '{{patientCount}} patients. A patient who attended more than one session type or subject is counted once in this list, but once per row in the number you clicked ({{expected}}).',
+                { patientCount: patients.length, expected: selection.expectedCount },
+              )}
+            </p>
           )}
           {!patientsLoading && patients.length > 0 && (
             <div className={pageStyles.tableContainer}>

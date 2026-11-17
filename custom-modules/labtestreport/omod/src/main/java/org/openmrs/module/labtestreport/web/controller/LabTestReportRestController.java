@@ -315,11 +315,12 @@ public class LabTestReportRestController {
 	public ResponseEntity<String> monthlyHealthPromotionReport(
 	        @RequestParam(value = "startDate", required = false) Date startDate,
 	        @RequestParam(value = "endDate", required = false) Date endDate,
+	        @RequestParam(value = "sessionType", required = false) String sessionType,
 	        @RequestParam(value = "category", required = false) String category,
 	        @RequestParam(value = "subject", required = false) String subject,
 	        @RequestParam(value = "locationUuid", required = false) String locationUuid) throws JsonProcessingException {
 		return jsonResponse(Context.getService(MonthlyHealthPromotionService.class).getReport(startDate, endDate,
-		    locationUuid, category, subject));
+		    locationUuid, sessionType, category, subject));
 	}
 
 	@RequestMapping(value = "/monthly-health-promotion-categories.json", method = RequestMethod.GET)
