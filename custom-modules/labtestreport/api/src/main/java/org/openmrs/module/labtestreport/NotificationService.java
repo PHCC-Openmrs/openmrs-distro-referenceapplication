@@ -64,7 +64,7 @@ public interface NotificationService extends OpenmrsService {
 	/**
 	 * @return the authenticated user's unread, unexpired notifications of the session location (those
 	 *         that happened there or at a location inside it, plus any that carry no location), newest
-	 *         first
+	 *         first, at most the newest 100
 	 */
 	List<NotificationRow> getUnreadNotificationsForCurrentUser();
 
@@ -75,7 +75,8 @@ public interface NotificationService extends OpenmrsService {
 	void markRead(Integer alertId);
 
 	/**
-	 * Marks read every notification {@link #getUnreadNotificationsForCurrentUser()} returns.
+	 * Marks read every unread notification of the session location, including any beyond the newest
+	 * 100 that {@link #getUnreadNotificationsForCurrentUser()} lists.
 	 */
 	void markAllRead();
 }

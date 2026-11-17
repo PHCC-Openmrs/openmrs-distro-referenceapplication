@@ -1,5 +1,6 @@
 package org.openmrs.module.labtestreport.db;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.openmrs.User;
@@ -24,9 +25,16 @@ public interface NotificationDAO {
 	 * of the recipients, so an alert comes back once per recipient who hasn't read it, and still
 	 * shows for a user who has read it while anyone else hasn't.
 	 *
-	 * @return the unexpired alerts the user is a recipient of and has not read, each once
+	 * The location filter runs in the query: a user collects thousands of unread alerts across
+	 * locations, and loading them all to filter in Java made each notifications poll take seconds.
+	 *
+	 * @param locationUuids only alerts whose [loc:...] marker names one of these locations, plus
+	 *            alerts that carry no location; null for no location filter
+	 * @param limit at most this many, newest first; null for all
+	 * @return the unexpired alerts the user is a recipient of and has not read, each once, newest
+	 *         first
 	 */
-	List<Alert> getUnreadAlertsFor(User user) throws DAOException;
+	List<Alert> getUnreadAlertsFor(User user, Collection<String> locationUuids, Integer limit) throws DAOException;
 
 	/**
 	 * @return {patient uuid, queue name, queue location id, provider waiting for's person id,
