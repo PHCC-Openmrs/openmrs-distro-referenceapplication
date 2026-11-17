@@ -64,6 +64,13 @@ public class NotificationServiceImpl extends BaseOpenmrsService implements Notif
 
 	private static final String STOCK_APPROVE_PRIVILEGE = "Task: stockmanagement.stockoperations.approve";
 
+	/**
+	 * The bell lists at most this many, the newest. Users collect thousands of unread alerts (queue
+	 * arrivals nobody marks read), and returning them all on every poll made it take seconds; the
+	 * badge shows 99+ beyond this anyway.
+	 */
+	static final int MAX_LISTED_NOTIFICATIONS = 100;
+
 	/*
 	 * core Alert has no link to what it is about, so the type, a dedupe key (whose first part is the
 	 * referenced uuid), the patient uuid and the uuid of the location it happened at ride along in the
@@ -74,8 +81,6 @@ public class NotificationServiceImpl extends BaseOpenmrsService implements Notif
 	private static final Pattern LEGACY_ORDER_MARKER = Pattern.compile("\\[order:([^\\]]+)\\]");
 
 	private static final Pattern PATIENT_MARKER = Pattern.compile("\\[patient:([^\\]]+)\\]");
-
-	private static final Pattern LOCATION_MARKER = Pattern.compile("\\[loc:([^\\]]+)\\]");
 
 	private static final Pattern ANY_MARKER = Pattern.compile("\\[(n|order|patient|loc):[^\\]]*\\]");
 
@@ -370,7 +375,7 @@ public class NotificationServiceImpl extends BaseOpenmrsService implements Notif
 	@Transactional(readOnly = true)
 	public List<NotificationRow> getUnreadNotificationsForCurrentUser() {
 		List<NotificationRow> rows = new ArrayList<>();
-		for (Alert alert : alertsAtSessionLocation()) {
+		for (Alert alert : alertsAtSessionLocation(MAX_LISTED_NOTIFICATIONS)) {
 			String text = alert.getText();
 			NotificationRow row = new NotificationRow();
 			row.setId(alert.getAlertId());
@@ -410,42 +415,41 @@ public class NotificationServiceImpl extends BaseOpenmrsService implements Notif
 	@Transactional
 	public void markAllRead() {
 		// only what the bell shows; notifications of the user's other locations stay unread
-		for (Alert alert : alertsAtSessionLocation()) {
+		for (Alert alert : alertsAtSessionLocation(null)) {
 			saveAsRead(alert);
 		}
 	}
 
 	/**
 	 * The current user's unread alerts that belong to the location they logged in at: alerts that
-	 * happened there or at a location inside it. Alerts that carry no location (other modules' alerts,
-	 * ones created before locations were recorded) show everywhere, as does everything when the
-	 * session has no location.
+	 * happened there or at a location inside it, newest first. Alerts that carry no location (other
+	 * modules' alerts, ones created before locations were recorded) show everywhere, as does
+	 * everything when the session has no location.
+	 *
+	 * @param limit at most this many; null for all
 	 */
-	private List<Alert> alertsAtSessionLocation() {
+	private List<Alert> alertsAtSessionLocation(Integer limit) {
 		Location sessionLocation = Context.getUserContext().getLocation();
-		List<Alert> alerts = new ArrayList<>();
-		for (Alert alert : dao.getUnreadAlertsFor(Context.getAuthenticatedUser())) {
-			String text = alert.getText();
-			if (text == null) {
-				continue;
+		Set<String> locationUuids = null;
+		if (sessionLocation != null) {
+			// the user context's copy is from an earlier Hibernate session; its children load lazily
+			sessionLocation = Context.getLocationService().getLocation(sessionLocation.getLocationId());
+		}
+		if (sessionLocation != null) {
+			locationUuids = new HashSet<>();
+			locationUuids.add(sessionLocation.getUuid());
+			// retired ones too: an alert from a since-retired ward still belongs to the facility
+			for (Location descendant : sessionLocation.getDescendantLocations(true)) {
+				locationUuids.add(descendant.getUuid());
 			}
-			String locationUuid = firstGroup(LOCATION_MARKER, text);
-			if (sessionLocation == null || locationUuid == null
-			        || isAtOrInside(Context.getLocationService().getLocationByUuid(locationUuid), sessionLocation)) {
+		}
+		List<Alert> alerts = new ArrayList<>();
+		for (Alert alert : dao.getUnreadAlertsFor(Context.getAuthenticatedUser(), locationUuids, limit)) {
+			if (alert.getText() != null) {
 				alerts.add(alert);
 			}
 		}
 		return alerts;
-	}
-
-	private static boolean isAtOrInside(Location location, Location ancestor) {
-		Set<Location> seen = new HashSet<>();
-		for (Location l = location; l != null && seen.add(l); l = l.getParentLocation()) {
-			if (l.getUuid().equals(ancestor.getUuid())) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	/** Recipients mark alerts read, but saving one needs Manage Alerts, which clinicians lack. */

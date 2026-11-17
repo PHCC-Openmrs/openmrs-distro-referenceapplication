@@ -39,7 +39,9 @@ export function useNotifications() {
   const { data, error, isLoading } = useSWR<{ data: Array<Notification> }, Error>(
     [notificationsUrl, session?.sessionLocation?.uuid],
     ([url]) => openmrsFetch(url),
-    { refreshInterval: POLL_INTERVAL_MS },
+    // the poll is enough; re-checking on every window focus (switching tabs, clicking out to devtools)
+    // multiplied the calls without making new notifications show up much sooner
+    { refreshInterval: POLL_INTERVAL_MS, revalidateOnFocus: false },
   );
   return { notifications: data?.data ?? [], error, isLoading };
 }

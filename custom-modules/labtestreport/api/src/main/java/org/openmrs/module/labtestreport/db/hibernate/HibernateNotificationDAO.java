@@ -1,9 +1,11 @@
 package org.openmrs.module.labtestreport.db.hibernate;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
+import org.hibernate.Query;
 import org.openmrs.User;
 import org.openmrs.api.db.DAOException;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
@@ -28,13 +30,32 @@ public class HibernateNotificationDAO implements NotificationDAO {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public List<Alert> getUnreadAlertsFor(User user) throws DAOException {
+	public List<Alert> getUnreadAlertsFor(User user, Collection<String> locationUuids, Integer limit)
+	        throws DAOException {
 		// the alert's own alertRead is what core sets once a satisfiedByAny alert is read by anyone
-		return sessionFactory.getCurrentSession()
-		        .createQuery("select a from Alert a join a.recipients r where r.recipient = :user and r.alertRead = false"
-		                + " and a.alertRead = false and (a.dateToExpire is null or a.dateToExpire > :now)"
-		                + " order by a.alertId desc")
-		        .setParameter("user", user).setParameter("now", new Date()).list();
+		StringBuilder hql = new StringBuilder(
+		        "select a from Alert a join a.recipients r where r.recipient = :user and r.alertRead = false"
+		                + " and a.alertRead = false and (a.dateToExpire is null or a.dateToExpire > :now)");
+		List<String> locationMarkers = new ArrayList<>();
+		if (locationUuids != null) {
+			hql.append(" and (a.text not like '%[loc:%'");
+			for (String uuid : locationUuids) {
+				hql.append(" or a.text like :loc").append(locationMarkers.size());
+				locationMarkers.add("%[loc:" + uuid + "]%");
+			}
+			hql.append(")");
+		}
+		hql.append(" order by a.alertId desc");
+
+		Query query = sessionFactory.getCurrentSession().createQuery(hql.toString()).setParameter("user", user)
+		        .setParameter("now", new Date());
+		for (int i = 0; i < locationMarkers.size(); i++) {
+			query.setParameter("loc" + i, locationMarkers.get(i));
+		}
+		if (limit != null) {
+			query.setMaxResults(limit);
+		}
+		return query.list();
 	}
 
 	@Override
