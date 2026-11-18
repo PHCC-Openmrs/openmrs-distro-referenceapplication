@@ -30,6 +30,7 @@ import { useStockItemBatchInformationHook } from '../../../stock-items/add-stock
 import { useStockItem } from '../../../stock-items/stock-items.resource';
 import { type BaseStockOperationItemFormData, getStockOperationItemFormSchema } from '../../validation-schema';
 import useOperationTypePermisions from '../hooks/useOperationTypePermisions';
+import { useBatchPurchaseReference } from '../hooks/useBatchPurchaseReference';
 import BatchNoSelector from '../input-components/batch-no-selector.component';
 import QtyUomSelector from '../input-components/quantity-uom-selector.component';
 import styles from './stock-item-form.scss';
@@ -98,6 +99,11 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
   const watchedPackagingUOMUuid = form.watch('stockItemPackagingUOMUuid' as keyof FormData) as unknown as
     | string
     | undefined;
+  // The codes the picked batch inherited from its Opening Stock - shown read-only below the batch.
+  const { reference: batchPurchaseReference } = useBatchPurchaseReference(
+    stockOperationItem?.stockItemUuid,
+    watchedStockBatchUuid,
+  );
 
   const reducesStockAtSource =
     operationTypePermision.reducesStockAtSource ||
@@ -259,6 +265,37 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
             />
           </Column>
         )}
+        {operationTypePermision.requiresBatchUuid &&
+          !operationTypePermision.requiresActualBatchInfo &&
+          !!watchedStockBatchUuid && (
+            <>
+              <Column>
+                <TextInput
+                  id="batchPurchaseOrderNo"
+                  readOnly
+                  value={batchPurchaseReference.purchaseOrderNo || '--'}
+                  labelText={t('purchaseOrderNo', 'Purchase Order No')}
+                  helperText={t('fromBatchOpeningStock', "From this batch's opening stock")}
+                />
+              </Column>
+              <Column>
+                <TextInput
+                  id="batchPurchaseRequestNo"
+                  readOnly
+                  value={batchPurchaseReference.purchaseRequestNo || '--'}
+                  labelText={t('purchaseRequestNo', 'Purchase Request No')}
+                />
+              </Column>
+              <Column>
+                <TextInput
+                  id="batchProjectFundCode"
+                  readOnly
+                  value={batchPurchaseReference.projectFundCode || '--'}
+                  labelText={t('projectFundCode', 'Project Fund Code')}
+                />
+              </Column>
+            </>
+          )}
         {(operationTypePermision.requiresActualBatchInfo || operationTypePermision.requiresBatchUuid) &&
           fields.includes('expiration' as keyof FormData) && (
             <Column>

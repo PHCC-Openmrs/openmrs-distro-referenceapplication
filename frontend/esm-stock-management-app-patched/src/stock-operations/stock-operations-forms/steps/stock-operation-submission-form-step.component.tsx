@@ -104,12 +104,16 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
           atLocationUuid: sessionLocation?.uuid,
           approvalRequired: approvalRequired ? true : false,
           // The backend has no dedicated columns for these three - pack them into the one
-          // free-text field it does have (externalReference) instead of sending them raw.
-          externalReference: buildExternalReference({
-            purchaseOrderNo: formData.purchaseOrderNo,
-            purchaseRequestNo: formData.purchaseRequestNo,
-            projectFundCode: formData.projectFundCode,
-          }),
+          // free-text field it does have (externalReference) instead of sending them raw. Only
+          // operations bringing new batches in carry their own; the backend derives the rest from
+          // the items' batches.
+          externalReference: operationTypePermision.requiresActualBatchInfo
+            ? buildExternalReference({
+                purchaseOrderNo: formData.purchaseOrderNo,
+                purchaseRequestNo: formData.purchaseRequestNo,
+                projectFundCode: formData.projectFundCode,
+              })
+            : undefined,
           purchaseOrderNo: undefined,
           purchaseRequestNo: undefined,
           projectFundCode: undefined,
@@ -174,6 +178,7 @@ const StockOperationSubmissionFormStep: React.FC<StockOperationSubmissionFormSte
     dismissWorkspace,
     handleMutate,
     sessionLocation,
+    operationTypePermision.requiresActualBatchInfo,
   ]);
 
   const handleComplete = useCallback(() => {

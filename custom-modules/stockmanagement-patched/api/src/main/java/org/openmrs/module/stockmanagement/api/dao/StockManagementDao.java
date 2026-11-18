@@ -1849,6 +1849,41 @@ public class StockManagementDao extends DaoBase {
         result.setData(executeQuery(StockBatchDTO.class, hqlQuery, result, " order by sb.id", parameterList, parameterWithList));
         return result;
     }
+
+	/**
+	 * For each batch, the externalReference (packed PO/PR/Fund codes) of the earliest completed
+	 * Opening Stock or Receipt that brought it in. A batch has no link to the operation that
+	 * created it, only the operation items that point at it; and a later Opening Stock with the
+	 * same batch no + expiry reuses the batch, so the earliest one is taken as its origin. Batches
+	 * with no such operation are absent from the map; a null value means the origin had no codes.
+	 */
+	public Map<Integer, String> getBatchOriginExternalReferences(Collection<Integer> stockBatchIds) {
+		Map<Integer, String> result = new HashMap<>();
+		if (stockBatchIds == null || stockBatchIds.isEmpty()) {
+			return result;
+		}
+		List<Integer> ids = new ArrayList<>(new LinkedHashSet<>(stockBatchIds));
+		for (int start = 0; start < ids.size(); start += 1000) {
+			List<Integer> chunk = ids.subList(start, Math.min(start + 1000, ids.size()));
+			Query query = getSession().createQuery(
+			    "select soi.stockBatch.id, so.externalReference from stockmanagement.StockOperationItem soi"
+			            + " join soi.stockOperation so join so.stockOperationType sot"
+			            + " where soi.stockBatch.id in (:ids) and sot.operationType in (:types)"
+			            + " and so.status = :status and so.voided = false and soi.voided = false"
+			            + " order by so.operationDate asc, so.id asc");
+			query.setParameterList("ids", chunk);
+			query.setParameterList("types", Arrays.asList(StockOperationType.INITIAL, StockOperationType.RECEIPT));
+			query.setParameter("status", StockOperationStatus.COMPLETED);
+			for (Object row : query.list()) {
+				Object[] columns = (Object[]) row;
+				Integer batchId = (Integer) columns[0];
+				if (!result.containsKey(batchId)) {
+					result.put(batchId, (String) columns[1]);
+				}
+			}
+		}
+		return result;
+	}
 	
 	public List<StockItemPackagingUOM> getStockItemPackagingUOMsByUuids(List<String> uuids) {
         if (uuids.isEmpty()) return new ArrayList<>();
