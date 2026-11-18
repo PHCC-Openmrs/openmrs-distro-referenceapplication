@@ -39,9 +39,16 @@ const StockOperationsModal: React.FC<StockOperationsModalProps> = ({ title, requ
   const handleMutate = useHandleMutate();
   const [notes, setNotes] = useState('');
   const [isApproving, setIsApproving] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const handleClick = async (event) => {
     event.preventDefault();
+
+    // Deleting is irreversible and affects reports, so require a second, explicit confirmation.
+    if (confirmType === 'delete' && !confirmingDelete) {
+      setConfirmingDelete(true);
+      return;
+    }
 
     setIsApproving(true);
 
@@ -81,6 +88,7 @@ const StockOperationsModal: React.FC<StockOperationsModalProps> = ({ title, requ
         break;
     }
     if (!actionName) {
+      setIsApproving(false);
       return;
     }
 
@@ -123,6 +131,41 @@ const StockOperationsModal: React.FC<StockOperationsModalProps> = ({ title, requ
       },
     );
   };
+
+  if (confirmingDelete) {
+    return (
+      <div>
+        <Form onSubmit={handleClick}>
+          <ModalHeader closeModal={closeModal} title={t('confirmDeleteTitle', 'Confirm deletion')} />
+          <ModalBody>
+            <div className={styles.modalBody}>
+              <section className={styles.section}>
+                <h5 className={styles.section}>{t('confirmDeleteHeading', 'This action cannot be undone')}</h5>
+              </section>
+              <p className={styles.section}>
+                {t(
+                  'confirmDeleteWarning',
+                  'Deleting this operation will affect stock reports and cannot be reverted. Are you sure you want to continue?',
+                )}
+              </p>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button kind="secondary" onClick={() => setConfirmingDelete(false)} disabled={isApproving}>
+              {t('back', 'Back')}
+            </Button>
+            {isApproving ? (
+              <InlineLoading />
+            ) : (
+              <Button type="submit" kind="danger">
+                {t('ok', 'OK')}
+              </Button>
+            )}
+          </ModalFooter>
+        </Form>
+      </div>
+    );
+  }
 
   return (
     <div>
