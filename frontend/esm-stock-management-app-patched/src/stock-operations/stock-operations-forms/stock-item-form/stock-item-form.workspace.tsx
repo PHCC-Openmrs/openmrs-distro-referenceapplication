@@ -186,8 +186,11 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
     () => item?.packagingUnits?.find((unit) => unit.uuid === watchedPackagingUOMUuid),
     [item, watchedPackagingUOMUuid],
   );
+  // Floored to 2 decimals so it never overstates the stock. Batch quantities come back with 5 decimals
+  // (e.g. 43.33333 Box), so 2,600 tablets arrives as 2599.9998 and would floor to 129.99 instead of 130:
+  // round to 3 decimals first to drop that residue, using integers so 1.15 doesn't floor to 1.14.
   const supplyAvailableInSelectedUom = selectedUom?.factor
-    ? Math.floor((supplyAvailableBaseQuantity / selectedUom.factor) * 100) / 100
+    ? Math.floor(Math.round((supplyAvailableBaseQuantity / selectedUom.factor) * 1000) / 10) / 100
     : supplyAvailableBaseQuantity;
   const supplyUomName = selectedUom?.packagingUomName ?? item?.dispensingUnitName ?? '';
   const supplyStoreName = supplyingPartyName || t('supplyingStore', 'the supplying store');
