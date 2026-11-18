@@ -81,7 +81,8 @@ const BatchNoSelector: React.FC<BatchNoSelectorProps> = ({
 
       if (isNaN(quantity)) return t('unknown', 'Unknown');
 
-      const baseQuantity = quantity.toString();
+      // Same rounding as the Items table (max 3 decimals); the raw value carries 5, e.g. 1981.33333.
+      const baseQuantity = quantity.toLocaleString();
 
       if (!batch.quantityUoM) return baseQuantity;
 
