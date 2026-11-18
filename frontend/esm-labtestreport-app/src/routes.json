@@ -38,6 +38,7 @@
       "name": "notifications-button",
       "slot": "notifications-menu-button-slot",
       "component": "notificationsButton",
+      "privileges": "App: labtestreport.notifications",
       "online": true,
       "offline": false
     },
@@ -45,6 +46,7 @@
       "name": "notifications-panel",
       "slot": "notifications-nav-menu-slot",
       "component": "notificationsPanel",
+      "privileges": "App: labtestreport.notifications",
       "online": true,
       "offline": false
     }
