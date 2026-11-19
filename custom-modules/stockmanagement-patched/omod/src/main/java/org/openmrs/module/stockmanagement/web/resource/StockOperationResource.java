@@ -170,6 +170,10 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
             for (StockOperationDTO stockOperation : result.getData()) {
                 stockOperation.setStockOperationItems(items.getData().stream().filter(p -> p.getStockOperationUuid().equals(stockOperation.getUuid())).collect(Collectors.toList()));
             }
+            PermissionLookups lookups = new PermissionLookups();
+            for (StockOperationDTO stockOperation : result.getData()) {
+                stockOperation.setCachedPermission(computePermission(stockOperation, lookups));
+            }
         }
 
         return toAlreadyPaged(result, context);
@@ -386,6 +390,68 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	
 	@PropertyGetter("permission")
     public SimpleObject getPermission(StockOperationDTO stockOperationDTO) {
+        // A list page precomputes every row's permissions in doSearch, sharing the lookups below.
+        if (stockOperationDTO.getCachedPermission() instanceof SimpleObject) {
+            return (SimpleObject) stockOperationDTO.getCachedPermission();
+        }
+        return computePermission(stockOperationDTO, new PermissionLookups());
+    }
+
+    /**
+     * Memoizes the lookups a permission check repeats for every row of a page: most operations on
+     * a page share a handful of operation types, locations and parties, and the privilege scopes
+     * for each (location, operation type, privileges) combination. Used within one request only,
+     * so the cached entities stay attached to the request's Hibernate session.
+     */
+    private final class PermissionLookups {
+        private final Map<String, StockOperationType> operationTypes = new HashMap<>();
+        private final Map<String, Location> locations = new HashMap<>();
+        private final Map<String, Party> parties = new HashMap<>();
+        private final Map<String, HashSet<PrivilegeScope>> privilegeScopes = new HashMap<>();
+        private StockOperationType stockIssueType;
+        private boolean stockIssueTypeLoaded;
+
+        StockOperationType operationType(String uuid) {
+            if (!operationTypes.containsKey(uuid)) {
+                operationTypes.put(uuid, getStockManagementService().getStockOperationTypeByUuid(uuid));
+            }
+            return operationTypes.get(uuid);
+        }
+
+        StockOperationType stockIssueType() {
+            if (!stockIssueTypeLoaded) {
+                stockIssueType = getStockManagementService().getStockOperationTypeByType(StockOperationType.STOCK_ISSUE);
+                stockIssueTypeLoaded = true;
+            }
+            return stockIssueType;
+        }
+
+        Location location(String uuid) {
+            if (!locations.containsKey(uuid)) {
+                locations.put(uuid, Context.getLocationService().getLocationByUuid(uuid));
+            }
+            return locations.get(uuid);
+        }
+
+        Party party(String uuid) {
+            if (!parties.containsKey(uuid)) {
+                parties.put(uuid, getStockManagementService().getPartyByUuid(uuid));
+            }
+            return parties.get(uuid);
+        }
+
+        HashSet<PrivilegeScope> privilegeScopes(Location location, StockOperationType operationType, List<String> privileges) {
+            String key = (location == null ? "-" : location.getUuid()) + "|"
+                    + (operationType == null ? "-" : operationType.getUuid()) + "|" + String.join(",", privileges);
+            if (!privilegeScopes.containsKey(key)) {
+                privilegeScopes.put(key, getStockManagementService().getPrivilegeScopes(Context.getAuthenticatedUser(),
+                        location, operationType, privileges));
+            }
+            return privilegeScopes.get(key);
+        }
+    }
+
+    private SimpleObject computePermission(StockOperationDTO stockOperationDTO, PermissionLookups lookups) {
         SimpleObject simpleObject = new SimpleObject();
         simpleObject.add("canView", true);
 
@@ -400,15 +466,13 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
         // moved nothing) still needs a Stock Issue to fulfil it.
         boolean isRequisitionAndCanIssueStock = stockOperationDTO.isRequisitionAndCanIssueStock()
                 && !getStockManagementService().stockOperationHasMovedStock(stockOperationDTO.getId());
-        StockOperationType stockOperationType = getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid());
+        StockOperationType stockOperationType = lookups.operationType(stockOperationDTO.getOperationTypeUuid());
         boolean canUpdateBatchInformation = stockOperationDTO.canUpdateBatchInformation(stockOperationType);
         Boolean userHasEditPermissions = null;
 
         if (canEdit || canApprove) {
-            HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
-                    Context.getAuthenticatedUser(),
-                    Context.getLocationService().getLocationByUuid(stockOperationDTO.getAtLocationUuid()),
-                    getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
+            HashSet<PrivilegeScope> privilegeScopes = lookups.privilegeScopes(lookups.location(stockOperationDTO.getAtLocationUuid()),
+                    lookups.operationType(stockOperationDTO.getOperationTypeUuid()),
                     Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE, Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE,
                             Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_CANCEL)
             );
@@ -423,10 +487,9 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
                 // Approving a requisition takes stock from the store it asks, so that store's approver
                 // decides - the same check approveStockOperation makes.
                 Party destination = StringUtils.isBlank(stockOperationDTO.getDestinationUuid()) ? null
-                        : getStockManagementService().getPartyByUuid(stockOperationDTO.getDestinationUuid());
+                        : lookups.party(stockOperationDTO.getDestinationUuid());
                 canApprove = destination != null && destination.getLocation() != null
-                        && getStockManagementService().getPrivilegeScopes(Context.getAuthenticatedUser(),
-                            destination.getLocation(), stockOperationType,
+                        && lookups.privilegeScopes(destination.getLocation(), stockOperationType,
                             Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE))
                         .stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE));
             } else {
@@ -440,25 +503,21 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
                 canReceiveItems = false;
                 isRequisitionAndCanIssueStock = false;
             }else {
-                Party party = getStockManagementService().getPartyByUuid(stockOperationDTO.getDestinationUuid());
+                Party party = lookups.party(stockOperationDTO.getDestinationUuid());
                 if(party == null || party.getLocation() == null){
                     canReceiveItems = false;
                     isRequisitionAndCanIssueStock = false;
                 }
                 if(canReceiveItems){
-                    HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
-                            Context.getAuthenticatedUser(),
-                            party.getLocation(),
-                            getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
+                    HashSet<PrivilegeScope> privilegeScopes = lookups.privilegeScopes(party.getLocation(),
+                            lookups.operationType(stockOperationDTO.getOperationTypeUuid()),
                             Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS)
                     );
                     canReceiveItems = canReceiveItems && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS));
                 }
                 if(isRequisitionAndCanIssueStock){
-                    HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
-                            Context.getAuthenticatedUser(),
-                            party.getLocation(),
-                            getStockManagementService().getStockOperationTypeByType(StockOperationType.STOCK_ISSUE),
+                    HashSet<PrivilegeScope> privilegeScopes = lookups.privilegeScopes(party.getLocation(),
+                            lookups.stockIssueType(),
                             Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)
                     );
                     isRequisitionAndCanIssueStock = isRequisitionAndCanIssueStock && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
@@ -468,10 +527,8 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 
         if(canUpdateBatchInformation){
             if(userHasEditPermissions == null){
-                HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
-                        Context.getAuthenticatedUser(),
-                        Context.getLocationService().getLocationByUuid(stockOperationDTO.getAtLocationUuid()),
-                        getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
+                HashSet<PrivilegeScope> privilegeScopes = lookups.privilegeScopes(lookups.location(stockOperationDTO.getAtLocationUuid()),
+                        lookups.operationType(stockOperationDTO.getOperationTypeUuid()),
                         Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)
                 );
                 userHasEditPermissions = Boolean.valueOf(!privilegeScopes.isEmpty());

@@ -283,6 +283,10 @@ public class StockOperationDTO {
 	}
 	
 	private List<StockOperationItemDTO> stockOperationItems;
+
+	// Permissions computed once for a list page (see StockOperationResource.doSearch); not a REST
+	// property of its own - the resource's "permission" getter returns it.
+	private transient java.util.Map<String, Object> cachedPermission;
 	
 	public boolean getVoided() {
 		return voided;
@@ -697,5 +701,13 @@ public class StockOperationDTO {
 	
 	public void setDispatchedBy(Integer dispatchedBy) {
 		this.dispatchedBy = dispatchedBy;
+	}
+
+	public java.util.Map<String, Object> getCachedPermission() {
+		return cachedPermission;
+	}
+
+	public void setCachedPermission(java.util.Map<String, Object> cachedPermission) {
+		this.cachedPermission = cachedPermission;
 	}
 }
