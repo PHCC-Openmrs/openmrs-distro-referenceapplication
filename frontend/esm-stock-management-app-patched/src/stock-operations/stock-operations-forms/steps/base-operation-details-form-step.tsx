@@ -286,57 +286,63 @@ const BaseOperationDetailsFormStep: FC<BaseOperationDetailsFormStepProps> = ({
           <StockOperationReasonField stockOperationType={stockOperationType?.operationType} />
         </Column>
       )}
-      <Column>
-        <Controller
-          control={form.control}
-          name="purchaseOrderNo"
-          render={({ field, fieldState: { error } }) => (
-            <TextInput
-              {...field}
-              value={field.value ?? ''}
-              readOnly={field.disabled}
-              id="purchaseOrderNo"
-              labelText={t('purchaseOrderNo', 'Purchase Order No')}
-              invalid={!!error?.message}
-              invalidText={error?.message}
-            />
-          )}
-        />
-      </Column>
-      <Column>
-        <Controller
-          control={form.control}
-          name="purchaseRequestNo"
-          render={({ field, fieldState: { error } }) => (
-            <TextInput
-              {...field}
-              value={field.value ?? ''}
-              readOnly={field.disabled}
-              id="purchaseRequestNo"
-              labelText={t('purchaseRequestNo', 'Purchase Request No')}
-              invalid={!!error?.message}
-              invalidText={error?.message}
-            />
-          )}
-        />
-      </Column>
-      <Column>
-        <Controller
-          control={form.control}
-          name="projectFundCode"
-          render={({ field, fieldState: { error } }) => (
-            <TextInput
-              {...field}
-              value={field.value ?? ''}
-              readOnly={field.disabled}
-              id="projectFundCode"
-              labelText={t('projectFundCode', 'Project Fund Code')}
-              invalid={!!error?.message}
-              invalidText={error?.message}
-            />
-          )}
-        />
-      </Column>
+      {/* Entered only where new batches come in (Opening Stock, Receipt); every other operation
+          shows each item's codes read-only, inherited from its batch's Opening Stock. */}
+      {operationTypePermision.requiresActualBatchInfo && (
+        <>
+        <Column>
+          <Controller
+            control={form.control}
+            name="purchaseOrderNo"
+            render={({ field, fieldState: { error } }) => (
+              <TextInput
+                {...field}
+                value={field.value ?? ''}
+                readOnly={field.disabled}
+                id="purchaseOrderNo"
+                labelText={t('purchaseOrderNo', 'Purchase Order No')}
+                invalid={!!error?.message}
+                invalidText={error?.message}
+              />
+            )}
+          />
+        </Column>
+        <Column>
+          <Controller
+            control={form.control}
+            name="purchaseRequestNo"
+            render={({ field, fieldState: { error } }) => (
+              <TextInput
+                {...field}
+                value={field.value ?? ''}
+                readOnly={field.disabled}
+                id="purchaseRequestNo"
+                labelText={t('purchaseRequestNo', 'Purchase Request No')}
+                invalid={!!error?.message}
+                invalidText={error?.message}
+              />
+            )}
+          />
+        </Column>
+        <Column>
+          <Controller
+            control={form.control}
+            name="projectFundCode"
+            render={({ field, fieldState: { error } }) => (
+              <TextInput
+                {...field}
+                value={field.value ?? ''}
+                readOnly={field.disabled}
+                id="projectFundCode"
+                labelText={t('projectFundCode', 'Project Fund Code')}
+                invalid={!!error?.message}
+                invalidText={error?.message}
+              />
+            )}
+          />
+        </Column>
+        </>
+      )}
       <Column>
         <Controller
           control={form.control}

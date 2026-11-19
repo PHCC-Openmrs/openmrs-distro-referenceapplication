@@ -1203,7 +1203,12 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 
         stockOperation.setApprovalRequired(dto.getApprovalRequired());
         stockOperation.setOperationDate(dto.getOperationDate());
-        stockOperation.setExternalReference(dto.getExternalReference());
+        // The PO/PR/Fund codes are entered only on operations that bring new batches in (Opening
+        // Stock, Receipt). Every other operation inherits them from its items' batches below, so a
+        // client-sent value is ignored for those.
+        if (stockOperationType.requiresActualBatchInformation()) {
+            stockOperation.setExternalReference(dto.getExternalReference());
+        }
         stockOperation.setRemarks(StringUtils.isBlank(dto.getRemarks()) ? null : dto.getRemarks());
 
         if (!StringUtils.isBlank(dto.getReasonUuid())) {
@@ -1388,6 +1393,10 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             dao.saveStockBatch(stockBatch);
         }
 
+        if (!stockOperationType.requiresActualBatchInformation()) {
+            stockOperation.setExternalReference(deriveExternalReferenceFromBatches(newStockOperationItems));
+        }
+
         dao.saveStockOperation(stockOperation);
         if (isNew) {
             stockOperation.setOperationNumber(String.format("%1s-%2s", stockOperationType.getAcronym(),
@@ -1451,6 +1460,31 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         return DateUtils.truncate(expiration, Calendar.DATE);
     }
 
+    /**
+     * The externalReference an operation that draws from existing batches carries: its batches'
+     * origin codes when every item's batch came from the same codes, otherwise none (the codes are
+     * then only shown per item, from each batch).
+     */
+    private String deriveExternalReferenceFromBatches(Collection<StockOperationItem> items) {
+        Set<Integer> batchIds = new HashSet<>();
+        for (StockOperationItem item : items) {
+            if (item.getStockBatch() == null || item.getStockBatch().getId() == null) {
+                return null;
+            }
+            batchIds.add(item.getStockBatch().getId());
+        }
+        if (batchIds.isEmpty()) {
+            return null;
+        }
+        Map<Integer, String> origins = dao.getBatchOriginExternalReferences(batchIds);
+        Set<String> references = new HashSet<>();
+        for (Integer batchId : batchIds) {
+            String reference = origins.get(batchId);
+            references.add(StringUtils.isBlank(reference) ? null : reference);
+        }
+        return references.size() == 1 ? references.iterator().next() : null;
+    }
+
     public Result<StockBatchDTO> findStockBatches(StockBatchSearchFilter filter) {
         Result<StockBatchDTO> stockBatchDTOResult = dao.findStockBatches(filter);
         if (!stockBatchDTOResult.getData().isEmpty() && !StringUtils.isBlank(filter.getLocationUuid())) {
@@ -1475,6 +1509,14 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             searchFilter.setItemGroupFilters(itemsToSearch);
             List<StockItemInventory> stockItemInventories = dao.getStockItemInventory(searchFilter, null).getData();
             stockBatchDTOResult.setData(stockBatchDTOResult.getData().stream().filter(p -> stockItemInventories.stream().anyMatch(x -> x.getStockBatchId().equals(p.getId()) && (!filter.getExcludeEmptyStock() || x.getQuantity().compareTo(BigDecimal.ZERO) > 0))).collect(Collectors.toList()));
+        }
+
+        // One query for the whole page: the PO/PR/Fund codes of the Opening Stock each batch came
+        // from, which every later operation drawing from the batch shows read-only.
+        if (!stockBatchDTOResult.getData().isEmpty()) {
+            Map<Integer, String> origins = dao.getBatchOriginExternalReferences(
+                    stockBatchDTOResult.getData().stream().map(StockBatchDTO::getId).collect(Collectors.toList()));
+            stockBatchDTOResult.getData().forEach(p -> p.setOriginExternalReference(origins.get(p.getId())));
         }
 
         return stockBatchDTOResult;

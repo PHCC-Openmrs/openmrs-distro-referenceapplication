@@ -27,6 +27,7 @@ import useOperationTypePermisions from '../hooks/useOperationTypePermisions';
 import StockItemSearch from '../input-components/stock-item-search.component';
 import QuantityUomCell from './quantity-uom-cell.component';
 import StockAvailability from './stock-availability-cell.component';
+import BatchPurchaseReferenceCell from './batch-purchase-reference-cell.component';
 import StockOperationItemBatchNoCell from './stock-operation-item-batch-no-cell.component';
 import StockOperationItemCell from './stock-operation-item-cell.component';
 import StockoperationItemExpiryCell from './stock-operation-item-expiry-cell.component';
@@ -124,6 +125,15 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
           ]
         : []),
 
+      // Operations drawing from an existing batch show the codes it inherited from its Opening
+      // Stock, read-only and per item (items can come from different Opening Stocks).
+      ...(operationTypePermision.requiresBatchUuid && !operationTypePermision.requiresActualBatchInfo
+        ? [
+            { key: 'purchaseOrderNo', header: t('purchaseOrderNo', 'Purchase Order No') },
+            { key: 'purchaseRequestNo', header: t('purchaseRequestNo', 'Purchase Request No') },
+            { key: 'projectFundCode', header: t('projectFundCode', 'Project Fund Code') },
+          ]
+        : []),
       {
         key: 'quantity',
         header: t('quantity', 'Quantity'),
@@ -182,6 +192,27 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
             stockBatchUuid={stockBatchUuid}
             expiration={expiration}
             stockItemUuid={stockItemUuid}
+          />
+        ),
+        purchaseOrderNo: (
+          <BatchPurchaseReferenceCell
+            stockItemUuid={stockItemUuid}
+            stockBatchUuid={stockBatchUuid}
+            field="purchaseOrderNo"
+          />
+        ),
+        purchaseRequestNo: (
+          <BatchPurchaseReferenceCell
+            stockItemUuid={stockItemUuid}
+            stockBatchUuid={stockBatchUuid}
+            field="purchaseRequestNo"
+          />
+        ),
+        projectFundCode: (
+          <BatchPurchaseReferenceCell
+            stockItemUuid={stockItemUuid}
+            stockBatchUuid={stockBatchUuid}
+            field="projectFundCode"
           />
         ),
         // A row pre-filled by Reorder has no quantity yet - say so instead of leaving the cell blank.

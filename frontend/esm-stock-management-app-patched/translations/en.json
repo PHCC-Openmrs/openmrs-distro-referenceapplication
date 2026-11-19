@@ -187,6 +187,7 @@
   "filterUsers": "Filter users",
   "findItems": "Find your items",
   "from": "From",
+  "fromBatchOpeningStock": "From this batch's opening stock",
   "fulfillment": "Fulfillment",
   "fullFulfillment": "Full fulfillment",
   "fullName": "Full Name",
