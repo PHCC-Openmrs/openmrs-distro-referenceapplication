@@ -1752,4 +1752,120 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         result = stockManagementService.findBatchJobs(filter, null);
         assertTrue(result.getData().isEmpty());
     }
+
+	@Test
+	public void getRecordPrivilegeFilters_shouldMatchResolvingEveryLocationIncludingRetiredOnes() {
+		stockManagementService.setDao(dao());
+		User user = Context.getUserService().getUser(501);
+		// From this test's session: the shared EntityUtil holds a role and location loaded by an earlier test.
+		Role role = Context.getUserService().getRole(eu().getRole().getRole());
+		Privilege privilege = Context.getUserService().getPrivilege(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS);
+		if (privilege == null) {
+			privilege = Context.getUserService().savePrivilege(
+			    new Privilege(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS, "stock items"));
+		}
+		role.addPrivilege(privilege);
+		user.addRole(role);
+		
+		Location location = Context.getLocationService().getLocation(eu().getLocation().getId());
+		Location retiredLocation = Context.getLocationService().getAllLocations(true).stream()
+		        .filter(p -> !p.getId().equals(location.getId())).findFirst().get();
+		retiredLocation.setRetired(true);
+		retiredLocation.setRetireReason("test");
+		retiredLocation.setRetiredBy(Context.getAuthenticatedUser());
+		retiredLocation.setDateRetired(new Date());
+		for (Location scopeLocation : Arrays.asList(location, retiredLocation)) {
+			if (dao().getPartyByLocation(scopeLocation) == null) {
+				Party party = new Party();
+				party.setLocation(scopeLocation);
+				party.setCreator(Context.getAuthenticatedUser());
+				party.setDateCreated(new Date());
+				dao().saveParty(party);
+			}
+		}
+		
+		UserRoleScope scope = new UserRoleScope();
+		scope.setCreator(Context.getAuthenticatedUser());
+		scope.setDateCreated(new Date());
+		scope.setUser(user);
+		scope.setRole(role);
+		scope.setPermanent(true);
+		scope.setActiveFrom(DateUtils.addDays(new Date(), -1));
+		scope.setActiveTo(DateUtils.addDays(new Date(), 1));
+		scope.setEnabled(true);
+		scope.setVoided(false);
+		dao().saveUserRoleScope(scope);
+		for (Location scopeLocation : Arrays.asList(location, retiredLocation)) {
+			UserRoleScopeLocation scopeLocationLink = new UserRoleScopeLocation();
+			scopeLocationLink.setCreator(Context.getAuthenticatedUser());
+			scopeLocationLink.setDateCreated(new Date());
+			scopeLocationLink.setUserRoleScope(scope);
+			scopeLocationLink.setLocation(scopeLocation);
+			scopeLocationLink.setEnableDescendants(false);
+			scopeLocationLink.setVoided(false);
+			dao().saveUserRoleScopeLocation(scopeLocationLink);
+		}
+		List<StockOperationType> operationTypes = dao().getAllStockOperationTypes();
+		for (StockOperationType operationType : operationTypes.subList(0, Math.min(3, operationTypes.size()))) {
+			UserRoleScopeOperationType scopeOperationType = new UserRoleScopeOperationType();
+			scopeOperationType.setCreator(Context.getAuthenticatedUser());
+			scopeOperationType.setDateCreated(new Date());
+			scopeOperationType.setUserRoleScope(scope);
+			scopeOperationType.setStockOperationType(operationType);
+			scopeOperationType.setVoided(false);
+			dao().saveUserRoleScopeOperationType(scopeOperationType);
+		}
+		Context.flushSession();
+		
+		HashSet<RecordPrivilegeFilter> actual = stockManagementService.getRecordPrivilegeFilters(user, null, null,
+		    Privileges.APP_STOCKMANAGEMENT_STOCKITEMS);
+		assertEquals(recordPrivilegeFiltersByLoadingAllLocations(user, Privileges.APP_STOCKMANAGEMENT_STOCKITEMS), actual);
+		assertEquals(2 * Math.min(3, operationTypes.size()), actual.size());
+		assertTrue(actual.stream().anyMatch(p -> p.getLocationId().equals(retiredLocation.getId())));
+		
+		// Any privilege at all, and one the role does not hold.
+		assertEquals(recordPrivilegeFiltersByLoadingAllLocations(user, null),
+		    stockManagementService.getRecordPrivilegeFilters(user, null, null, null));
+		assertTrue(stockManagementService.getRecordPrivilegeFilters(user, null, null,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE).isEmpty());
+		assertTrue(recordPrivilegeFiltersByLoadingAllLocations(user, Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE)
+		        .isEmpty());
+	}
+	
+	/** getRecordPrivilegeFilters as it was before it stopped loading every location, to compare against. */
+	private HashSet<RecordPrivilegeFilter> recordPrivilegeFiltersByLoadingAllLocations(User user,
+	        String stockManagementPrivilege) {
+		HashSet<RecordPrivilegeFilter> target = new HashSet<>();
+		List<Location> allLocations = Context.getLocationService().getAllLocations(true);
+		Set<Role> allRoles = user.getAllRoles();
+		Map<String, List<PrivilegeScope>> roleGroups = dao().getFlattenedUserRoleScopesByUser(user, allRoles, null, null)
+		        .stream().collect(Collectors.groupingBy(PrivilegeScope::getRole));
+		for (Map.Entry<String, List<PrivilegeScope>> entry : roleGroups.entrySet()) {
+			Optional<Role> role = allRoles.stream().filter(p -> p.getRole().equals(entry.getKey())).findFirst();
+			if (!role.isPresent()) {
+				continue;
+			}
+			boolean hasPrivilege = java.util.stream.Stream.concat(role.get().getPrivileges().stream(),
+			    role.get().getAllParentRoles().stream().map(Role::getPrivileges).flatMap(Collection::stream))
+			        .map(Privilege::getPrivilege)
+			        .anyMatch(p -> stockManagementPrivilege == null
+			                || p.equals(stockManagementPrivilege) && Privileges.ALL.contains(p));
+			if (!hasPrivilege) {
+				continue;
+			}
+			for (PrivilegeScope scope : entry.getValue()) {
+				Optional<Location> scopeLocation = allLocations.stream()
+				        .filter(p -> p.getUuid().equals(scope.getLocationUuid())).findFirst();
+				StockOperationType operationType = dao().getStockOperationTypeByUuid(scope.getOperationTypeUuid());
+				if (!scopeLocation.isPresent() || operationType == null) {
+					continue;
+				}
+				RecordPrivilegeFilter filter = new RecordPrivilegeFilter();
+				filter.setLocationId(scopeLocation.get().getId());
+				filter.setOperationTypeId(operationType.getId());
+				target.add(filter);
+			}
+		}
+		return target;
+	}
 }

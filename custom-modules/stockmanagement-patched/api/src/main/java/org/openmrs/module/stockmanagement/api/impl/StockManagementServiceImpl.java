@@ -757,13 +757,12 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     public HashSet<RecordPrivilegeFilter> getRecordPrivilegeFilters(User user, Location location,
                                                                     StockOperationType stockOperationType, String stockManagementPrivilege) {
         HashSet<RecordPrivilegeFilter> target = new HashSet<>();
-        List<Location> allLocations = Context.getLocationService().getAllLocations(true);
-        HashMap<String, Integer> operationTypes = new HashMap<>();
         Set<Role> allRoles = user.getAllRoles();
         List<PrivilegeScope> privilegeScopes = dao.getFlattenedUserRoleScopesByUser(user, allRoles, location,
                 stockOperationType);
         Map<String, List<PrivilegeScope>> roleGroups = privilegeScopes.stream()
                 .collect(Collectors.groupingBy(PrivilegeScope::getRole));
+        List<PrivilegeScope> grantedScopes = new ArrayList<>();
         for (Map.Entry<String, List<PrivilegeScope>> entry : roleGroups.entrySet()) {
             Optional<Role> role = allRoles.stream().filter(p -> p.getRole().equals(entry.getKey())).findFirst();
             if (!role.isPresent()) {
@@ -780,27 +779,29 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             if (!hasPrivilege)
                 continue;
 
-            for (PrivilegeScope scope : entry.getValue()) {
-                RecordPrivilegeFilter recordPrivilegeFilter = new RecordPrivilegeFilter();
-                Optional<Location> scopeLocation = allLocations.stream()
-                        .filter(p -> p.getUuid().equals(scope.getLocationUuid())).findFirst();
-                if (!scopeLocation.isPresent())
-                    continue;
-                recordPrivilegeFilter.setLocationId(scopeLocation.get().getId());
-                if (!operationTypes.containsKey(scope.getOperationTypeUuid())) {
-                    StockOperationType stockOperationTypeEntity = getStockOperationTypeByUuid(
-                            scope.getOperationTypeUuid());
-                    if (stockOperationTypeEntity != null) {
-                        recordPrivilegeFilter.setOperationTypeId(stockOperationTypeEntity.getId());
-                        operationTypes.putIfAbsent(scope.getOperationTypeUuid(), stockOperationTypeEntity.getId());
-                    } else {
-                        continue;
-                    }
-                } else {
-                    recordPrivilegeFilter.setOperationTypeId(operationTypes.get(scope.getOperationTypeUuid()));
-                }
-                target.add(recordPrivilegeFilter);
-            }
+            grantedScopes.addAll(entry.getValue());
+        }
+        if (grantedScopes.isEmpty())
+            return target;
+
+        // Resolve only the uuids the scopes name, each once, instead of loading every location (retired ones
+        // included) on every call. A scope whose location or operation type no longer resolves is skipped, as before.
+        Map<String, Integer> locationIds = dao.getLocationIds(grantedScopes.stream().map(PrivilegeScope::getLocationUuid)
+                .filter(Objects::nonNull).collect(Collectors.toSet()));
+        Map<String, Integer> operationTypeIds = dao.getStockOperationTypeIds(grantedScopes.stream()
+                .map(PrivilegeScope::getOperationTypeUuid).filter(Objects::nonNull).collect(Collectors.toSet()));
+        for (PrivilegeScope scope : grantedScopes) {
+            Integer locationId = scope.getLocationUuid() == null ? null : locationIds.get(scope.getLocationUuid());
+            if (locationId == null)
+                continue;
+            Integer operationTypeId = scope.getOperationTypeUuid() == null ? null
+                    : operationTypeIds.get(scope.getOperationTypeUuid());
+            if (operationTypeId == null)
+                continue;
+            RecordPrivilegeFilter recordPrivilegeFilter = new RecordPrivilegeFilter();
+            recordPrivilegeFilter.setLocationId(locationId);
+            recordPrivilegeFilter.setOperationTypeId(operationTypeId);
+            target.add(recordPrivilegeFilter);
         }
         return target;
     }
