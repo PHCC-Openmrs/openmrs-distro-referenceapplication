@@ -67,7 +67,12 @@ const StockItemsTableComponent: React.FC<StockItemsTableProps> = () => {
     handleMutate(`${restBaseUrl}/stockmanagement/stockiteminventory`);
   };
 
-  const { error, isDrug, isLoading, items, setDrug, setSearchString } = useStockItemsPages(ResourceRepresentation.Full);
+  // The default representation carries every column this table and its export read. Full adds
+  // packagingUnits/references/permission, which the server builds per item (~25x the CPU for the
+  // whole list); the edit workspace loads its own full copy of the item when opened.
+  const { error, isDrug, isLoading, items, setDrug, setSearchString } = useStockItemsPages(
+    ResourceRepresentation.Default,
+  );
 
   // Only the very first fetch should replace the toolbar/search with a full-page
   // skeleton. Later refetches (e.g. triggered by typing in the search box) must

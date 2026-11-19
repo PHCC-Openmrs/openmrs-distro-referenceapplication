@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Button, InlineLoading } from '@carbon/react';
 import { Edit } from '@carbon/react/icons';
 import { showSnackbar } from '@openmrs/esm-framework';
 import { useTranslation } from 'react-i18next';
 import { type StockOperationDTO } from '../../core/api/types/stockOperation/StockOperationDTO';
 import { launchStockoperationAddOrEditWorkSpace } from '../stock-operation.utils';
-import { useStockOperationAndItems } from '../stock-operations.resource';
+import { fetchStockOperationAndItems } from '../stock-operations.resource';
 import useFilteredOperationTypesByRoles from '../stock-operations-forms/hooks/useFilteredOperationTypesByRoles';
 import styles from './edit-stock-operation-button.scss';
 
@@ -27,41 +27,55 @@ const EditStockOperationActionMenu: React.FC<EditStockOperationActionMenuProps> 
     operationTypes,
   } = useFilteredOperationTypesByRoles();
 
-  const {
-    isLoading: isStockOperationLoading,
-    items: fetchedStockOperation,
-    error: stockOperationError,
-  } = useStockOperationAndItems(_stockOperation?.uuid);
+  // The row already carries the operation's number and type. The workspace needs the full operation
+  // (items with their packaging units, permissions, the requisition a stock issue fulfils), so it is
+  // fetched when the user opens it rather than by every row of the list on render.
+  const [isStockOperationLoading, setIsStockOperationLoading] = useState(false);
 
-  const activeOperationType = useMemo(
-    () => operationTypes?.find((op) => op?.uuid === fetchedStockOperation?.operationTypeUuid),
-    [operationTypes, fetchedStockOperation],
+  const showLoadError = useCallback(
+    (message?: string) =>
+      showSnackbar({
+        kind: 'error',
+        title: t('stockOperationLoadError', 'Error loading stock operation'),
+        subtitle: message || '',
+      }),
+    [t],
   );
 
-  const handleLaunchWorkspace = useCallback(() => {
+  const handleLaunchWorkspace = useCallback(async () => {
+    if (isStockOperationLoading || !_stockOperation?.uuid) {
+      return;
+    }
+    setIsStockOperationLoading(true);
+    let fetchedStockOperation: StockOperationDTO | undefined;
+    try {
+      fetchedStockOperation = await fetchStockOperationAndItems(_stockOperation.uuid);
+    } catch (error) {
+      showLoadError(error?.message);
+      return;
+    } finally {
+      setIsStockOperationLoading(false);
+    }
+    const activeOperationType = operationTypes?.find((op) => op?.uuid === fetchedStockOperation?.operationTypeUuid);
     launchStockoperationAddOrEditWorkSpace(
       t,
       activeOperationType,
       fetchedStockOperation,
       fetchedStockOperation?.requisitionStockOperationUuid,
     );
-  }, [t, activeOperationType, fetchedStockOperation]);
+  }, [isStockOperationLoading, _stockOperation?.uuid, operationTypes, t, showLoadError]);
 
   useEffect(() => {
-    if (operationTypesError || stockOperationError) {
-      showSnackbar({
-        kind: 'error',
-        title: t('stockOperationLoadError', 'Error loading stock operation'),
-        subtitle: operationTypesError?.message || stockOperationError?.message || '',
-      });
+    if (operationTypesError) {
+      showLoadError(operationTypesError?.message);
     }
-  }, [operationTypesError, stockOperationError, t]);
+  }, [operationTypesError, showLoadError]);
 
   if (isOperationTypesLoading || isStockOperationLoading) {
     return <InlineLoading status="active" iconDescription="Loading" />;
   }
 
-  if (operationTypesError || stockOperationError) {
+  if (operationTypesError) {
     return <>--</>;
   }
 
@@ -73,7 +87,7 @@ const EditStockOperationActionMenu: React.FC<EditStockOperationActionMenuProps> 
       onClick={handleLaunchWorkspace}
       renderIcon={showIcon ? () => <Edit size={16} /> : undefined}
     >
-      {showprops && <span className={styles.operationNumberText}>{fetchedStockOperation?.operationNumber}</span>}
+      {showprops && <span className={styles.operationNumberText}>{_stockOperation?.operationNumber}</span>}
     </Button>
   );
 };
