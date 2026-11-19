@@ -178,4 +178,77 @@ describe('BatchNoSelector', () => {
     expect(screen.queryByText('BATCH-002')).not.toBeInTheDocument();
     expect(screen.queryByText('BATCH-003')).not.toBeInTheDocument();
   });
+
+  describe('with includeEmptyBatches (Adjustment)', () => {
+    beforeEach(() => {
+      mockUseStockItemBatchNumbers.mockReturnValue({
+        isLoading: false,
+        stockItemBatchNos: [
+          {
+            uuid: '1',
+            batchNo: 'BATCH-001',
+            quantity: '10',
+            expiration: mockExpiration,
+            stockItemUuid: 'item1',
+            voided: false,
+          },
+          {
+            uuid: '2',
+            batchNo: 'BATCH-002',
+            quantity: '0',
+            expiration: mockExpiration,
+            stockItemUuid: 'item1',
+            voided: false,
+          },
+          {
+            uuid: '3',
+            batchNo: 'BATCH-003',
+            quantity: undefined,
+            expiration: mockExpiration,
+            stockItemUuid: 'item1',
+            voided: false,
+          },
+        ],
+        setLimit: vi.fn(),
+        setRepresentation: vi.fn(),
+        setSearchString: vi.fn(),
+      });
+    });
+
+    it('offers a batch at 0 so stock can be added back to it', async () => {
+      const user = userEvent.setup();
+      render(
+        <BatchNoSelector stockItemUuid={mockStockItemUuid} onValueChange={mockOnValueChange} includeEmptyBatches />,
+      );
+
+      await user.click(screen.getByRole('combobox'));
+      const option = screen.getByText(
+        `BATCH-002 | Qty: 0 (empty – increase only) | Expiry: ${formatForDatePicker(mockExpiration)}`,
+      );
+      await user.click(option);
+
+      expect(mockOnValueChange).toHaveBeenCalledWith('2');
+    });
+
+    it('still leaves out a batch never held at this location', async () => {
+      const user = userEvent.setup();
+      render(
+        <BatchNoSelector stockItemUuid={mockStockItemUuid} onValueChange={mockOnValueChange} includeEmptyBatches />,
+      );
+
+      await user.click(screen.getByRole('combobox'));
+
+      expect(screen.queryByText(/BATCH-003/)).not.toBeInTheDocument();
+      expect(screen.getByText(/BATCH-001 \| Qty: 10/)).toBeInTheDocument();
+    });
+
+    it('does not offer the empty batch without the option', async () => {
+      const user = userEvent.setup();
+      render(<BatchNoSelector stockItemUuid={mockStockItemUuid} onValueChange={mockOnValueChange} />);
+
+      await user.click(screen.getByRole('combobox'));
+
+      expect(screen.queryByText(/BATCH-002/)).not.toBeInTheDocument();
+    });
+  });
 });

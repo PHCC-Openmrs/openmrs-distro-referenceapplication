@@ -14,6 +14,9 @@ interface BatchNoSelectorProps {
   initialValue?: string;
   onValueChange?: (value: string) => void;
   error?: string;
+  // Also offer batches that have been held at this party but are now at 0 - an Adjustment can
+  // add stock back to them (a negative quantity on them is refused by the item form).
+  includeEmptyBatches?: boolean;
 }
 
 const BatchNoSelector: React.FC<BatchNoSelectorProps> = ({
@@ -22,6 +25,7 @@ const BatchNoSelector: React.FC<BatchNoSelectorProps> = ({
   error,
   initialValue,
   onValueChange,
+  includeEmptyBatches = false,
 }) => {
   const { isLoading, stockItemBatchNos } = useStockItemBatchNumbers(stockItemUuid);
   const { t } = useTranslation();
@@ -64,9 +68,10 @@ const BatchNoSelector: React.FC<BatchNoSelectorProps> = ({
     return stockItemBatchesInfo.filter((batch) => {
       const quantity = typeof batch.quantity === 'string' ? parseFloat(batch.quantity) : batch.quantity;
 
-      return !isNaN(quantity) && quantity > 0;
+      // A batch never held at this party has no inventory row, so no quantity: never offered.
+      return !isNaN(quantity) && (includeEmptyBatches ? quantity >= 0 : quantity > 0);
     });
-  }, [stockItemBatchesInfo]);
+  }, [stockItemBatchesInfo, includeEmptyBatches]);
 
   const initialSelectedItem = useMemo(
     () => filteredBatches.find((batch) => batch.uuid === initialValue) ?? null,
@@ -100,7 +105,9 @@ const BatchNoSelector: React.FC<BatchNoSelectorProps> = ({
     (batch: StockBatchWithUoM | null): string => {
       if (!batch?.batchNo) return '';
 
-      const quantityDisplay = formatQuantityDisplay(batch);
+      const quantity = typeof batch.quantity === 'string' ? parseFloat(batch.quantity) : batch.quantity;
+      const quantityDisplay =
+        quantity === 0 ? t('emptyBatchIncreaseOnly', '0 (empty – increase only)') : formatQuantityDisplay(batch);
       const expiryDate = batch.expiration ? formatForDatePicker(batch.expiration) : t('noExpiry', 'No expiry');
 
       return `${batch.batchNo} | Qty: ${quantityDisplay} | Expiry: ${expiryDate}`;
@@ -128,7 +135,9 @@ const BatchNoSelector: React.FC<BatchNoSelectorProps> = ({
       invalid={!!error || noBatchAvailable}
       invalidText={
         noBatchAvailable
-          ? t('noBatchAvailableAtLocation', 'No batch with available stock at this location')
+          ? includeEmptyBatches
+            ? t('noBatchAtLocation', 'No batch of this item has been stocked at this location')
+            : t('noBatchAvailableAtLocation', 'No batch with available stock at this location')
           : error
       }
       items={filteredBatches}

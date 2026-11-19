@@ -156,7 +156,9 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
     !isLoadingAvailability &&
     requestedBaseQuantity > availableBaseQuantity;
 
-  const insufficientStockMessage = matchingBatchAvailability
+  const insufficientStockMessage = !availableBaseQuantity && operationTypePermision.isNegativeQuantityAllowed
+    ? t('emptyBatchPositiveAdjustmentOnly', 'This batch is empty – only a positive adjustment is allowed')
+    : matchingBatchAvailability
     ? t('insufficientStockInBatch', 'Only {{quantity}} {{uom}} available in this batch at the source location', {
         quantity: matchingBatchAvailability.quantity,
         uom: matchingBatchAvailability.quantityUoM,
@@ -260,6 +262,8 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
                   stockItemUuid={stockOperationItem.stockItemUuid}
                   partyUuid={sourceUuid}
                   error={error?.message}
+                  // An Adjustment can put stock back into a batch that has run out here.
+                  includeEmptyBatches={operationTypePermision.isNegativeQuantityAllowed}
                 />
               )}
             />
