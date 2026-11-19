@@ -1959,6 +1959,23 @@ public class StockManagementDao extends DaoBase {
         return ids;
     }
 	
+	/** Stock item uuids by id, voided items included. */
+	public Map<Integer, String> getStockItemUuids(Collection<Integer> ids) {
+        if (ids == null || ids.isEmpty()) return new HashMap<>();
+        Criteria criteria = getSession().createCriteria(StockItem.class).add(Restrictions.in("id", ids));
+        ProjectionList pList = Projections.projectionList();
+        pList.add(Projections.property("id"));
+        pList.add(Projections.property("uuid"));
+        criteria.setProjection(pList);
+        List result = criteria.list();
+        HashMap<Integer, String> uuids = new HashMap<>();
+        for (Object object : result) {
+            Object[] row = (Object[]) object;
+            uuids.put(((Number) row[0]).intValue(), (String) row[1]);
+        }
+        return uuids;
+    }
+
 	/** Stock operation type ids by uuid, voided types included (as {@link #getStockOperationTypeByUuid} finds them). */
 	public Map<String, Integer> getStockOperationTypeIds(Collection<String> uuids) {
         if (uuids == null || uuids.isEmpty()) return new HashMap<>();

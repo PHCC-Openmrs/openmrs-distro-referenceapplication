@@ -353,6 +353,22 @@ public interface StockManagementService extends OpenmrsService {
 	@Transactional(readOnly = true)
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
 	StockDashboardSummary getStockDashboardSummary(Location location);
+
+	/**
+	 * The quantity on hand of every stock item at a location, in one query: per item the same quantity, unit
+	 * (quantityUoM, quantityUoMUuid) and unit factor that the inventory search returns for that item alone with
+	 * groupBy=StockItemOnly (non-expired batches, in the item's preferred packaging unit). Each row carries
+	 * stockItemId and stockItemUuid. Items with no stock transactions at the location have no row. Empty when the
+	 * location has no party or the user may not see its stock.
+	 */
+	@Transactional(readOnly = true)
+	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
+	List<StockItemInventory> getStockItemQuantities(Location location);
+
+	/** {@link #getStockItemQuantities(Location)} for a party with the user's record privilege filters already known. */
+	@Transactional(readOnly = true)
+	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
+	List<StockItemInventory> getStockItemQuantities(Party party, HashSet<RecordPrivilegeFilter> recordPrivilegeFilters);
 	
 	@Transactional(readOnly = true)
 	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)

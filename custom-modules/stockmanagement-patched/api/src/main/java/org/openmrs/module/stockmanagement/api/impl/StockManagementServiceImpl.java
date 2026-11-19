@@ -2752,6 +2752,39 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         return summary;
     }
 
+    public List<StockItemInventory> getStockItemQuantities(Location location) {
+        if (location == null) {
+            return new ArrayList<>();
+        }
+        Party party = dao.getPartyByLocation(location);
+        if (party == null) {
+            return new ArrayList<>();
+        }
+        HashSet<RecordPrivilegeFilter> recordPrivilegeFilters = getRecordPrivilegeFilters(Context.getAuthenticatedUser(),
+                null, null, Privileges.APP_STOCKMANAGEMENT_STOCKITEMS);
+        return getStockItemQuantities(party, recordPrivilegeFilters);
+    }
+
+    public List<StockItemInventory> getStockItemQuantities(Party party,
+            HashSet<RecordPrivilegeFilter> recordPrivilegeFilters) {
+        // Without the party in reach the per-item search returns nothing; so does this.
+        if (party == null || recordPrivilegeFilters == null || recordPrivilegeFilters.isEmpty()
+                || !canSeePartyStock(party, recordPrivilegeFilters)) {
+            return new ArrayList<>();
+        }
+        // The per-item search groups one item's transactions at the party; grouping every item's at once gives each
+        // item the same sum, and postProcessInventoryResult picks each row's unit from that item's own units.
+        List<StockItemInventory> rows = getStockInventory(
+                locationInventoryFilter(party, StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly),
+                recordPrivilegeFilters).getData();
+        Map<Integer, String> stockItemUuids = dao.getStockItemUuids(rows.stream().map(StockItemInventory::getStockItemId)
+                .filter(Objects::nonNull).distinct().collect(Collectors.toList()));
+        for (StockItemInventory row : rows) {
+            row.setStockItemUuid(stockItemUuids.get(row.getStockItemId()));
+        }
+        return rows;
+    }
+
     /** Whether the privilege filters reach the party's location, as the inventory query decides it. */
     private boolean canSeePartyStock(Party party, HashSet<RecordPrivilegeFilter> recordPrivilegeFilters) {
         PartySearchFilter partyFilter = new PartySearchFilter();

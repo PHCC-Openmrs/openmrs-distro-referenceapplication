@@ -1754,6 +1754,67 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
     }
 
 	@Test
+	public void getStockItemQuantities_shouldMatchThePerItemInventorySearchForEveryItem() {
+		stockManagementService.setDao(dao());
+		Party party = eu().getParty(dao());
+		List<StockItem> stockItems = new ArrayList<>();
+		for (int i = 0; i < 3; i++) {
+			StockItem stockItem = eu().newStockItem(dao(), false);
+			stockItem.setVoided(i == 2); // a voided item still has its stock counted, as the per-item search does
+			dao().saveStockItem(stockItem);
+			StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+			packagingUom.setVoided(false);
+			packagingUom.setFactor(BigDecimal.valueOf(10L * (i + 1)));
+			dao().saveStockItemPackagingUOM(packagingUom);
+			StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
+			dao().saveStockBatch(stockBatch);
+			StockItemTransaction transaction = eu().newStockItemTransaction(dao(), stockItem, stockBatch, packagingUom);
+			transaction.setParty(party);
+			transaction.setQuantity(BigDecimal.valueOf(i + 2));
+			dao().saveStockItemTransaction(transaction);
+			stockItems.add(stockItem);
+		}
+		HashSet<RecordPrivilegeFilter> recordPrivilegeFilters = recordPrivilegeFilters(party.getLocation().getId());
+		
+		List<StockItemInventory> rows = stockManagementService.getStockItemQuantities(party, recordPrivilegeFilters);
+		
+		for (StockItem stockItem : stockItems) {
+			assertTrue(rows.stream().anyMatch(p -> stockItem.getUuid().equals(p.getStockItemUuid())));
+		}
+		assertEquals(rows.size(), rows.stream().map(StockItemInventory::getStockItemUuid).distinct().count());
+		for (StockItemInventory row : rows) {
+			StockItemInventory expected = perItemInventory(row.getStockItemUuid(), party, recordPrivilegeFilters);
+			assertNotNull(row.getStockItemUuid(), expected);
+			assertEquals(0, expected.getQuantity().compareTo(row.getQuantity()));
+			assertEquals(expected.getQuantity().scale(), row.getQuantity().scale());
+			assertEquals(expected.getQuantityUoM(), row.getQuantityUoM());
+			assertEquals(expected.getQuantityUoMUuid(), row.getQuantityUoMUuid());
+			assertEquals(expected.getQuantityFactor(), row.getQuantityFactor());
+		}
+		StockItemInventory first = rows.stream().filter(p -> stockItems.get(0).getUuid().equals(p.getStockItemUuid()))
+		        .findFirst().get();
+		// 2 units of a 10-unit pack recorded = 20 dispensing units = 2 packs
+		assertEquals(0, BigDecimal.valueOf(2).compareTo(first.getQuantity()));
+		assertEquals(0, BigDecimal.TEN.compareTo(first.getQuantityFactor()));
+	}
+	
+	@Test
+	public void getStockItemQuantities_shouldBeEmptyWhenThePrivilegeFiltersDoNotReachTheParty() {
+		stockManagementService.setDao(dao());
+		Party party = eu().getParty(dao());
+		StockItemTransaction transaction = eu().newStockItemTransaction(dao());
+		transaction.setParty(party);
+		dao().saveStockItemTransaction(transaction);
+		
+		assertFalse(stockManagementService.getStockItemQuantities(party, recordPrivilegeFilters(party.getLocation().getId()))
+		        .isEmpty());
+		assertTrue(stockManagementService.getStockItemQuantities(party, recordPrivilegeFilters(Integer.MAX_VALUE)).isEmpty());
+		assertTrue(stockManagementService.getStockItemQuantities(party, new HashSet<>()).isEmpty());
+		assertTrue(stockManagementService.getStockItemQuantities(party, null).isEmpty());
+		assertTrue(perItemInventory(transaction.getStockItem().getUuid(), party, recordPrivilegeFilters(Integer.MAX_VALUE)) == null);
+	}
+	
+	@Test
 	public void getRecordPrivilegeFilters_shouldMatchResolvingEveryLocationIncludingRetiredOnes() {
 		stockManagementService.setDao(dao());
 		User user = Context.getUserService().getUser(501);
@@ -1867,5 +1928,30 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 			}
 		}
 		return target;
+	}
+	
+	private HashSet<RecordPrivilegeFilter> recordPrivilegeFilters(Integer locationId) {
+		RecordPrivilegeFilter filter = new RecordPrivilegeFilter();
+		filter.setLocationId(locationId);
+		filter.setOperationTypeId(dao().getAllStockOperationTypes().get(0).getId());
+		return new HashSet<>(Collections.singletonList(filter));
+	}
+	
+	/** What GET stockiteminventory?stockItemUuid=..&locationUuid=..&groupBy=StockItemOnly returns as its first result. */
+	private StockItemInventory perItemInventory(String stockItemUuid, Party party,
+	        HashSet<RecordPrivilegeFilter> recordPrivilegeFilters) {
+		StockItem stockItem = stockManagementService.getStockItemByUuid(stockItemUuid);
+		StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
+		filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly);
+		filter.setIsDispensing(false);
+		filter.setAllowEmptyBatchInfo(false);
+		filter.setDoSetBatchFields(true);
+		filter.setDoSetPartyNameField(true);
+		filter.setDoSetQuantityUoM(true);
+		filter.setRequireNonExpiredStockBatches(true);
+		filter.setItemGroupFilters(Collections.singletonList(new StockItemInventorySearchFilter.ItemGroupFilter(
+		        stockItem.getId(), Collections.singletonList(party.getUuid()), (Integer) null)));
+		List<StockItemInventory> result = stockManagementService.getStockInventory(filter, recordPrivilegeFilters).getData();
+		return result.isEmpty() ? null : result.get(0);
 	}
 }
