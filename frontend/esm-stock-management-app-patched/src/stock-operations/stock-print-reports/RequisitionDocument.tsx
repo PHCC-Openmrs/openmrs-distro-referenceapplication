@@ -92,7 +92,7 @@ export const FormatRequisitionDocument = async (data: StockOperationPrintData, t
         <td class="c">${index + 1}</td>
         <td colspan="3">${esc(p.itemDescription)}</td>
         <td class="c">${esc(balance)}</td>
-        <td></td>
+        <td class="c">${esc(data?.projectFundCode)}</td>
         <td class="c">${esc(uom)}</td>
         <td colspan="2" class="c">${esc(p.quantityRequired?.toLocaleString() ?? '')}</td>
         <td colspan="3">${esc(expiry)}</td>
