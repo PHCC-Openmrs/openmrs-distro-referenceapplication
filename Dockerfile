@@ -92,6 +92,17 @@ RUN sed -i -E 's#rm -fR "(\$\{OMRS_[A-Z_]+_DIR:\?\})/\*"#rm -fR "\1"/*#' /openmr
 # to override.
 ENV OMRS_EXTRA_HIBERNATE_DEFAULT__BATCH__FETCH__SIZE=100
 
+# Database connection pool. OpenMRS's defaults keep no connections open (min_size=0), close idle ones
+# after 100 s and open new ones one at a time (acquire_increment=1). After any quiet spell, a burst of
+# requests - staff opening the queue screen at the same moment - then waits while connections are
+# opened one by one; with a remote, TLS-only database each one is a network handshake. Locally this
+# stalled every request for ~16 s with the CPU idle, and c3p0 logged "APPARENT DEADLOCK" while its
+# helper threads were stuck opening connections. Keep 10 ready, open 5 at a time, keep idle ones for
+# 30 minutes. max_size stays at the OpenMRS default of 50. Set these in the environment to override.
+ENV OMRS_EXTRA_HIBERNATE_C3P0_MIN__SIZE=10 \
+    OMRS_EXTRA_HIBERNATE_C3P0_ACQUIRE__INCREMENT=5 \
+    OMRS_EXTRA_HIBERNATE_C3P0_TIMEOUT=1800
+
 # Do not copy the war if using the correct openmrs-core image version
 COPY --from=dev /openmrs/distribution/openmrs_core/openmrs.war /openmrs/distribution/openmrs_core/
 
