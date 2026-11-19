@@ -81,6 +81,14 @@ export function getStockOperation(id: string): Promise<FetchResponse<StockOperat
   return openmrsFetch(apiUrl);
 }
 
+// The full operation (v=full: its items with their packaging units, the user's permissions on it, and for a stock
+// issue the requisition it fulfils), fetched when it is about to be opened. Lists already hold each row's summary,
+// so their rows call this on click rather than every row fetching its operation up front.
+export async function fetchStockOperationAndItems(id: string): Promise<StockOperationDTO | undefined> {
+  const response = await getStockOperation(id);
+  return response?.data;
+}
+
 // getStockOperationAndItems
 export function useStockOperationAndItems(id = '') {
   const apiUrl = `${restBaseUrl}/stockmanagement/stockoperation/${id}?v=full`;
