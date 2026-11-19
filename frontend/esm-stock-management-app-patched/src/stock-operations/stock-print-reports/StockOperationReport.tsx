@@ -1,3 +1,4 @@
+import { parseExternalReference } from '../external-reference.utils';
 import { type StockItemInventory } from '../../core/api/types/stockItem/StockItemInventory';
 import { type StockOperationDTO } from '../../core/api/types/stockOperation/StockOperationDTO';
 import { type StockOperationItemCost } from '../../core/api/types/stockOperation/StockOperationItemCost';
@@ -30,6 +31,7 @@ export interface StockOperationPrintData {
   deliverFrom?: string;
   deliverTo?: string;
   remarks?: string;
+  projectFundCode?: string;
 }
 
 export interface StockOperationItemData {
@@ -86,6 +88,10 @@ export const BuildStockOperationData = async (
   data.operationTypeName = currentOperation?.operationTypeName ?? undefined;
   data.remarks = currentOperation.remarks;
   data.operationNumber = currentOperation?.operationNumber;
+  data.projectFundCode =
+    parseExternalReference(currentOperation?.externalReference).projectFundCode ||
+    parseExternalReference(parentOperation?.externalReference).projectFundCode ||
+    undefined;
   data.operationDate = parentOperation?.operationDate ?? currentOperation?.operationDate;
   data.location = parentOperation?.atLocationName ?? currentOperation?.atLocationName;
   // Only a requisition has two locations: the requesting one (location) and the supplying store it asks for stock from.
