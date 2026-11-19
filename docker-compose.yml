@@ -66,6 +66,12 @@ services:
       # clock and logs.
       TZ: Asia/Gaza
       OMRS_JAVA_SERVER_OPTS: "-Duser.timezone=Asia/Gaza"
+      # Sized for a 4-core backend. A fixed heap avoids resize churn (the image default only sets
+      # -XX:NewSize=128m, so the heap starts at ~200 MB and grows under load). Two JIT compiler
+      # threads instead of the JVM's default (3 on 4 cores, 12 on 16) keep compilation after a
+      # restart from taking every core while the first users arrive. Set OMRS_JAVA_HEAP in .env to
+      # resize: roughly 40% of the VM's RAM when the database runs elsewhere.
+      OMRS_JAVA_MEMORY_OPTS: "-Xms${OMRS_JAVA_HEAP:-3g} -Xmx${OMRS_JAVA_HEAP:-3g} -XX:CICompilerCount=2"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs"]
       timeout: 5s
