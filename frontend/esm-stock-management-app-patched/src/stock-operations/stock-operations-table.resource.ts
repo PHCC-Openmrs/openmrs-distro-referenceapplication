@@ -1,72 +1,75 @@
 import { type StockOperationFilter } from './stock-operations.resource';
-import { useFetchAllPages } from '../core/api/useFetchAllPages';
 import { type StockOperationDTO } from '../core/api/types/stockOperation/StockOperationDTO';
-import { formatDisplayDate } from '../core/utils/datetimeUtils';
-import { parseExternalReference } from './external-reference.utils';
-import { useMemo, useState } from 'react';
-import { usePagination } from '@openmrs/esm-framework';
+import { type PageableResult } from '../core/api/types/PageableResult';
+import { toQueryParams } from '../core/api/api';
+import { useCallback, useMemo, useState } from 'react';
+import useSWR from 'swr';
+import { openmrsFetch, restBaseUrl, useDebounce } from '@openmrs/esm-framework';
 import { useTranslation } from 'react-i18next';
 
-// Every piece of text a user might type to find an operation: the columns shown in the table
-// plus the item names/batches inside it, which only appear once the row is expanded.
-function getSearchableText(operation: StockOperationDTO): string {
-  const { purchaseOrderNo, purchaseRequestNo, projectFundCode } = parseExternalReference(operation.externalReference);
-  return [
-    operation.operationNumber,
-    operation.operationTypeName,
-    operation.status,
-    operation.sourceName,
-    operation.destinationName,
-    operation.atLocationName,
-    operation.responsiblePersonGivenName,
-    operation.responsiblePersonFamilyName,
-    operation.responsiblePersonOther,
-    operation.creatorGivenName,
-    operation.creatorFamilyName,
-    operation.reasonName,
-    operation.remarks,
-    formatDisplayDate(operation.operationDate),
-    purchaseOrderNo,
-    purchaseRequestNo,
-    projectFundCode,
-    ...(operation.stockOperationItems ?? []).flatMap((item) => [
-      item.commonName,
-      item.stockItemName,
-      item.acronym,
-      item.batchNo,
-    ]),
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+// Rows are requested from the server in blocks of this size, and only the block(s) the visible
+// table page falls in are loaded - never the whole history, which grows with every dispense,
+// adjustment and transfer and used to take one sequential request per 100 operations.
+export const OPERATIONS_BLOCK_SIZE = 100;
+// Shorter search text would match nearly everything; until then the unfiltered list is shown.
+export const MIN_SEARCH_LENGTH = 2;
+const SEARCH_DEBOUNCE_MS = 400;
+
+function useOperationsBlock(filter: StockOperationFilter, block: number | null) {
+  // The stock management REST resources treat `startIndex` as a page NUMBER (offset =
+  // startIndex * limit), not a row offset - see fetchAllPages.
+  const url =
+    block === null
+      ? null
+      : `${restBaseUrl}/stockmanagement/stockoperation${toQueryParams({
+          ...filter,
+          startIndex: block,
+          limit: OPERATIONS_BLOCK_SIZE,
+          totalCount: true,
+        })}`;
+  return useSWR<{ data: PageableResult<StockOperationDTO> }, Error>(url, openmrsFetch, { keepPreviousData: true });
 }
 
 export function useStockOperationPages(filter: StockOperationFilter, searchTerm = '') {
-  // The server returns only its default page (50 rows) when no limit is sent, while the table
-  // paginates client-side, so load every page up front - otherwise pages past the first 50 rows
-  // repeat the same rows even though the total says there are more.
-  const { items: allOperations, isLoading, error } = useFetchAllPages<StockOperationDTO, StockOperationFilter>(
-    '/stockmanagement/stockoperation',
-    filter,
-  );
+  // Searching runs on the server (`q`), over every operation, not only the loaded block.
+  const debouncedSearch = useDebounce(searchTerm.trim(), SEARCH_DEBOUNCE_MS);
+  const q = debouncedSearch.length >= MIN_SEARCH_LENGTH ? debouncedSearch : undefined;
+  const serverFilter = useMemo(() => ({ ...filter, q }), [filter, q]);
+  const filterKey = toQueryParams(serverFilter);
+
+  const [currentPageSize, setPageSize] = useState(10);
+  // The page is remembered together with the filter it was chosen under, so a new filter or search
+  // starts again from page 1 without an extra render showing an out-of-range page.
+  const [pageState, setPageState] = useState({ filterKey, page: 1 });
+  const currentPage = pageState.filterKey === filterKey ? pageState.page : 1;
+  const goTo = useCallback((page: number) => setPageState({ filterKey, page }), [filterKey]);
+
+  const firstRow = (currentPage - 1) * currentPageSize;
+  const lastRow = firstRow + currentPageSize - 1;
+  const firstBlock = Math.floor(firstRow / OPERATIONS_BLOCK_SIZE);
+  const lastBlock = Math.floor(lastRow / OPERATIONS_BLOCK_SIZE);
+
+  const first = useOperationsBlock(serverFilter, firstBlock);
+  const totalItems = first.data?.data?.totalCount ?? first.data?.data?.results?.length ?? 0;
+  // Page sizes of 30/40 can straddle two blocks; fetch the next one only when it has rows.
+  const needsSecondBlock = lastBlock !== firstBlock && lastBlock * OPERATIONS_BLOCK_SIZE < totalItems;
+  const second = useOperationsBlock(serverFilter, needsSecondBlock ? lastBlock : null);
+
+  const paginatedItems = useMemo(() => {
+    const loaded = [
+      ...(first.data?.data?.results ?? []),
+      ...(needsSecondBlock ? second.data?.data?.results ?? [] : []),
+    ];
+    const offset = firstRow - firstBlock * OPERATIONS_BLOCK_SIZE;
+    return loaded.slice(offset, offset + currentPageSize);
+  }, [first.data, second.data, needsSecondBlock, firstRow, firstBlock, currentPageSize]);
+
+  const isLoading = first.isLoading || (needsSecondBlock && second.isLoading);
+  // Only the very first load has nothing to show; later loads keep the previous rows on screen.
+  const isInitialLoading = first.isLoading && !first.data;
+  const error = first.error ?? second.error;
 
   const pageSizes = [10, 20, 30, 40, 50];
-  const [currentPageSize, setPageSize] = useState(10);
-
-  // Search runs over the full result set, not just the visible page, so matches on later
-  // pages are found and the pagination count reflects the matches.
-  const searchedItems = useMemo(() => {
-    const terms = searchTerm.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    if (!terms.length) {
-      return allOperations;
-    }
-    return allOperations.filter((operation) => {
-      const text = getSearchableText(operation);
-      return terms.every((term) => text.includes(term));
-    });
-  }, [allOperations, searchTerm]);
-
-  const { goTo, results: paginatedItems, currentPage } = usePagination(searchedItems, currentPageSize);
 
   const { t } = useTranslation();
 
@@ -134,13 +137,14 @@ export function useStockOperationPages(filter: StockOperationFilter, searchTerm 
 
   return {
     items: paginatedItems,
-    totalItems: searchedItems?.length ?? 0,
+    totalItems,
     currentPage,
     currentPageSize,
     paginatedItems,
     goTo,
     pageSizes,
     isLoading,
+    isInitialLoading,
     error,
     setPageSize,
     tableHeaders,

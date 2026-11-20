@@ -60,27 +60,34 @@ const StockOperations: React.FC<StockOperationsTableProps> = () => {
   const [selectedOperations, setSelectedOperations] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { items, tableHeaders, currentPage, pageSizes, totalItems, goTo, currentPageSize, setPageSize, isLoading } =
-    useStockOperationPages(
-      {
-        v: ResourceRepresentation.Full,
-        totalCount: true,
-        // Operations where the logged-in location is either the source or the destination --
-        // matches the same session-location scoping already applied to stock item quantities.
-        locationUuid: sessionLocation?.uuid,
-        operationDateMin: selectedFromDate?.toISOString(),
-        // The picker gives the start of the chosen day, and the backend filters operationDate <= max,
-        // so send the end of that day or every operation made on the "to" day is left out.
-        operationDateMax: selectedToDate ? dayjs(selectedToDate).endOf('day').toISOString() : undefined,
-        status: selectedStatus.join(','),
-        sourceTypeUuid: selectedSources.join(','),
-        operationTypeUuid: selectedOperations.join(','),
-      },
-      searchTerm,
-    );
-
-  const filterApplied =
-    selectedFromDate || selectedToDate || selectedSources.length || selectedStatus.length || selectedOperations.length;
+  const {
+    items,
+    tableHeaders,
+    currentPage,
+    pageSizes,
+    totalItems,
+    goTo,
+    currentPageSize,
+    setPageSize,
+    isLoading,
+    isInitialLoading,
+  } = useStockOperationPages(
+    {
+      v: ResourceRepresentation.Full,
+      totalCount: true,
+      // Operations where the logged-in location is either the source or the destination --
+      // matches the same session-location scoping already applied to stock item quantities.
+      locationUuid: sessionLocation?.uuid,
+      operationDateMin: selectedFromDate?.toISOString(),
+      // The picker gives the start of the chosen day, and the backend filters operationDate <= max,
+      // so send the end of that day or every operation made on the "to" day is left out.
+      operationDateMax: selectedToDate ? dayjs(selectedToDate).endOf('day').toISOString() : undefined,
+      status: selectedStatus.join(','),
+      sourceTypeUuid: selectedSources.join(','),
+      operationTypeUuid: selectedOperations.join(','),
+    },
+    searchTerm,
+  );
 
   const handleOnFilterChange = useCallback((selectedItems, filterType) => {
     if (filterType === StockFilters.SOURCES) {
@@ -155,7 +162,8 @@ const StockOperations: React.FC<StockOperationsTableProps> = () => {
     [items],
   );
 
-  if (isLoading && !filterApplied) {
+  // Only before anything has loaded: replacing the toolbar later would drop the search box's focus mid-typing.
+  if (isInitialLoading) {
     return (
       <DataTableSkeleton className={styles.dataTableSkeleton} showHeader={false} rowCount={5} columnCount={5} zebra />
     );
@@ -287,7 +295,7 @@ const StockOperations: React.FC<StockOperationsTableProps> = () => {
                 </Tile>
               </div>
             ) : null}
-            {Boolean(filterApplied && isLoading) && (
+            {isLoading && !isInitialLoading && (
               <div className={styles.rowLoadingContainer}>
                 <InlineLoading description={t('loadingPlaceholder', 'Loading...')} />
               </div>
