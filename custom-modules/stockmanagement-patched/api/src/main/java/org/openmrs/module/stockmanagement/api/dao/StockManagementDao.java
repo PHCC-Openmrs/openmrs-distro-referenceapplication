@@ -787,24 +787,14 @@ public class StockManagementDao extends DaoBase {
         }
 
         if (!StringUtils.isBlank(filter.getSearchText())) {
-            String q = filter.getSearchText().replaceAll("%", "");
-            if (q.length() == 0)
+            List<String> terms = Arrays.stream(filter.getSearchText().replaceAll("%", "").trim().split("\\s+"))
+                    .filter(StringUtils::isNotBlank).distinct().collect(Collectors.toList());
+            if (terms.isEmpty())
                 return new Result<>(new ArrayList<>(), 0);
-            PartySearchFilter partySearchFilter = new PartySearchFilter();
-            partySearchFilter.setSearchText(q);
-            Result<PartyDTO> partyList = findParty(partySearchFilter);
-            List<Integer> partyIds = null;
-            if (!partyList.getData().isEmpty()) {
-                partyIds = partyList.getData().stream().map(p -> p.getId()).limit(30).collect(Collectors.toList());
+            // Every word typed must match the operation somewhere (same as the table's old in-browser search).
+            for (int termIndex = 0; termIndex < terms.size(); termIndex++) {
+                appendFilter(hqlFilter, buildOperationSearchTermClause(terms.get(termIndex), termIndex, parameterList, parameterWithList));
             }
-            q = q + "%";
-            if (partyIds != null && partyIds.size() > 0) {
-                appendFilter(hqlFilter, "(so.source.id in (:partyList) OR so.destination.id in (:partyList)) OR so.operationNumber like :qtxt");
-                parameterWithList.putIfAbsent("partyList", partyIds);
-            } else {
-                appendFilter(hqlFilter, "so.operationNumber like :qtxt");
-            }
-            parameterList.putIfAbsent("qtxt", q);
         }
 
         if (!filter.getIncludeVoided()) {
@@ -863,6 +853,110 @@ public class StockManagementDao extends DaoBase {
         return result;
     }
 	
+	/**
+	 * One typed word of the stock operations search, as an OR of conditions that each reach the
+	 * operations table through an index - so the search cost does not grow with every operation's
+	 * text. Names (items, batches, locations/sources, people, operation types) live in small lookup
+	 * tables, so they are matched with "contains" there first and the matching ids are then looked up
+	 * on the operation's indexed foreign keys. The operation's own text (number, PO/PR/fund code) is
+	 * matched "starts with", which is what a B-tree index can serve; the table collation is
+	 * case-insensitive, so the columns are compared as-is (wrapping them in lower() would bypass the
+	 * index).
+	 */
+	private String buildOperationSearchTermClause(String term, int termIndex, HashMap<String, Object> parameterList,
+	        HashMap<String, Collection> parameterWithList) {
+		String contains = "%" + term.toLowerCase() + "%";
+		List<String> branches = new ArrayList<>();
+		String p = "sq" + termIndex + "_";
+
+		// Operation number: ADJ-13047. Typing only the digits matches the number under any type's acronym.
+		List<String> numberPrefixes = new ArrayList<>();
+		if (term.matches("\\d+")) {
+			List<?> acronyms = getSession().createQuery(
+			    "select distinct sot.acronym from stockmanagement.StockOperationType sot where sot.acronym is not null").list();
+			for (Object acronym : acronyms) {
+				numberPrefixes.add(acronym + "-" + term + "%");
+			}
+		} else {
+			numberPrefixes.add(term.toUpperCase() + "%");
+		}
+		for (int i = 0; i < numberPrefixes.size(); i++) {
+			branches.add("so.operationNumber like :" + p + "num" + i);
+			parameterList.put(p + "num" + i, numberPrefixes.get(i));
+		}
+
+		// Purchase order / purchase request / project fund code, packed as "PO:..|PR:..|FC:.." in externalReference
+		// (see the frontend's external-reference.utils.ts). PR and FC are only at the start when the parts
+		// before them are empty, so they are also matched after the "|" separator.
+		String[] referencePatterns = { "PO:" + term + "%", "PR:" + term + "%", "%|PR:" + term + "%", "FC:" + term + "%",
+		        "%|FC:" + term + "%" };
+		for (int i = 0; i < referencePatterns.length; i++) {
+			branches.add("so.externalReference like :" + p + "ref" + i);
+			parameterList.put(p + "ref" + i, referencePatterns[i]);
+		}
+
+		// Source / destination location or stock source.
+		PartySearchFilter partySearchFilter = new PartySearchFilter();
+		partySearchFilter.setSearchText(term);
+		partySearchFilter.setIncludeVoided(true);
+		List<Integer> partyIds = findParty(partySearchFilter).getData().stream().map(PartyDTO::getId)
+		        .collect(Collectors.toList());
+		if (!partyIds.isEmpty()) {
+			branches.add("so.source.id in (:" + p + "party) or so.destination.id in (:" + p + "party)");
+			parameterWithList.put(p + "party", partyIds);
+		}
+
+		// Operation type name (Adjustment, Disposal, ...).
+		List<?> typeIds = getSession()
+		        .createQuery("select sot.id from stockmanagement.StockOperationType sot where lower(sot.name) like :q")
+		        .setParameter("q", contains).list();
+		if (!typeIds.isEmpty()) {
+			branches.add("so.stockOperationType.id in (:" + p + "type)");
+			parameterWithList.put(p + "type", typeIds);
+		}
+
+		// Responsible person, by given or family name.
+		List<?> userIds = getSession()
+		        .createQuery(
+		            "select distinct u.userId from User u join u.person up join up.names pn where pn.voided = false and "
+		                    + "(lower(pn.givenName) like :q or lower(pn.familyName) like :q)").setParameter("q", contains)
+		        .list();
+		if (!userIds.isEmpty()) {
+			branches.add("so.responsiblePerson.userId in (:" + p + "user)");
+			parameterWithList.put(p + "user", userIds);
+		}
+
+		// Items on the operation, by drug name, item common name, acronym or concept name; or by batch number.
+		List<?> stockItemIds = getSession()
+		        .createSQLQuery(
+		            "select si.stock_item_id from stockmgmt_stock_item si left join drug d on d.drug_id = si.drug_id "
+		                    + "where lower(si.common_name) like :q or lower(si.acronym) like :q or lower(d.name) like :q "
+		                    + "or exists (select 1 from concept_name cn where cn.concept_id = si.concept_id "
+		                    + "and cn.voided = 0 and lower(cn.name) like :q)").setParameter("q", contains).list();
+		List<?> batchIds = getSession()
+		        .createSQLQuery("select sb.stock_batch_id from stockmgmt_stock_batch sb where lower(sb.batch_no) like :q")
+		        .setParameter("q", contains).list();
+		List<String> itemConditions = new ArrayList<>();
+		if (!stockItemIds.isEmpty()) {
+			itemConditions.add("soi.stockItem.id in (:" + p + "item)");
+			parameterWithList.put(p + "item", toIntegers(stockItemIds));
+		}
+		if (!batchIds.isEmpty()) {
+			itemConditions.add("soi.stockBatch.id in (:" + p + "batch)");
+			parameterWithList.put(p + "batch", toIntegers(batchIds));
+		}
+		if (!itemConditions.isEmpty()) {
+			branches.add("so.id in (select soi.stockOperation.id from stockmanagement.StockOperationItem soi where soi.voided = false and ("
+			        + String.join(" or ", itemConditions) + "))");
+		}
+
+		return "(" + String.join(") or (", branches) + ")";
+	}
+
+	private static List<Integer> toIntegers(List<?> values) {
+		return values.stream().map(v -> ((Number) v).intValue()).collect(Collectors.toList());
+	}
+
 	public Result<PartyDTO> findParty(PartySearchFilter filter) {
         HashMap<String, Object> parameterList = new HashMap<>();
         HashMap<String, Collection> parameterWithList = new HashMap<>();

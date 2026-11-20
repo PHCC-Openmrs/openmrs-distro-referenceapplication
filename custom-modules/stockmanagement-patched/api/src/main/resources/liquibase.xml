@@ -4872,7 +4872,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
   <changeSet author="claude" id="stockmanagement-2026-11-17-1000">
     <preConditions onFail="MARK_RAN">
       <not>
-        <indexExists tableName="stockmgmt_stock_operation" indexName="stockmgmt_stock_operation_date_ix"/>
+        <indexExists indexName="stockmgmt_stock_operation_date_ix"/>
       </not>
     </preConditions>
     <comment>
@@ -4887,7 +4887,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
   <changeSet author="claude" id="stockmanagement-2026-11-17-1001">
     <preConditions onFail="MARK_RAN">
       <not>
-        <indexExists tableName="stockmgmt_stock_operation" indexName="stockmgmt_stock_operation_report_date_ix"/>
+        <indexExists indexName="stockmgmt_stock_operation_report_date_ix"/>
       </not>
     </preConditions>
     <comment>
@@ -4898,6 +4898,37 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <createIndex indexName="stockmgmt_stock_operation_report_date_ix" tableName="stockmgmt_stock_operation">
       <column name="completed_date"/>
       <column name="operation_date"/>
+    </createIndex>
+  </changeSet>
+
+  <changeSet author="claude" id="stockmanagement-2026-11-20-1000">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists indexName="stockmgmt_stock_operation_number_ix"/>
+      </not>
+    </preConditions>
+    <comment>
+      The stock operations list now searches on the server one page at a time instead of loading every
+      operation into the browser. Operation numbers (ADJ-13047) are matched "starts with", which this
+      index serves without scanning every operation.
+    </comment>
+    <createIndex indexName="stockmgmt_stock_operation_number_ix" tableName="stockmgmt_stock_operation">
+      <column name="operation_number"/>
+    </createIndex>
+  </changeSet>
+
+  <changeSet author="claude" id="stockmanagement-2026-11-20-1001">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists indexName="stockmgmt_stock_operation_ext_ref_ix"/>
+      </not>
+    </preConditions>
+    <comment>
+      Purchase order / purchase request / project fund code are stored together in external_reference as
+      "PO:..|PR:..|FC:..". The stock operations search matches them "starts with", served by this index.
+    </comment>
+    <createIndex indexName="stockmgmt_stock_operation_ext_ref_ix" tableName="stockmgmt_stock_operation">
+      <column name="external_reference"/>
     </createIndex>
   </changeSet>
 </databaseChangeLog>
