@@ -11,6 +11,7 @@ import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
 import { useHealthPromotionReport, type HealthPromotionRow } from './health-promotion-report.resource';
+import { matchesSearchTerm } from '../reports-shell/search-utils';
 import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
 
 const SEARCHABLE_FIELDS: Array<keyof HealthPromotionRow> = [
@@ -47,13 +48,16 @@ export default function HealthPromotionReport() {
   );
 
   const searchedRows = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) {
+    if (!searchTerm.trim()) {
       return rows;
     }
     return rows.filter((row) =>
-      SEARCHABLE_FIELDS.map((field) => row[field]).some(
-        (value) => typeof value === 'string' && value.toLowerCase().includes(term),
+      matchesSearchTerm(
+        [
+          [row.givenName, row.middleName, row.familyName].filter(Boolean).join(' '),
+          ...SEARCHABLE_FIELDS.map((field) => row[field] as string | null),
+        ],
+        searchTerm,
       ),
     );
   }, [rows, searchTerm]);
