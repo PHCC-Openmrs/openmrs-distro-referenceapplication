@@ -14,7 +14,7 @@ import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
 import { useStockBatchBalanceReport, type StockBatchBalanceRow } from './stock-batch-balance.resource';
 
-type ExpiryFilter = '' | 'expired' | 'notExpired' | 'noExpiry';
+type ExpiryFilter = '' | 'expired' | 'emptyExpired' | 'notExpired' | 'noExpiry';
 type StockFilter = '' | 'inStock' | 'outOfStock';
 
 // A batch expiring today counts as expired, matching stock_current_onhand.sql's
@@ -39,8 +39,12 @@ function matchesExpiryFilter(row: StockBatchBalanceRow, filter: ExpiryFilter): b
   switch (filter) {
     case 'expired':
       return isFlaggedExpired(row);
+    case 'emptyExpired':
+      // Past its expiry date with nothing left: not flagged "Expired" (no action needed), but still expired.
+      return row.quantity <= 0 && isExpired(row);
     case 'notExpired':
-      return !isFlaggedExpired(row);
+      // Goes by the date alone, so an expired batch that is empty is not counted as "not expired".
+      return !isExpired(row);
     case 'noExpiry':
       return !row.expirationDate;
     default:
@@ -180,6 +184,7 @@ export default function StockBatchBalanceReport() {
               <SelectItem value="" text={t('allBatches', 'All batches')} />
               <SelectItem value="notExpired" text={t('notExpired', 'Not expired')} />
               <SelectItem value="expired" text={t('expired', 'Expired')} />
+              <SelectItem value="emptyExpired" text={t('emptyAndExpired', 'Empty and expired')} />
               <SelectItem value="noExpiry" text={t('noExpiryDate', 'No expiry date')} />
             </Select>
           </div>

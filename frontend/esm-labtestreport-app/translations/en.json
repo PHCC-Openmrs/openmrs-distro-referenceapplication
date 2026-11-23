@@ -150,6 +150,7 @@
   "durationUnits": "Duration Units",
   "ecgRecorded": "ECG Recorded",
   "ecgsRecorded": "ECGs Recorded",
+  "emptyAndExpired": "Empty and expired",
   "emptyBatch": "Empty",
   "encounterDate": "Encounter Date",
   "endDate": "End Date",
