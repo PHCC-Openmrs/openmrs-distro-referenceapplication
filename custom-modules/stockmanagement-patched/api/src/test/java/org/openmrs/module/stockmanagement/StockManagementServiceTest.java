@@ -810,10 +810,14 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	private StockOperationType newRequisitionType() {
+		return newOperationType(StockOperationType.REQUISITION, "Test Requisition");
+	}
+	
+	private StockOperationType newOperationType(String operationType, String name) {
 		StockOperationType type = new StockOperationType();
-		type.setName("Test Requisition");
-		type.setDescription("A location asking a store for stock.");
-		type.setOperationType(StockOperationType.REQUISITION);
+		type.setName(name);
+		type.setDescription(name);
+		type.setOperationType(operationType);
 		type.setHasSource(true);
 		type.setSourceType(LocationType.Location);
 		type.setHasDestination(true);
@@ -839,12 +843,18 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	/** A NEW requisition from {@code requester} asking {@code store} for one line. */
 	private StockOperation newRequisition(Party requester, Party store, StockItem stockItem, StockBatch stockBatch,
 	        StockItemPackagingUOM packagingUom, BigDecimal quantity) {
+		return newOperation(newRequisitionType(), requester, store, stockItem, stockBatch, packagingUom, quantity);
+	}
+	
+	/** A NEW operation at {@code source}'s location with one line. */
+	private StockOperation newOperation(StockOperationType type, Party source, Party destination, StockItem stockItem,
+	        StockBatch stockBatch, StockItemPackagingUOM packagingUom, BigDecimal quantity) {
 		StockOperation requisition = eu().newStockOperation(dao());
 		requisition.setVoided(false);
-		requisition.setStockOperationType(newRequisitionType());
-		requisition.setSource(requester);
-		requisition.setDestination(store);
-		requisition.setAtLocation(requester.getLocation());
+		requisition.setStockOperationType(type);
+		requisition.setSource(source);
+		requisition.setDestination(destination);
+		requisition.setAtLocation(source.getLocation());
 		requisition.setStatus(StockOperationStatus.NEW);
 		requisition.setLocked(false);
 		requisition.setStockItemTransactions(new HashSet<>());
@@ -951,6 +961,176 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		
 		assertEquals(StockOperationStatus.COMPLETED, requisition.getStatus());
 		assertFalse(stockManagementService.stockOperationHasMovedStock(requisition.getId()));
+	}
+	
+	/** A store holding 100 of a batch, and a NEW Stock Issue of {@code quantity} from it to a clinic. */
+	private StockOperation newStockIssueFromStoreHolding100(String operationType, BigDecimal quantity) {
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(stockBatch);
+		Party store = eu().getParty(dao());
+		Party clinic = newPartyAt(Context.getLocationService().getLocation(2));
+		newCompletedOperationMoving(stockItem, stockBatch, packagingUom, BigDecimal.valueOf(100));
+		stockManagementService.setDao(dao());
+		StockOperationType type = newOperationType(operationType, "Test " + operationType + " " + UUID.randomUUID());
+		return newOperation(type, store, clinic, stockItem, stockBatch, packagingUom, quantity);
+	}
+	
+	private BigDecimal sourceBalance(StockOperation operation) {
+		return balanceOf(operation.getSource(), operation.getStockOperationItems().iterator().next().getStockBatch());
+	}
+	
+	private BigDecimal destinationBalance(StockOperation operation) {
+		return balanceOf(operation.getDestination(), operation.getStockOperationItems().iterator().next()
+		        .getStockBatch());
+	}
+	
+	private void assertBalances(StockOperation operation, int source, int destination) {
+		assertEquals("source", 0, sourceBalance(operation).compareTo(BigDecimal.valueOf(source)));
+		assertEquals("destination", 0, destinationBalance(operation).compareTo(BigDecimal.valueOf(destination)));
+	}
+	
+	@Test
+	public void stockIssue_shouldTakeStockFromTheStoreOnlyWhenDispatched() {
+		StockOperation issue = newStockIssueFromStoreHolding100(StockOperationType.STOCK_ISSUE, BigDecimal.valueOf(30));
+		
+		act(issue, StockOperationAction.Action.SUBMIT);
+		assertEquals(StockOperationStatus.SUBMITTED, issue.getStatus());
+		assertBalances(issue, 100, 0);
+		assertFalse(stockManagementService.stockOperationHasMovedStock(issue.getId()));
+		
+		act(issue, StockOperationAction.Action.DISPATCH);
+		assertEquals(StockOperationStatus.DISPATCHED, issue.getStatus());
+		assertBalances(issue, 70, 0);
+		
+		act(issue, StockOperationAction.Action.COMPLETE);
+		assertEquals(StockOperationStatus.COMPLETED, issue.getStatus());
+		assertBalances(issue, 70, 30);
+		assertTrue(issue.getReservedTransactions().isEmpty());
+	}
+	
+	@Test
+	public void stockIssue_dispatchedStraightFromDraft_shouldTakeStockFromTheStore() {
+		StockOperation issue = newStockIssueFromStoreHolding100(StockOperationType.STOCK_ISSUE, BigDecimal.valueOf(30));
+		
+		act(issue, StockOperationAction.Action.DISPATCH);
+		
+		assertEquals(StockOperationStatus.DISPATCHED, issue.getStatus());
+		assertBalances(issue, 70, 0);
+	}
+	
+	@Test
+	public void stockIssue_cancelledOrRejectedBeforeDispatch_shouldMoveNothing() {
+		StockOperation cancelled = newStockIssueFromStoreHolding100(StockOperationType.STOCK_ISSUE,
+		    BigDecimal.valueOf(30));
+		act(cancelled, StockOperationAction.Action.SUBMIT);
+		act(cancelled, StockOperationAction.Action.CANCEL);
+		assertEquals(StockOperationStatus.CANCELLED, cancelled.getStatus());
+		assertBalances(cancelled, 100, 0);
+		assertTrue(cancelled.getReservedTransactions().isEmpty());
+		assertFalse(stockManagementService.stockOperationHasMovedStock(cancelled.getId()));
+		
+		StockOperation rejected = newStockIssueFromStoreHolding100(StockOperationType.STOCK_ISSUE,
+		    BigDecimal.valueOf(30));
+		act(rejected, StockOperationAction.Action.SUBMIT);
+		act(rejected, StockOperationAction.Action.REJECT);
+		assertEquals(StockOperationStatus.REJECTED, rejected.getStatus());
+		assertBalances(rejected, 100, 0);
+		assertFalse(stockManagementService.stockOperationHasMovedStock(rejected.getId()));
+	}
+	
+	@Test
+	public void stockIssue_returnedAfterDispatch_shouldPutStockBackAndTakeItAgainWhenDispatchedAgain() {
+		StockOperation issue = newStockIssueFromStoreHolding100(StockOperationType.STOCK_ISSUE, BigDecimal.valueOf(30));
+		act(issue, StockOperationAction.Action.SUBMIT);
+		act(issue, StockOperationAction.Action.DISPATCH);
+		
+		act(issue, StockOperationAction.Action.RETURN);
+		assertEquals(StockOperationStatus.RETURNED, issue.getStatus());
+		assertBalances(issue, 100, 0);
+		
+		act(issue, StockOperationAction.Action.SUBMIT);
+		assertBalances(issue, 100, 0);
+		act(issue, StockOperationAction.Action.DISPATCH);
+		assertBalances(issue, 70, 0);
+	}
+	
+	@Test
+	public void stockIssue_submittedWhenSubmittingTookStock_shouldNotTakeItAgainWhenDispatched() {
+		StockOperation issue = newStockIssueFromStoreHolding100(StockOperationType.STOCK_ISSUE, BigDecimal.valueOf(30));
+		act(issue, StockOperationAction.Action.SUBMIT);
+		// What submitting used to do: take the reserved lines out of the store straight away.
+		for (ReservedTransaction reserved : issue.getReservedTransactions()) {
+			StockItemTransaction tx = new StockItemTransaction(reserved);
+			tx.setCreator(Context.getAuthenticatedUser());
+			tx.setDateCreated(new Date());
+			tx.setParty(issue.getSource());
+			tx.setQuantity(tx.getQuantity().negate());
+			issue.addStockItemTransaction(tx);
+		}
+		dao().saveStockOperation(issue);
+		dao().getSession().flush();
+		assertBalances(issue, 70, 0);
+		
+		act(issue, StockOperationAction.Action.DISPATCH);
+		assertBalances(issue, 70, 0);
+		
+		act(issue, StockOperationAction.Action.RETURN);
+		assertBalances(issue, 100, 0);
+	}
+	
+	@Test
+	public void return_shouldTakeStockFromTheSourceOnlyWhenDispatched() {
+		StockOperation stockReturn = newStockIssueFromStoreHolding100(StockOperationType.RETURN, BigDecimal.valueOf(30));
+		
+		act(stockReturn, StockOperationAction.Action.SUBMIT);
+		assertBalances(stockReturn, 100, 0);
+		
+		act(stockReturn, StockOperationAction.Action.DISPATCH);
+		assertBalances(stockReturn, 70, 0);
+		
+		act(stockReturn, StockOperationAction.Action.COMPLETE);
+		assertBalances(stockReturn, 70, 30);
+	}
+	
+	@Test
+	public void saveStockOperation_shouldRefuseAStockIssueForARequisitionThatAlreadyMovedStock() {
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(stockBatch);
+		Party store = eu().getParty(dao());
+		Party requester = newPartyAt(Context.getLocationService().getLocation(2));
+		newCompletedOperationMoving(stockItem, stockBatch, packagingUom, BigDecimal.valueOf(100));
+		stockManagementService.setDao(dao());
+		StockOperation requisition = newRequisition(requester, store, stockItem, stockBatch, packagingUom,
+		    BigDecimal.valueOf(30));
+		act(requisition, StockOperationAction.Action.SUBMIT);
+		act(requisition, StockOperationAction.Action.APPROVE);
+		assertTrue(stockManagementService.stockOperationHasMovedStock(requisition.getId()));
+		
+		StockOperationDTO issue = new StockOperationDTO();
+		issue.setOperationTypeUuid(newOperationType(StockOperationType.STOCK_ISSUE, "Test Stock Issue").getUuid());
+		issue.setAtLocationUuid(store.getLocation().getUuid());
+		issue.setSourceUuid(store.getUuid());
+		issue.setDestinationUuid(requester.getUuid());
+		issue.setOperationDate(new Date());
+		issue.setRequisitionStockOperationUuid(requisition.getUuid());
+		issue.setStockOperationItems(new ArrayList<>());
+		try {
+			stockManagementService.saveStockOperation(issue);
+			fail("Issuing a requisition that already moved its stock must be refused");
+		}
+		catch (StockManagementException expected) {
+			assertThat(expected.getMessage(), anyOf(containsString("already moved its stock"),
+			    containsString("requisitionalreadymovedstock")));
+		}
+		assertBalances(requisition, 30, 70);
 	}
 	
 	@Test

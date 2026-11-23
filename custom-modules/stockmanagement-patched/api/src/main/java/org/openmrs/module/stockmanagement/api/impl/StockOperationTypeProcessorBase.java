@@ -56,6 +56,11 @@ public abstract class StockOperationTypeProcessorBase implements StockOperationT
 	public boolean appliesStockAtCompletion() {
 		return false;
 	}
+
+	@Override
+	public void onDispatched(StockOperation operation) {
+		// Only the types that require dispatch acknowledgement move stock at dispatch.
+	}
 	
 	@Override
 	public Party getPartyStockIsTakenFrom(StockOperation operation) {

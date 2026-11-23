@@ -2,6 +2,7 @@ package org.openmrs.module.stockmanagement.api.model;
 
 import org.openmrs.*;
 
+import java.math.BigDecimal;
 import java.io.Serializable;
 import javax.persistence.*;
 import java.util.Date;
@@ -376,6 +377,27 @@ public class StockOperation extends BaseChangeableOpenmrsData implements Seriali
 		this.stockItemTransactions = stockItemTransactions;
 	}
 	
+	/**
+	 * Whether this operation has taken stock out of {@code party} and not put it back: its
+	 * transactions there net to less than zero. A dispatch that was returned, or a submission that was
+	 * reverted for editing, nets to zero.
+	 */
+	public boolean hasStockOutstandingFrom(Party party) {
+		if (party == null || stockItemTransactions == null) {
+			return false;
+		}
+		BigDecimal net = BigDecimal.ZERO;
+		for (StockItemTransaction tx : stockItemTransactions) {
+			if (tx.getQuantity() == null || tx.getParty() == null || !party.getId().equals(tx.getParty().getId())) {
+				continue;
+			}
+			BigDecimal factor = tx.getStockItemPackagingUOM() == null ? BigDecimal.ONE
+			        : tx.getStockItemPackagingUOM().getFactor();
+			net = net.add(tx.getQuantity().multiply(factor));
+		}
+		return net.signum() < 0;
+	}
+
 	public StockItemTransaction addStockItemTransaction(StockItemTransaction stockItemTransaction) {
 		getStockItemTransactions().add(stockItemTransaction);
 		stockItemTransaction.setStockOperation(this);
