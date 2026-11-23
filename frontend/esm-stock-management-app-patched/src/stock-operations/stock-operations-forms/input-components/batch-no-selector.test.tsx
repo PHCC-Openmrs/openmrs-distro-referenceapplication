@@ -251,4 +251,73 @@ describe('BatchNoSelector', () => {
       expect(screen.queryByText(/BATCH-002/)).not.toBeInTheDocument();
     });
   });
+
+  describe('with includeExpiredBatches (Disposal)', () => {
+    const expiredOn = new Date(2020, 0, 15);
+    const expiresOn = new Date(new Date().getFullYear() + 1, 5, 30);
+
+    beforeEach(() => {
+      mockUseStockItemBatchNumbers.mockReturnValue({
+        isLoading: false,
+        stockItemBatchNos: [
+          {
+            uuid: '1',
+            batchNo: 'BATCH-OLD',
+            quantity: '0',
+            expiration: expiredOn,
+            stockItemUuid: 'item1',
+            voided: false,
+          },
+          {
+            uuid: '2',
+            batchNo: 'BATCH-NEW',
+            quantity: '0',
+            expiration: expiresOn,
+            stockItemUuid: 'item1',
+            voided: false,
+          },
+        ],
+        setLimit: vi.fn(),
+        setRepresentation: vi.fn(),
+        setSearchString: vi.fn(),
+      });
+      mockUseStockItemBatchInformationHook.mockReturnValue({
+        ...mockUseStockItemBatchInformationHook(),
+        items: [
+          { stockBatchUuid: '1', quantity: 5 },
+          { stockBatchUuid: '2', quantity: 8 },
+        ] as StockItemInventory[],
+      });
+      mockUseStockItemBatchInformationHook.mockClear();
+    });
+
+    it('asks the server for expired batches too', () => {
+      render(
+        <BatchNoSelector stockItemUuid={mockStockItemUuid} onValueChange={mockOnValueChange} includeExpiredBatches />,
+      );
+
+      expect(mockUseStockItemBatchInformationHook).toHaveBeenCalledWith({ excludeExpired: false });
+    });
+
+    it('leaves the server default (expired hidden) without the option', () => {
+      render(<BatchNoSelector stockItemUuid={mockStockItemUuid} onValueChange={mockOnValueChange} />);
+
+      expect(mockUseStockItemBatchInformationHook).toHaveBeenCalledWith({ excludeExpired: undefined });
+    });
+
+    it('marks an expired batch and lets it be picked', async () => {
+      const user = userEvent.setup();
+      render(
+        <BatchNoSelector stockItemUuid={mockStockItemUuid} onValueChange={mockOnValueChange} includeExpiredBatches />,
+      );
+
+      await user.click(screen.getByRole('combobox'));
+      const option = screen.getByText(`BATCH-OLD | Qty: 5 | Expiry: ${formatForDatePicker(expiredOn)} (Expired)`);
+      expect(screen.getByText(`BATCH-NEW | Qty: 8 | Expiry: ${formatForDatePicker(expiresOn)}`)).toBeInTheDocument();
+
+      await user.click(option);
+
+      expect(mockOnValueChange).toHaveBeenCalledWith('1');
+    });
+  });
 });

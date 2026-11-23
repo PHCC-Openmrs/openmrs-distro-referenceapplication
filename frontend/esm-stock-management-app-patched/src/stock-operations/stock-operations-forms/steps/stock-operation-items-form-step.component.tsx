@@ -50,6 +50,8 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
 }) => {
   const { t } = useTranslation();
   const operationTypePermision = useOperationTypePermisions(stockOperationType);
+  // Disposal: expired batches are on hand and disposable, so the availability figure counts them.
+  const includeExpiredInAvailability = operationTypePermision.allowExpiredBatchNumbers;
   const uniqueId = useId();
 
   const form = useFormContext<StockOperationItemDtoSchema>();
@@ -174,7 +176,11 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
         // party would total every facility's stock instead of this location's.
         itemDetails:
           stockItemUuid && availabilityPartyUuid ? (
-            <StockAvailability stockItemUuid={stockItemUuid} partyUuid={availabilityPartyUuid} />
+            <StockAvailability
+              stockItemUuid={stockItemUuid}
+              partyUuid={availabilityPartyUuid}
+              includeExpired={includeExpiredInAvailability}
+            />
           ) : (
             '--'
           ),
@@ -253,6 +259,7 @@ const StockOperationItemsFormStep: React.FC<StockOperationItemsFormStepProps> = 
     });
   }, [
     availabilityPartyUuid,
+    includeExpiredInAvailability,
     handleRemoveItem,
     observableOperationItems,
     onLaunchItemsForm,

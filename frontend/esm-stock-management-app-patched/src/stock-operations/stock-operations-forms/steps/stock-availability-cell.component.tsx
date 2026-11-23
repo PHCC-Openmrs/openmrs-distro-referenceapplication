@@ -16,9 +16,12 @@ interface StockAvailabilityProps {
   // available at this operation's location. Callers that don't know the party yet should render
   // a placeholder instead of this component.
   partyUuid: string;
+  // Count expired batches too - for a Disposal, where they are what is being removed. Otherwise the
+  // server leaves them out and the figure is the usable (in-date) stock.
+  includeExpired?: boolean;
 }
 
-const StockAvailability: React.FC<StockAvailabilityProps> = ({ stockItemUuid, partyUuid }) => {
+const StockAvailability: React.FC<StockAvailabilityProps> = ({ stockItemUuid, partyUuid, includeExpired = false }) => {
   // Grouped by LocationStockItem, so the item's batches at this party collapse into a single
   // row and the figure shown is the location's whole on-hand. Summing batch-level rows instead
   // would cap the total at one page of batches (the batch-information hook used elsewhere asks
@@ -28,6 +31,7 @@ const StockAvailability: React.FC<StockAvailabilityProps> = ({ stockItemUuid, pa
     stockItemUuid: stockItemUuid,
     partyUuid: partyUuid,
     groupBy: LocationStockItem,
+    excludeExpired: includeExpired ? false : undefined,
   });
   const { item, isLoading: isLoadingItem } = useStockItem(stockItemUuid);
   const { t } = useTranslation();
