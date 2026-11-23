@@ -20,3 +20,18 @@
   min-height: 15rem;
   display: block;
 }
+
+.referencesTableContainer {
+  padding-bottom: 1rem;
+
+  // Let the Source / Pack Size dropdowns open past the table edge instead of being clipped.
+  :global(.cds--data-table-content) {
+    overflow-x: visible;
+  }
+}
+
+.referencesActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-right: 2rem;
+}
