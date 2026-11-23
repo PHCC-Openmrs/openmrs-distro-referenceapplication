@@ -1249,6 +1249,11 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             if(stockOperationType.canBeRelatedToRequisition() && !StringUtils.isBlank(dto.getRequisitionStockOperationUuid())){
                 StockOperation parentStockOperation = getStockOperationByUuid(dto.getRequisitionStockOperationUuid());
                 if (parentStockOperation != null) {
+                    // An approved requisition moves its own stock; issuing it as well would move it twice.
+                    if (stockOperationHasMovedStock(parentStockOperation.getId())) {
+                        throw new StockManagementException(messageSourceService
+                                .getMessage("stockmanagement.stockoperation.requisitionalreadymovedstock"));
+                    }
                     stockOperationLink = new StockOperationLink();
                     stockOperationLink.setParent(parentStockOperation);
                     stockOperationLink.setCreator(Context.getAuthenticatedUser());
@@ -2204,6 +2209,16 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                         && takenFrom.getLocation() != null) {
                     validateStockInventoryAfterOperation(stockOperation, stockOperationType, messageSourceService);
                 }
+            } else if (action == StockOperationAction.Action.DISPATCH) {
+                // A submitted Stock Issue or Return takes its stock only now, so check the source
+                // balance again - unless it was submitted before that change and already took it.
+                Party takenFrom = stockOperationType.getPartyStockIsTakenFrom(stockOperation);
+                if (!stockOperation.hasStockOutstandingFrom(takenFrom) && !stockOperationType.isQuantityOptional()
+                        && stockOperationType.shouldVerifyNegativeStockAmountsAtSource()
+                        && !GlobalProperties.getNegativeStockBalanceAllowed() && takenFrom != null
+                        && takenFrom.getLocation() != null) {
+                    validateStockInventoryAfterOperation(stockOperation, stockOperationType, messageSourceService);
+                }
             }
 
             processStockOperationAction(action, reason, stockOperation, stockOperationType, messageSourceService,
@@ -2301,6 +2316,9 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             stockOperation.setDispatchedDate(new Date());
             stockOperation.setChangedBy(Context.getAuthenticatedUser());
             stockOperation.setDateChanged(new Date());
+
+            // Dispatching a submitted operation approves it: this is when its stock leaves the source.
+            stockOperationType.onDispatched(stockOperation);
         } else if (action == StockOperationAction.Action.COMPLETE) {
 
             stockOperation.setCompletedBy(Context.getAuthenticatedUser());

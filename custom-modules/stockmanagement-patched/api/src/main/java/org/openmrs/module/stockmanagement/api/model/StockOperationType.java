@@ -320,6 +320,15 @@ public class StockOperationType extends BaseChangeableOpenmrsData implements Ser
 	public void onPending(StockOperation operation) {
 		getStockOperationTypeProcessor().onPending(operation);
 	}
+
+	/**
+	 * Called when an already submitted {@link StockOperation} is dispatched.
+	 *
+	 * @param operation The associated stock operation.
+	 */
+	public void onDispatched(StockOperation operation) {
+		getStockOperationTypeProcessor().onDispatched(operation);
+	}
 	
 	/**
 	 * Called when the {@link StockOperation} status is changed to StockOperationStatus.CANCELLED.

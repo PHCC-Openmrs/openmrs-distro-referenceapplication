@@ -61,7 +61,16 @@ public interface StockOperationTypeProcessor {
 	 * @param operation The associated stock operation.
 	 */
 	void onPending(StockOperation operation);
-	
+
+	/**
+	 * Called when an operation that was already submitted is dispatched (its approval, for the
+	 * types that require dispatch acknowledgement). An operation dispatched straight from draft
+	 * goes through {@link #onPending} instead, with its status already DISPATCHED.
+	 *
+	 * @param operation The associated stock operation.
+	 */
+	void onDispatched(StockOperation operation);
+
 	/**
 	 * Called when the {@link StockOperation} status is changed to StockOperationStatus.CANCELLED.
 	 * 
