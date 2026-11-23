@@ -195,7 +195,9 @@ describe('StockReferences', () => {
   it('keeps rows that failed to save so they can be retried', async () => {
     const user = userEvent.setup();
     mockReferences([]);
-    mockCreate.mockResolvedValueOnce({} as any).mockRejectedValueOnce(new Error('Duplicate entry'));
+    mockCreate.mockResolvedValueOnce({} as any).mockRejectedValueOnce({
+      responseBody: { error: { message: '[Code B-100 from Vendor B is already used by Paracetamol.]' } },
+    });
     render(<StockReferences stockItemUuid="item-1" />);
 
     await user.click(screen.getByRole('button', { name: /add reference/i }));
@@ -206,7 +208,12 @@ describe('StockReferences', () => {
     await waitFor(() => expect(codeInputs()).toHaveLength(1));
     expect(codeInputs()[0]).toHaveValue('B-100');
     expect(mockShowSnackbar).toHaveBeenCalledWith(expect.objectContaining({ kind: 'success' }));
-    expect(mockShowSnackbar).toHaveBeenCalledWith(expect.objectContaining({ kind: 'error' }));
+    expect(mockShowSnackbar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'error',
+        subtitle: '1 reference(s) could not be saved: Code B-100 from Vendor B is already used by Paracetamol.',
+      }),
+    );
   });
 
   it('removes an unsaved row without calling the server', async () => {

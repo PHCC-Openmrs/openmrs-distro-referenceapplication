@@ -3953,9 +3953,72 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         return null;
     }
 
+    /**
+     * The (code, source) unique key also covers deleted (voided) references and spans all items, so a plain
+     * insert fails with a raw "Duplicate entry" error when the code was used before. A deleted reference is
+     * brought back for the new item instead; a live one is reported with a readable message.
+     */
     @Override
     public StockItemReference saveStockItemReference(StockItemReference stockItemReference) {
-        return dao.saveStockItemReference(stockItemReference);
+        if (stockItemReference.getStockItem() == null) {
+            invalidRequest("stockmanagement.stockitem.notexists");
+        }
+        if (stockItemReference.getReferenceSource() == null) {
+            invalidRequest("stockmanagement.stockitemreference.sourcerequired");
+        }
+        String code = StringUtils.trimToNull(stockItemReference.getStockReferenceCode());
+        if (code == null) {
+            invalidRequest("stockmanagement.stockitemreference.coderequired");
+        }
+        stockItemReference.setStockReferenceCode(code);
+
+        StockItemReference existing = dao.getStockItemByReference(stockItemReference.getReferenceSource(), code);
+        if (existing == null || existing == stockItemReference
+                || (existing.getId() != null && existing.getId().equals(stockItemReference.getId()))) {
+            return dao.saveStockItemReference(stockItemReference);
+        }
+
+        String sourceName = stockItemReference.getReferenceSource().getName();
+        if (Boolean.TRUE.equals(existing.getVoided())) {
+            if (stockItemReference.getId() != null) {
+                // Moving another live reference onto this code would need two rows with the same key.
+                invalidRequestWithKey("stockmanagement.stockitemreference.codepreviouslyused", code, sourceName);
+            }
+            existing.setStockItem(stockItemReference.getStockItem());
+            existing.setPackagingUnit(stockItemReference.getPackagingUnit());
+            existing.setStockReferenceCode(code);
+            existing.setVoided(false);
+            existing.setVoidedBy(null);
+            existing.setDateVoided(null);
+            existing.setVoidReason(null);
+            existing.setChangedBy(Context.getAuthenticatedUser());
+            existing.setDateChanged(new Date());
+            return dao.saveStockItemReference(existing);
+        }
+
+        if (existing.getStockItem() != null && existing.getStockItem().getId() != null
+                && existing.getStockItem().getId().equals(stockItemReference.getStockItem().getId())) {
+            invalidRequestWithKey("stockmanagement.stockitemreference.duplicate", sourceName, code);
+        }
+        invalidRequestWithKey("stockmanagement.stockitemreference.usedbyotheritem", code, sourceName,
+                stockItemDisplayName(existing.getStockItem()));
+        return null;
+    }
+
+    private static String stockItemDisplayName(StockItem stockItem) {
+        if (stockItem == null) {
+            return "another item";
+        }
+        if (stockItem.getDrug() != null && StringUtils.isNotBlank(stockItem.getDrug().getName())) {
+            return stockItem.getDrug().getName();
+        }
+        if (StringUtils.isNotBlank(stockItem.getCommonName())) {
+            return stockItem.getCommonName();
+        }
+        if (stockItem.getConcept() != null && stockItem.getConcept().getName() != null) {
+            return stockItem.getConcept().getName().getName();
+        }
+        return "another item";
     }
 
     @Override

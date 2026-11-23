@@ -185,7 +185,10 @@ const StockReferences: React.FC<StockReferencesProps> = ({ stockItemUuid }) => {
       });
     }
     if (failures.length > 0) {
-      const messages = failures.flatMap((error) => extractErrorMessagesFromResponse(error));
+      // The REST layer wraps server messages in brackets, e.g. "[Code X from Y is already used by Z.]".
+      const messages = failures
+        .flatMap((error) => extractErrorMessagesFromResponse(error))
+        .map((message) => (typeof message === 'string' ? message.replace(/^\[(.*)\]$/s, '$1') : message));
       showSnackbar({
         title: t('saveStockItemReferenceErrorTitle', 'Stock Item Reference'),
         subtitle: t('saveStockItemReferencesErrorMessage', '{{number}} reference(s) could not be saved: {{errors}}', {
