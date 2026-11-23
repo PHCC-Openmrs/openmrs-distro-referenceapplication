@@ -11,6 +11,7 @@ import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
 import { useNcdPatientCardReport, type NcdPatientCardRow } from './ncd-patient-card-report.resource';
+import { matchesSearchTerm } from '../reports-shell/search-utils';
 import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
 
 const SEARCHABLE_FIELDS: Array<keyof NcdPatientCardRow> = [
@@ -42,14 +43,11 @@ export default function NcdPatientCardReport() {
   const { rows, isLoading } = useNcdPatientCardReport(appliedDates.startDate, appliedDates.endDate, locationUuid || undefined);
 
   const searchedRows = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) {
+    if (!searchTerm.trim()) {
       return rows;
     }
     return rows.filter((row) =>
-      SEARCHABLE_FIELDS.map((field) => row[field]).some(
-        (value) => typeof value === 'string' && value.toLowerCase().includes(term),
-      ),
+      matchesSearchTerm([formatFullName(row), ...SEARCHABLE_FIELDS.map((field) => row[field] as string | null)], searchTerm),
     );
   }, [rows, searchTerm]);
 
@@ -304,9 +302,11 @@ export default function NcdPatientCardReport() {
                 </tr>
               </thead>
               <tbody>
-                {sortedRows.map((row) => (
+                {sortedRows.map((row, index) => (
                   <tr
-                    key={row.encounterId}
+                    // encounterId alone is not unique: one encounter can yield several rows, and duplicate
+                    // keys make React reuse/skip DOM rows when the list is filtered.
+                    key={`${row.encounterId}-${index}`}
                     className={pageStyles.clickableRow}
                     onClick={() => goToPatientChart(row.patientUuid)}
                   >
