@@ -115,7 +115,10 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
     setStockItemUuid: setAvailabilityStockItemUuid,
     setPartyUuid: setAvailabilityPartyUuid,
     setStockBatchUuid: setAvailabilityStockBatchUuid,
-  } = useStockItemBatchInformationHook();
+  } = useStockItemBatchInformationHook({
+    // An expired batch picked for a Disposal still has its stock on hand - count it.
+    excludeExpired: operationTypePermision.allowExpiredBatchNumbers ? false : undefined,
+  });
 
   useEffect(() => {
     if (!reducesStockAtSource) {
@@ -156,14 +159,15 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
     !isLoadingAvailability &&
     requestedBaseQuantity > availableBaseQuantity;
 
-  const insufficientStockMessage = !availableBaseQuantity && operationTypePermision.isNegativeQuantityAllowed
-    ? t('emptyBatchPositiveAdjustmentOnly', 'This batch is empty – only a positive adjustment is allowed')
-    : matchingBatchAvailability
-    ? t('insufficientStockInBatch', 'Only {{quantity}} {{uom}} available in this batch at the source location', {
-        quantity: matchingBatchAvailability.quantity,
-        uom: matchingBatchAvailability.quantityUoM,
-      })
-    : t('outOfStockInBatch', 'This batch has no stock available at the source location');
+  const insufficientStockMessage =
+    !availableBaseQuantity && operationTypePermision.isNegativeQuantityAllowed
+      ? t('emptyBatchPositiveAdjustmentOnly', 'This batch is empty – only a positive adjustment is allowed')
+      : matchingBatchAvailability
+      ? t('insufficientStockInBatch', 'Only {{quantity}} {{uom}} available in this batch at the source location', {
+          quantity: matchingBatchAvailability.quantity,
+          uom: matchingBatchAvailability.quantityUoM,
+        })
+      : t('outOfStockInBatch', 'This batch has no stock available at the source location');
 
   // Requisition: what the supplying store has of this item, across all its batches, in base
   // (dispensing) units - grouped by LocationStockItem so the batches collapse into one row.
@@ -264,6 +268,8 @@ const StockItemForm: React.FC<StockItemFormProps> = ({
                   error={error?.message}
                   // An Adjustment can put stock back into a batch that has run out here.
                   includeEmptyBatches={operationTypePermision.isNegativeQuantityAllowed}
+                  // Disposal is how expired stock leaves the shelf.
+                  includeExpiredBatches={operationTypePermision.allowExpiredBatchNumbers}
                 />
               )}
             />

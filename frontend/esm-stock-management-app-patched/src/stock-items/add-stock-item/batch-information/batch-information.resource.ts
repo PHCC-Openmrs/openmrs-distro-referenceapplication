@@ -10,6 +10,7 @@ export function useStockItemBatchInformationHook(filter?: StockItemInventoryFilt
     q: filter?.q,
     totalCount: true,
     includeBatchNo: true,
+    excludeExpired: filter?.excludeExpired,
   });
 
   const pageSizes = [10, 20, 30, 40, 50];
@@ -22,6 +23,9 @@ export function useStockItemBatchInformationHook(filter?: StockItemInventoryFilt
   const [partyUuid, setPartyUuid] = useState<string | null>(filter?.partyUuid);
   const [locationUuid, setLocationUuid] = useState<string | null>(filter?.locationUuid);
   const [stockBatchUuid, setStockBatchUuid] = useState<string | null>(filter?.stockBatchUuid);
+  // The server leaves expired batches out unless told otherwise (excludeExpired defaults to true).
+  // Pass false to see them - e.g. a Disposal, which is how expired stock leaves the shelf.
+  const excludeExpired = filter?.excludeExpired;
 
   useEffect(() => {
     setStockItemFilter({
@@ -35,8 +39,18 @@ export function useStockItemBatchInformationHook(filter?: StockItemInventoryFilt
       locationUuid: locationUuid,
       stockBatchUuid: stockBatchUuid,
       includeBatchNo: true,
+      excludeExpired,
     });
-  }, [searchString, currentPage, currentPageSize, stockItemUuid, partyUuid, locationUuid, stockBatchUuid]);
+  }, [
+    searchString,
+    currentPage,
+    currentPageSize,
+    stockItemUuid,
+    partyUuid,
+    locationUuid,
+    stockBatchUuid,
+    excludeExpired,
+  ]);
 
   const { items, isLoading, error } = useStockItemInventory(stockItemFilter);
 

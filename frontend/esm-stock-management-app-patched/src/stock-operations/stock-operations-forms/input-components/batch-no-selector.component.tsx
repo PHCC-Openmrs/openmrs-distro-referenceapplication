@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ComboBox, SelectSkeleton } from '@carbon/react';
+import dayjs from 'dayjs';
 import { type StockBatchWithUoM } from '../../../core/api/types/stockItem/StockBatchDTO';
 import { formatForDatePicker } from '../../../constants';
 import { useStockItemBatchInformationHook } from '../../../stock-items/add-stock-item/batch-information/batch-information.resource';
@@ -17,7 +18,14 @@ interface BatchNoSelectorProps {
   // Also offer batches that have been held at this party but are now at 0 - an Adjustment can
   // add stock back to them (a negative quantity on them is refused by the item form).
   includeEmptyBatches?: boolean;
+  // Also offer batches past their expiry date (marked "Expired") - only for operation types whose
+  // allowExpiredBatchNumbers is set, i.e. Disposal. The server hides them from everything else.
+  includeExpiredBatches?: boolean;
 }
+
+// Same cut-off the server uses: a batch counts as in date only while its expiry is after today.
+const isBatchExpired = (batch: StockBatchWithUoM) =>
+  !!batch.expiration && !dayjs(batch.expiration).isAfter(dayjs().startOf('day'));
 
 const BatchNoSelector: React.FC<BatchNoSelectorProps> = ({
   stockItemUuid,
@@ -26,6 +34,7 @@ const BatchNoSelector: React.FC<BatchNoSelectorProps> = ({
   initialValue,
   onValueChange,
   includeEmptyBatches = false,
+  includeExpiredBatches = false,
 }) => {
   const { isLoading, stockItemBatchNos } = useStockItemBatchNumbers(stockItemUuid);
   const { t } = useTranslation();
@@ -34,7 +43,7 @@ const BatchNoSelector: React.FC<BatchNoSelectorProps> = ({
     setStockItemUuid,
     setPartyUuid,
     isLoading: isLoadingBatchinfo,
-  } = useStockItemBatchInformationHook();
+  } = useStockItemBatchInformationHook({ excludeExpired: includeExpiredBatches ? false : undefined });
 
   useEffect(() => {
     setStockItemUuid(stockItemUuid);
@@ -110,7 +119,9 @@ const BatchNoSelector: React.FC<BatchNoSelectorProps> = ({
         quantity === 0 ? t('emptyBatchIncreaseOnly', '0 (empty – increase only)') : formatQuantityDisplay(batch);
       const expiryDate = batch.expiration ? formatForDatePicker(batch.expiration) : t('noExpiry', 'No expiry');
 
-      return `${batch.batchNo} | Qty: ${quantityDisplay} | Expiry: ${expiryDate}`;
+      const expiredMarker = isBatchExpired(batch) ? ` (${t('expired', 'Expired')})` : '';
+
+      return `${batch.batchNo} | Qty: ${quantityDisplay} | Expiry: ${expiryDate}${expiredMarker}`;
     },
     [formatQuantityDisplay, t],
   );
