@@ -57,18 +57,18 @@ requests to GitHub and GHCR.
    with an **empty** `openmrs-data` volume (and fails on the already-taken
    ports 80/443).
 
-2. **The stack's settings are in the repo's `.env`, encrypted with SOPS.**
+2. **The stack's settings are in the repo's `prod.env`, encrypted with SOPS.**
    doco-cd decrypts it with the private age key. The public key is in
    `.sops.yaml`. To change a value, with the private key available locally:
    ```
-   SOPS_AGE_KEY_FILE=<path-to-private-key> sops edit .env
+   SOPS_AGE_KEY_FILE=<path-to-private-key> sops edit prod.env
    ```
 
 3. **Create `ops/doco-cd/.env`** (Azure VMs read these from Key Vault instead, and need no file):
    ```
    # read-only PAT:
    GIT_ACCESS_TOKEN=<PAT>
-   # private age key that decrypts the repo's .env:
+   # private age key that decrypts the repo's prod.env:
    SOPS_AGE_KEY=<private-age-key>
    # branch to deploy:
    DOCO_CD_BRANCH=<branch>
@@ -102,7 +102,7 @@ requests to GitHub and GHCR.
 |---|---|
 | Compose files, `configuration/`, `nginx-proxy/`, `caddy/`, `.doco-cd.yml` pushed to `main` | Deployed on the next poll (≤ 60s). |
 | New image pushed to `ghcr.io/phcc-openmrs/*:main` (via `Deploy to Onprem VM`) | Picked up at the **next commit to `main`**, since doco-cd watches git, not the registry (see Caveats). |
-| `Deploy to Prod` run on the `PROD_DEPLOY_BRANCH` branch | Builds the selected images, commits their `<branch>-<sha>` tags to `.env`, and that commit is deployed on the next poll. |
+| `Deploy to Prod` run on the `PROD_DEPLOY_BRANCH` branch | Builds the selected images, commits their `<branch>-<sha>` tags to `prod.env`, and that commit is deployed on the next poll. |
 
 ## Deploy to Prod pipeline
 
@@ -113,19 +113,19 @@ or `gateway`). It:
 1. Builds and pushes the selected images as `<branch>` and `<branch>-<sha>` (with any `/` in the branch name turned into `-`),
    like `Deploy to Onprem VM`.
 2. In the `prod` environment, runs `sops set` to write `<branch>-<sha>` into
-   `.env` as `BACKEND_TAG`, `FRONTEND_TAG` and/or `GATEWAY_TAG`. Only the
+   `prod.env` as `BACKEND_TAG`, `FRONTEND_TAG` and/or `GATEWAY_TAG`. Only the
    services built in that run are updated.
-3. Commits `.env` back to the branch as `github-actions[bot]`. doco-cd sees
+3. Commits `prod.env` back to the branch as `github-actions[bot]`. doco-cd sees
    the commit and deploys exactly those images.
 
 `docker-compose-prod.yaml` uses `${<SERVICE>_TAG:-${TAG}}`, so a service whose
 tag was never pinned still runs the floating `TAG`.
 
-The tag step updates `.env` only when the pipeline runs on the branch named by
+The tag step updates `prod.env` only when the pipeline runs on the branch named by
 the `prod` environment variable `PROD_DEPLOY_BRANCH`, and commits there. Keep it
 the same as Key Vault `openmrs-vm-deploy-branch`, which is the branch doco-cd
 deploys from (`feature/doco-cd-prod-pipeline` while testing, `main` later).
-Runs on any other branch still build and push images but leave `.env` alone.
+Runs on any other branch still build and push images but leave `prod.env` alone.
 It needs:
 
 - A GitHub environment `prod` with the variable `PROD_DEPLOY_BRANCH` and the
@@ -137,7 +137,7 @@ It needs:
 ## Rollback
 
 `git revert` the bad commit on `main`; doco-cd deploys the revert on its next
-poll. To pin images to a known-good build, `sops edit .env` and set
+poll. To pin images to a known-good build, `sops edit prod.env` and set
 `BACKEND_TAG` / `FRONTEND_TAG` / `GATEWAY_TAG` to `main-<good-full-sha>`, then push.
 
 ## Caveats
