@@ -36,10 +36,11 @@ LEFT JOIN location l ON l.location_id = v.location_id
 -- include mechanism to factor the join out into one place.
 LEFT JOIN patient_program pp
   ON pp.patient_id = pt.patient_id AND pp.voided = 0
-  -- Bounded by :endDate (falling back to NOW() only when the report itself is unbounded) rather
-  -- than always NOW(), so an open visit's still-running services don't shift between two runs of
-  -- the same bounded report taken minutes apart.
-  AND pp.date_enrolled <= COALESCE(v.date_stopped, :endDate, NOW())
+  -- A visit that is still open has no date_stopped, so it takes any service enrolled up to now. The
+  -- :endDate guard below keeps that inside the report period. :endDate is midnight at the START of the
+  -- last day, so it must not be used as this upper bound: that dropped every service enrolled on the
+  -- last day of the period for open visits (a report for today showed no services for them at all).
+  AND pp.date_enrolled <= COALESCE(v.date_stopped, NOW())
   AND (pp.date_completed IS NULL OR pp.date_completed >= v.date_started)
   -- Keep the service list inside the report period too. The visit filter below already does this
   -- for closed visits, but a visit that starts inside the period and is still running picks up

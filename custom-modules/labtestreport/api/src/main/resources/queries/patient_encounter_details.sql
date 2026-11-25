@@ -31,7 +31,9 @@ LEFT JOIN person_name pvpn ON pvpn.person_name_id = (
 -- mechanism to factor the join out into one place.
 LEFT JOIN patient_program pp
   ON pp.patient_id = pt.patient_id AND pp.voided = 0
-  AND pp.date_enrolled <= COALESCE(v.date_stopped, :endDate, NOW())
+  -- Open visits take services enrolled up to now; the :endDate guard below bounds the period (see
+  -- patient_encounter_summary.sql for why :endDate itself is not the upper bound here).
+  AND pp.date_enrolled <= COALESCE(v.date_stopped, NOW())
   AND (pp.date_completed IS NULL OR pp.date_completed >= v.date_started)
   AND (:startDate IS NULL OR pp.date_completed IS NULL OR pp.date_completed >= :startDate)
   AND (:endDate IS NULL OR pp.date_enrolled < DATE_ADD(:endDate, INTERVAL 1 DAY))
