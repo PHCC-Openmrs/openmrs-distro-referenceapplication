@@ -1,7 +1,9 @@
 import { openmrsFetch } from '@openmrs/esm-framework';
 import useSWR from 'swr';
+import type { BatchPriceFields } from '../reports-shell/purchase-price';
 
-export interface StockBatchBalanceRow {
+// batchUnitPrice / itemUnitPrice: purchase price per dispensing unit - see reports-shell/purchase-price.
+export interface StockBatchBalanceRow extends BatchPriceFields {
   stockItemId: number;
   itemName: string;
   locationId: number;

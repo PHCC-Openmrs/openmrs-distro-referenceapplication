@@ -1,5 +1,6 @@
 import { openmrsFetch } from '@openmrs/esm-framework';
 import useSWR from 'swr';
+import type { BatchPriceFields } from '../reports-shell/purchase-price';
 
 /**
  * What a movement was from the holding location's point of view, as
@@ -21,7 +22,9 @@ export type BatchActivity =
   | 'ADJUSTED'
   | 'STOCK_TAKE';
 
-export interface StockBatchHistoryRow {
+// batchUnitPrice / itemUnitPrice: the batch's purchase price per dispensing unit - see
+// reports-shell/purchase-price. The same on every row of a batch.
+export interface StockBatchHistoryRow extends BatchPriceFields {
   transactionId: number;
   operationDate: string;
   operationNumber: string | null;

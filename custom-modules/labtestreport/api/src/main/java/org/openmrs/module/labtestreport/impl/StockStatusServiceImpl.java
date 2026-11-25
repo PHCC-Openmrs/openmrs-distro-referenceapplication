@@ -72,6 +72,8 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 			row.setUnitName((String) r[8]);
 			row.setBulkUnitName((String) r[9]);
 			row.setBulkFactor(toNullableDouble(r[10]));
+			row.setBatchUnitPrice(toNullableDouble(r[11]));
+			row.setItemUnitPrice(toNullableDouble(r[12]));
 			rows.add(row);
 		}
 		return rows;
@@ -106,6 +108,8 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 			row.setUnitName((String) r[18]);
 			row.setBulkUnitName((String) r[19]);
 			row.setBulkFactor(toNullableDouble(r[20]));
+			row.setBatchUnitPrice(toNullableDouble(r[21]));
+			row.setItemUnitPrice(toNullableDouble(r[22]));
 			rows.add(row);
 		}
 		return rows;

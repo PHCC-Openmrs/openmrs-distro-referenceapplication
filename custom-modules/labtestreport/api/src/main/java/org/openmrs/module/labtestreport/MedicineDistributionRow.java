@@ -67,6 +67,17 @@ public class MedicineDistributionRow {
 	/** Comma-separated names of the staff who recorded dispenses against this order, or null if none. */
 	private String dispensedBy;
 
+	/**
+	 * Net stock that left the shelf for this order, in dispensing units, the part of it that had a
+	 * purchase price, and what that part cost. All null when no stock moved for the order - see
+	 * queries/medicine_distribution_report.sql.
+	 */
+	private Double stockQuantity;
+
+	private Double pricedQuantity;
+
+	private Double dispensedCost;
+
 	public Integer getPatientId() {
 		return patientId;
 	}
@@ -289,5 +300,29 @@ public class MedicineDistributionRow {
 
 	public void setDispensedBy(String dispensedBy) {
 		this.dispensedBy = dispensedBy;
+	}
+
+	public Double getStockQuantity() {
+		return stockQuantity;
+	}
+
+	public void setStockQuantity(Double stockQuantity) {
+		this.stockQuantity = stockQuantity;
+	}
+
+	public Double getPricedQuantity() {
+		return pricedQuantity;
+	}
+
+	public void setPricedQuantity(Double pricedQuantity) {
+		this.pricedQuantity = pricedQuantity;
+	}
+
+	public Double getDispensedCost() {
+		return dispensedCost;
+	}
+
+	public void setDispensedCost(Double dispensedCost) {
+		this.dispensedCost = dispensedCost;
 	}
 }
