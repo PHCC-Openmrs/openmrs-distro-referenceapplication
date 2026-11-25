@@ -33,6 +33,12 @@ export interface MedicineDistributionRow {
   prescriber: string | null;
   /** Comma-separated names of the staff who recorded dispenses against this order, or null if none. */
   dispensedBy: string | null;
+  // Net stock that left the shelf for this order, in dispensing units; the part of it whose batch
+  // had a purchase price; and what that part cost. All null when no stock moved for the order - see
+  // queries/medicine_distribution_report.sql.
+  stockQuantity: number | null;
+  pricedQuantity: number | null;
+  dispensedCost: number | null;
 }
 
 export function useMedicineDistributionReport(startDate?: string, endDate?: string, locationUuid?: string) {

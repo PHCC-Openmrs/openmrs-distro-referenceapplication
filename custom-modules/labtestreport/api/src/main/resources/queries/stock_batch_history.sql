@@ -14,6 +14,9 @@
 -- on the one operation, so the leg's sign tells the sending side from the receiving side. A
 -- dispense is a Stock Issue that carries the patient it was dispensed to, which is the only thing
 -- that tells it apart from an issue to a location.
+--
+-- batchUnitPrice / itemUnitPrice: purchase price per dispensing unit, from the batch's Opening Stock
+-- line or the item's default - see stock_batch_balance.sql, which this lookup is copied from.
 SELECT
   sit.stock_item_transaction_id AS transactionId,
   -- When the stock actually moved, not when the operation was created: an adjustment or receipt that
@@ -56,7 +59,9 @@ SELECT
   COALESCE(NULLIF(CONCAT_WS(' ', crn.given_name, NULLIF(TRIM(crn.middle_name), ''), crn.family_name), ''), cu.username) AS recordedBy,
   un.name                 AS unitName,
   bun.name                AS bulkUnitName,
-  bulk.factor             AS bulkFactor
+  bulk.factor             AS bulkFactor,
+  bpi.purchase_price / bpu.factor AS batchUnitPrice,
+  si.purchase_price / ipu.factor  AS itemUnitPrice
 FROM stockmgmt_stock_item_transaction sit
 JOIN stockmgmt_stock_item si ON si.stock_item_id = sit.stock_item_id
 JOIN stockmgmt_stock_batch sb ON sb.stock_batch_id = sit.stock_batch_id
@@ -90,6 +95,25 @@ LEFT JOIN concept_name un ON un.concept_id = si.dispensing_unit_id AND un.locale
 -- Bulk/procurement pack, for the "92 Box (2,760 Tablet)" rendering - see stock_current_onhand.sql.
 LEFT JOIN stockmgmt_stock_item_packaging_uom bulk ON bulk.stock_item_packaging_uom_id = si.default_stock_operations_uom_id AND bulk.voided = 0
 LEFT JOIN concept_name bun ON bun.concept_id = bulk.packaging_uom_id AND bun.locale = 'en' AND bun.locale_preferred = 1
+LEFT JOIN stockmgmt_stock_operation_item bpi ON bpi.stock_operation_item_id = (
+  SELECT soi2.stock_operation_item_id
+  FROM stockmgmt_stock_operation_item soi2
+  JOIN stockmgmt_stock_operation so2 ON so2.stock_operation_id = soi2.stock_operation_id
+  JOIN stockmgmt_stock_operation_type sot2 ON sot2.stock_operation_type_id = so2.operation_type_id
+  JOIN stockmgmt_stock_item_packaging_uom pu2 ON pu2.stock_item_packaging_uom_id = soi2.stock_item_packaging_uom_id
+  WHERE soi2.stock_batch_id = sit.stock_batch_id
+    AND soi2.purchase_price IS NOT NULL
+    AND pu2.factor > 0
+    AND COALESCE(soi2.voided, 0) = 0
+    AND sot2.operation_type IN ('initial', 'receipt')
+    AND so2.status = 'COMPLETED'
+    AND COALESCE(so2.voided, 0) = 0
+  ORDER BY COALESCE(so2.completed_date, so2.operation_date), so2.stock_operation_id, soi2.stock_operation_item_id
+  LIMIT 1
+)
+LEFT JOIN stockmgmt_stock_item_packaging_uom bpu ON bpu.stock_item_packaging_uom_id = bpi.stock_item_packaging_uom_id
+LEFT JOIN stockmgmt_stock_item_packaging_uom ipu ON ipu.stock_item_packaging_uom_id = si.purchase_price_uom_id
+  AND ipu.factor > 0
 WHERE si.voided = 0
   AND so.status = 'COMPLETED'
   AND COALESCE(so.voided, 0) = 0

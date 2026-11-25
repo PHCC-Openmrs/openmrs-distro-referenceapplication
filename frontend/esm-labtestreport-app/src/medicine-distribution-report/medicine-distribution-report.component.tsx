@@ -1,14 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, ContentSwitcher, InlineLoading, Search, Select, SelectItem, Switch } from '@carbon/react';
+import { Button, ContentSwitcher, InlineLoading, Search, Select, SelectItem, Switch, Tag } from '@carbon/react';
 import { navigate, useLocations } from '@openmrs/esm-framework';
 import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import KpiTiles from '../reports-shell/kpi-tiles.component';
+import PriceRangeFilter from '../reports-shell/price-range-filter.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
 import type { ExportSheet } from '../reports-shell/export-utils';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
+import { EMPTY_PRICE_RANGE, formatMoney, matchesPriceRange, type PriceRange } from '../reports-shell/purchase-price';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
 import { useMedicineDistributionReport, type MedicineDistributionRow } from './medicine-distribution-report.resource';
 import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
@@ -43,10 +45,36 @@ interface MedicineSummaryRow {
   quantityPrescribed: number;
   quantityDispensed: number;
   quantityUnits: string;
+  // Cost of the priced part of what was dispensed, and how many dispensing units that part was.
+  dispensedCost: number;
+  pricedQuantity: number;
+  partlyPriced: boolean;
 }
 
 function isDispensed(row: MedicineDistributionRow): boolean {
   return (row.quantityDispensed ?? 0) > 0;
+}
+
+/**
+ * Average purchase price per dispensing unit of what was dispensed for an order - an order can draw
+ * on several batches bought at different prices. Null when nothing priced left the shelf for it.
+ */
+function unitCost(row: { dispensedCost: number | null; pricedQuantity: number | null }): number | null {
+  return row.dispensedCost !== null && row.pricedQuantity ? row.dispensedCost / row.pricedQuantity : null;
+}
+
+/** Some of the stock behind this cost came from a batch with no price, so the cost is short of the truth. */
+function isPartlyPriced(row: MedicineDistributionRow): boolean {
+  return row.stockQuantity !== null && (row.pricedQuantity ?? 0) < row.stockQuantity - 1e-9;
+}
+
+/** Up to four decimals, like the unit prices on the stock reports. */
+function formatUnitCost(value: number): string {
+  return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+}
+
+function roundMoney(value: number | null): number | string {
+  return value === null ? '' : Math.round(value * 100) / 100;
 }
 
 function matchesDispenseFilter(row: MedicineDistributionRow, filter: DispenseFilter): boolean {
@@ -86,6 +114,7 @@ export default function MedicineDistributionReport() {
   const [drugFilter, setDrugFilter] = useState('');
   const [dispenseFilter, setDispenseFilter] = useState<DispenseFilter>('');
   const [viewMode, setViewMode] = useState<ViewMode>('medicine');
+  const [priceRange, setPriceRange] = useState<PriceRange>(EMPTY_PRICE_RANGE);
   const locations = useLocations(LOCATION_TAG);
 
   const { rows, isLoading } = useMedicineDistributionReport(
@@ -105,12 +134,13 @@ export default function MedicineDistributionReport() {
       (row) =>
         (!drugFilter || row.drugName === drugFilter) &&
         matchesDispenseFilter(row, dispenseFilter) &&
+        matchesPriceRange(unitCost(row), priceRange) &&
         (!term ||
           SEARCHABLE_FIELDS.map((field) => row[field]).some(
             (value) => typeof value === 'string' && value.toLowerCase().includes(term),
           )),
     );
-  }, [rows, searchTerm, drugFilter, dispenseFilter]);
+  }, [rows, searchTerm, drugFilter, dispenseFilter, priceRange]);
 
   const medicineSummary = useMemo<Array<MedicineSummaryRow>>(() => {
     const byDrug = new Map<string, { rows: Array<MedicineDistributionRow>; patients: Set<number> }>();
@@ -130,6 +160,9 @@ export default function MedicineDistributionReport() {
       quantityDispensed: entry.rows.reduce((sum, row) => sum + (row.quantityDispensed ?? 0), 0),
       // A medicine is almost always ordered in one unit; show the first one seen rather than mixing.
       quantityUnits: entry.rows.find((row) => row.quantityUnits)?.quantityUnits ?? '',
+      dispensedCost: entry.rows.reduce((sum, row) => sum + (row.dispensedCost ?? 0), 0),
+      pricedQuantity: entry.rows.reduce((sum, row) => sum + (row.pricedQuantity ?? 0), 0),
+      partlyPriced: entry.rows.some(isPartlyPriced),
     }));
   }, [filteredRows]);
 
@@ -141,6 +174,8 @@ export default function MedicineDistributionReport() {
       dispensedCount: (row: MedicineSummaryRow) => row.dispensedCount,
       quantityPrescribed: (row: MedicineSummaryRow) => row.quantityPrescribed,
       quantityDispensed: (row: MedicineSummaryRow) => row.quantityDispensed,
+      unitCost: (row: MedicineSummaryRow) => unitCost(row) ?? -1,
+      dispensedCost: (row: MedicineSummaryRow) => (row.pricedQuantity ? row.dispensedCost : -1),
     }),
     [],
   );
@@ -165,6 +200,8 @@ export default function MedicineDistributionReport() {
       dispensedBy: (row: MedicineDistributionRow) => row.dispensedBy ?? '',
       location: (row: MedicineDistributionRow) => row.location ?? '',
       prescriber: (row: MedicineDistributionRow) => row.prescriber ?? '',
+      unitCost: (row: MedicineDistributionRow) => unitCost(row) ?? -1,
+      dispensedCost: (row: MedicineDistributionRow) => (row.pricedQuantity ? row.dispensedCost : -1),
     }),
     [],
   );
@@ -195,6 +232,10 @@ export default function MedicineDistributionReport() {
         label: t('notYetDispensed', 'Not Yet Dispensed'),
         value: filteredRows.filter((row) => !row.dispenseStatus).length,
       },
+      {
+        label: t('costOfDispensed', 'Cost of Dispensed'),
+        value: formatMoney(filteredRows.reduce((sum, row) => sum + (row.dispensedCost ?? 0), 0)),
+      },
     ],
     [t, filteredRows, medicineSummary],
   );
@@ -223,6 +264,9 @@ export default function MedicineDistributionReport() {
         t('quantityDispensed', 'Quantity Dispensed'),
         t('quantityUnits', 'Quantity Units'),
         t('dispenseStatus', 'Dispense Status'),
+        t('unitCost', 'Unit Cost'),
+        t('cost', 'Cost'),
+        t('partlyPriced', 'Partly Priced'),
         t('dispensedBy', 'Dispensed By'),
         t('instructions', 'Instructions'),
         t('location', 'Location'),
@@ -249,6 +293,9 @@ export default function MedicineDistributionReport() {
         row.quantityDispensed ?? '',
         row.quantityUnits ?? '',
         dispenseStatusLabel(row),
+        unitCost(row) ?? '',
+        roundMoney(row.pricedQuantity ? row.dispensedCost : null),
+        isPartlyPriced(row) ? t('yes', 'Yes') : '',
         row.dispensedBy ?? '',
         row.dosingInstructions ?? '',
         row.location ?? '',
@@ -271,6 +318,9 @@ export default function MedicineDistributionReport() {
         t('quantityPrescribed', 'Quantity Prescribed'),
         t('quantityDispensed', 'Quantity Dispensed'),
         t('quantityUnits', 'Quantity Units'),
+        t('unitCost', 'Unit Cost'),
+        t('cost', 'Cost'),
+        t('partlyPriced', 'Partly Priced'),
       ],
       rows: summarySort.sortedRows.map((row) => [
         row.drugName,
@@ -280,6 +330,9 @@ export default function MedicineDistributionReport() {
         row.quantityPrescribed,
         row.quantityDispensed,
         row.quantityUnits,
+        unitCost(row) ?? '',
+        roundMoney(row.pricedQuantity ? row.dispensedCost : null),
+        row.partlyPriced ? t('yes', 'Yes') : '',
       ]),
     }),
     [t, summarySort.sortedRows],
@@ -297,6 +350,7 @@ export default function MedicineDistributionReport() {
     setLocationUuid('');
     setDrugFilter('');
     setDispenseFilter('');
+    setPriceRange(EMPTY_PRICE_RANGE);
   }
 
   /** Clicking a medicine in the summary drills down to the patients who were given it. */
@@ -401,6 +455,7 @@ export default function MedicineDistributionReport() {
               <SelectItem value="refusedOrOnHold" text={t('refusedOrOnHold', 'Refused / On hold')} />
             </Select>
           </div>
+          <PriceRangeFilter id="priceRange" value={priceRange} onChange={setPriceRange} />
           <div className={pageStyles.filterField} style={{ minWidth: '16rem' }}>
             <Search
               size="md"
@@ -473,6 +528,20 @@ export default function MedicineDistributionReport() {
                     direction={summarySort.direction}
                     onSort={summarySort.toggleSort}
                   />
+                  <SortableHeader
+                    label={t('unitCost', 'Unit Cost')}
+                    sortKey="unitCost"
+                    activeSortKey={summarySort.sortKey}
+                    direction={summarySort.direction}
+                    onSort={summarySort.toggleSort}
+                  />
+                  <SortableHeader
+                    label={t('cost', 'Cost')}
+                    sortKey="dispensedCost"
+                    activeSortKey={summarySort.sortKey}
+                    direction={summarySort.direction}
+                    onSort={summarySort.toggleSort}
+                  />
                 </tr>
               </thead>
               <tbody>
@@ -488,11 +557,16 @@ export default function MedicineDistributionReport() {
                     <td>{row.dispensedCount}</td>
                     <td>{withUnit(row.quantityPrescribed, row.quantityUnits)}</td>
                     <td>{withUnit(row.quantityDispensed, row.quantityUnits)}</td>
+                    <CostCells
+                      unitCost={unitCost(row)}
+                      cost={row.pricedQuantity ? row.dispensedCost : null}
+                      partlyPriced={row.partlyPriced}
+                    />
                   </tr>
                 ))}
                 {summarySort.sortedRows.length === 0 && (
                   <tr>
-                    <td colSpan={6} className={pageStyles.emptyState}>
+                    <td colSpan={8} className={pageStyles.emptyState}>
                       {t('noPrescriptionsForSelection', 'No prescriptions found for this selection.')}
                     </td>
                   </tr>
@@ -606,6 +680,20 @@ export default function MedicineDistributionReport() {
                     className="left"
                   />
                   <SortableHeader
+                    label={t('unitCost', 'Unit Cost')}
+                    sortKey="unitCost"
+                    activeSortKey={detailSort.sortKey}
+                    direction={detailSort.direction}
+                    onSort={detailSort.toggleSort}
+                  />
+                  <SortableHeader
+                    label={t('cost', 'Cost')}
+                    sortKey="dispensedCost"
+                    activeSortKey={detailSort.sortKey}
+                    direction={detailSort.direction}
+                    onSort={detailSort.toggleSort}
+                  />
+                  <SortableHeader
                     label={t('dispensedBy', 'Dispensed By')}
                     sortKey="dispensedBy"
                     activeSortKey={detailSort.sortKey}
@@ -652,6 +740,11 @@ export default function MedicineDistributionReport() {
                     <td>{withUnit(row.quantityPrescribed, row.quantityUnits) || '--'}</td>
                     <td>{withUnit(row.quantityDispensed, row.quantityUnits) || '--'}</td>
                     <td className="left">{dispenseStatusLabel(row)}</td>
+                    <CostCells
+                      unitCost={unitCost(row)}
+                      cost={row.pricedQuantity ? row.dispensedCost : null}
+                      partlyPriced={isPartlyPriced(row)}
+                    />
                     <td className="left">{row.dispensedBy || '--'}</td>
                     <td className="left">{row.location || '--'}</td>
                     <td className="left">{row.prescriber || '--'}</td>
@@ -659,7 +752,7 @@ export default function MedicineDistributionReport() {
                 ))}
                 {detailSort.sortedRows.length === 0 && (
                   <tr>
-                    <td colSpan={17} className={pageStyles.emptyState}>
+                    <td colSpan={19} className={pageStyles.emptyState}>
                       {t('noPrescriptionsForSelection', 'No prescriptions found for this selection.')}
                     </td>
                   </tr>
@@ -670,5 +763,37 @@ export default function MedicineDistributionReport() {
         )}
       </div>
     </div>
+  );
+}
+
+function CostCells({
+  unitCost: perUnit,
+  cost,
+  partlyPriced,
+}: {
+  unitCost: number | null;
+  cost: number | null;
+  partlyPriced: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <td>{perUnit === null ? '--' : formatUnitCost(perUnit)}</td>
+      <td>
+        {cost === null ? '--' : formatMoney(cost)}
+        {partlyPriced && (
+          <>
+            {' '}
+            <Tag
+              type="cool-gray"
+              size="sm"
+              title={t('partlyPricedHint', 'Some of the stock dispensed came from a batch with no purchase price')}
+            >
+              {t('partlyPriced', 'Partly Priced')}
+            </Tag>
+          </>
+        )}
+      </td>
+    </>
   );
 }

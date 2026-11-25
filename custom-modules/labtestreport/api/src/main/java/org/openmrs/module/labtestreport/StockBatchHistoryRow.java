@@ -58,6 +58,14 @@ public class StockBatchHistoryRow {
 
 	private Double bulkFactor;
 
+
+	// Purchase price per dispensing unit: from the Opening Stock / Receipt line that brought the batch
+	// in, and the item's default price. Either is null when it was never entered - see
+	// queries/stock_batch_balance.sql.
+	private Double batchUnitPrice;
+
+	private Double itemUnitPrice;
+
 	public Integer getTransactionId() {
 		return transactionId;
 	}
@@ -224,5 +232,21 @@ public class StockBatchHistoryRow {
 
 	public void setBulkFactor(Double bulkFactor) {
 		this.bulkFactor = bulkFactor;
+	}
+
+	public Double getBatchUnitPrice() {
+		return batchUnitPrice;
+	}
+
+	public void setBatchUnitPrice(Double batchUnitPrice) {
+		this.batchUnitPrice = batchUnitPrice;
+	}
+
+	public Double getItemUnitPrice() {
+		return itemUnitPrice;
+	}
+
+	public void setItemUnitPrice(Double itemUnitPrice) {
+		this.itemUnitPrice = itemUnitPrice;
 	}
 }

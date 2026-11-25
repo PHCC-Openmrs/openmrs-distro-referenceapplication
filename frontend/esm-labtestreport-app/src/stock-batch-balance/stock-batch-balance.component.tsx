@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InlineLoading, Search, Select, SelectItem, Tag } from '@carbon/react';
 import { formatDate, navigate, parseDate } from '@openmrs/esm-framework';
@@ -6,8 +6,17 @@ import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import KpiTiles from '../reports-shell/kpi-tiles.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
 import LocationFilter from '../reports-shell/location-filter.component';
+import PriceRangeFilter from '../reports-shell/price-range-filter.component';
 import type { ExportSheet } from '../reports-shell/export-utils';
 import { bulkExportCells, formatQuantity } from '../reports-shell/format-quantity';
+import {
+  EMPTY_PRICE_RANGE,
+  formatMoney,
+  formatUnitPrice,
+  matchesPriceRange,
+  resolveUnitPrice,
+  type PriceRange,
+} from '../reports-shell/purchase-price';
 import { filterByItemAndSearch, distinctItemNames } from '../reports-shell/row-filter';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
@@ -64,6 +73,12 @@ function matchesStockFilter(row: StockBatchBalanceRow, filter: StockFilter): boo
   }
 }
 
+/** What the batch's balance cost to buy, or null when it has no price. */
+function stockValue(row: StockBatchBalanceRow): number | null {
+  const price = resolveUnitPrice(row);
+  return price ? row.quantity * price.unitPrice : null;
+}
+
 function formatExpiry(expirationDate: string | null): string {
   return expirationDate ? formatDate(parseDate(expirationDate), { mode: 'standard', time: false }) : '';
 }
@@ -75,6 +90,7 @@ export default function StockBatchBalanceReport() {
   const [searchText, setSearchText] = useState('');
   const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>('');
   const [stockFilter, setStockFilter] = useState<StockFilter>('');
+  const [priceRange, setPriceRange] = useState<PriceRange>(EMPTY_PRICE_RANGE);
 
   const { rows: rawRows, isLoading } = useStockBatchBalanceReport(locationUuid || undefined);
   const showLocationColumn = !locationUuid;
@@ -83,9 +99,12 @@ export default function StockBatchBalanceReport() {
   const rows = useMemo(
     () =>
       filterByItemAndSearch(rawRows, itemFilter, searchText).filter(
-        (row) => matchesExpiryFilter(row, expiryFilter) && matchesStockFilter(row, stockFilter),
+        (row) =>
+          matchesExpiryFilter(row, expiryFilter) &&
+          matchesStockFilter(row, stockFilter) &&
+          matchesPriceRange(resolveUnitPrice(row)?.unitPrice, priceRange),
       ),
-    [rawRows, itemFilter, searchText, expiryFilter, stockFilter],
+    [rawRows, itemFilter, searchText, expiryFilter, stockFilter, priceRange],
   );
 
   const kpiItems = useMemo(
@@ -96,6 +115,11 @@ export default function StockBatchBalanceReport() {
       {
         label: t('expiredBatches', 'Already Expired'),
         value: rows.filter(isFlaggedExpired).length,
+      },
+      // Only what is on the shelf: a negative balance is a data problem, not stock that cost less than nothing.
+      {
+        label: t('stockValue', 'Stock Value'),
+        value: formatMoney(rows.reduce((sum, row) => sum + (row.quantity > 0 ? (stockValue(row) ?? 0) : 0), 0)),
       },
     ],
     [t, rows],
@@ -108,10 +132,35 @@ export default function StockBatchBalanceReport() {
       batchNo: (row: StockBatchBalanceRow) => row.batchNo,
       expirationDate: (row: StockBatchBalanceRow) => row.expirationDate ?? '',
       quantity: (row: StockBatchBalanceRow) => row.quantity,
+      // Unpriced rows sort as -1 so they gather at one end instead of mixing in with free (0) stock.
+      unitPrice: (row: StockBatchBalanceRow) => resolveUnitPrice(row)?.unitPrice ?? -1,
+      stockValue: (row: StockBatchBalanceRow) => stockValue(row) ?? -1,
     }),
     [],
   );
   const { sortedRows, sortKey, direction, toggleSort } = useSortableRows(rows, sortAccessors, 'item', 'asc');
+
+  const priceSourceLabel = useCallback(
+    (row: StockBatchBalanceRow): string => {
+      const price = resolveUnitPrice(row);
+      if (!price) {
+        return '';
+      }
+      return price.source === 'batch'
+        ? t('priceFromBatch', 'Batch (Opening Stock)')
+        : t('priceFromItem', 'Item default');
+    },
+    [t],
+  );
+
+  const priceExportCells = useCallback(
+    (row: StockBatchBalanceRow): Array<number | string> => {
+      const price = resolveUnitPrice(row);
+      const value = stockValue(row);
+      return [price ? price.unitPrice : '', priceSourceLabel(row), value === null ? '' : Math.round(value * 100) / 100];
+    },
+    [priceSourceLabel],
+  );
 
   const mainExportSheet = useMemo<ExportSheet>(
     () => ({
@@ -125,6 +174,9 @@ export default function StockBatchBalanceReport() {
         t('unit', 'Unit'),
         t('bulkUnit', 'Bulk Unit'),
         t('unitsPerBulk', 'Units per Bulk'),
+        t('unitPrice', 'Unit Price'),
+        t('priceSource', 'Price Source'),
+        t('stockValue', 'Stock Value'),
       ],
       rows: sortedRows.map((row) => [
         row.itemName,
@@ -134,9 +186,10 @@ export default function StockBatchBalanceReport() {
         row.quantity,
         row.unitName ?? '',
         ...bulkExportCells(row.bulkUnitName, row.bulkFactor),
+        ...priceExportCells(row),
       ]),
     }),
-    [t, sortedRows, showLocationColumn],
+    [t, sortedRows, showLocationColumn, priceExportCells],
   );
 
   return (
@@ -200,6 +253,7 @@ export default function StockBatchBalanceReport() {
               <SelectItem value="outOfStock" text={t('outOfStock', 'Out of stock')} />
             </Select>
           </div>
+          <PriceRangeFilter id="priceRange" value={priceRange} onChange={setPriceRange} />
         </div>
 
         <ExportButtons filenameBase="stock-batch-balance-report" mainSheet={mainExportSheet} disabled={isLoading} />
@@ -252,6 +306,20 @@ export default function StockBatchBalanceReport() {
                     direction={direction}
                     onSort={toggleSort}
                   />
+                  <SortableHeader
+                    label={t('unitPrice', 'Unit Price')}
+                    sortKey="unitPrice"
+                    activeSortKey={sortKey}
+                    direction={direction}
+                    onSort={toggleSort}
+                  />
+                  <SortableHeader
+                    label={t('stockValue', 'Stock Value')}
+                    sortKey="stockValue"
+                    activeSortKey={sortKey}
+                    direction={direction}
+                    onSort={toggleSort}
+                  />
                   <th className="left">{t('status', 'Status')}</th>
                 </tr>
               </thead>
@@ -276,6 +344,7 @@ export default function StockBatchBalanceReport() {
                     </td>
                     <td className="left">{formatExpiry(row.expirationDate) || '—'}</td>
                     <td>{formatQuantity(row.quantity, row.unitName, row.bulkUnitName, row.bulkFactor)}</td>
+                    <PriceCells row={row} priceSourceLabel={priceSourceLabel} />
                     <td className="left">
                       {isFlaggedExpired(row) && (
                         <Tag type="red" size="sm">
@@ -297,7 +366,7 @@ export default function StockBatchBalanceReport() {
                 ))}
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={showLocationColumn ? 6 : 5} className={pageStyles.emptyState}>
+                    <td colSpan={showLocationColumn ? 8 : 7} className={pageStyles.emptyState}>
                       {t('noBatchesFound', 'No batches found for this selection.')}
                     </td>
                   </tr>
@@ -308,5 +377,33 @@ export default function StockBatchBalanceReport() {
         )}
       </div>
     </div>
+  );
+}
+
+/** Unit price and stock value cells; a price taken from the item's default rather than the batch says so. */
+function PriceCells({
+  row,
+  priceSourceLabel,
+}: {
+  row: StockBatchBalanceRow;
+  priceSourceLabel: (row: StockBatchBalanceRow) => string;
+}) {
+  const price = resolveUnitPrice(row);
+  const value = stockValue(row);
+  return (
+    <>
+      <td title={priceSourceLabel(row)}>
+        {price ? formatUnitPrice(price.unitPrice, row.unitName, row.bulkUnitName, row.bulkFactor) : '—'}
+        {price?.source === 'item' && (
+          <>
+            {' '}
+            <Tag type="cool-gray" size="sm">
+              {priceSourceLabel(row)}
+            </Tag>
+          </>
+        )}
+      </td>
+      <td>{value === null ? '—' : formatMoney(value)}</td>
+    </>
   );
 }

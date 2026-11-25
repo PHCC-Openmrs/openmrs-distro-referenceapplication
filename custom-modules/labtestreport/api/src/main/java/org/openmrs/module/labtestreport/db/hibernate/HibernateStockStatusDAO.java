@@ -74,6 +74,8 @@ public class HibernateStockStatusDAO implements StockStatusDAO {
 		query.addScalar("unitName", StandardBasicTypes.STRING);
 		query.addScalar("bulkUnitName", StandardBasicTypes.STRING);
 		query.addScalar("bulkFactor", StandardBasicTypes.BIG_DECIMAL);
+		query.addScalar("batchUnitPrice", StandardBasicTypes.BIG_DECIMAL);
+		query.addScalar("itemUnitPrice", StandardBasicTypes.BIG_DECIMAL);
 		query.setParameter("locationUuid", locationUuid);
 		return query.list();
 	}
@@ -103,6 +105,8 @@ public class HibernateStockStatusDAO implements StockStatusDAO {
 		query.addScalar("unitName", StandardBasicTypes.STRING);
 		query.addScalar("bulkUnitName", StandardBasicTypes.STRING);
 		query.addScalar("bulkFactor", StandardBasicTypes.BIG_DECIMAL);
+		query.addScalar("batchUnitPrice", StandardBasicTypes.BIG_DECIMAL);
+		query.addScalar("itemUnitPrice", StandardBasicTypes.BIG_DECIMAL);
 		query.setParameter("stockItemId", stockItemId, StandardBasicTypes.INTEGER);
 		query.setParameter("stockBatchId", stockBatchId, StandardBasicTypes.INTEGER);
 		return query.list();

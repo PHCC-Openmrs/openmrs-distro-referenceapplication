@@ -8,6 +8,15 @@
 -- Dispensing lives in medication_dispense, one row per hand-over (an order can be dispensed in more
 -- than one go, or refused). dispensedQuantity only sums the Completed hand-overs; dispenseStatus is
 -- the status of the most recent hand-over, or NULL when pharmacy has not acted on the order yet.
+--
+-- dispensedCost is what the stock that left the shelf for this order cost to buy. A dispense deducts
+-- stock as separate transactions carrying the order_id (one per batch it drew from), and cancelling
+-- or editing a dispense gives stock back as an Adjustment with the same order_id, so the net of an
+-- order's patient transactions is what it really took. Each leg is priced by its own batch - the
+-- price on the batch's Opening Stock line, else the item's default price, per dispensing unit (see
+-- stock_batch_balance.sql). stockQuantity is that net in dispensing units; pricedQuantity is the
+-- part of it that had a price, so the consumer can tell a partly-priced cost from a full one. All
+-- three are NULL when no stock moved for the order (not dispensed yet, or dispensed with stock off).
 SELECT
   p.person_id                      AS patientId,
   p.uuid                           AS patientUuid,
@@ -92,7 +101,10 @@ SELECT
           SEPARATOR ', ')
      FROM medication_dispense md
      JOIN provider dpr ON dpr.provider_id = md.dispenser
-    WHERE md.drug_order_id = o.order_id AND md.voided = 0) AS dispensedBy
+    WHERE md.drug_order_id = o.order_id AND md.voided = 0) AS dispensedBy,
+  cost.stockQuantity               AS stockQuantity,
+  cost.pricedQuantity              AS pricedQuantity,
+  cost.dispensedCost               AS dispensedCost
 FROM drug_order do
 JOIN orders o ON o.order_id = do.order_id
 JOIN person p ON p.person_id = o.patient_id
@@ -114,6 +126,45 @@ LEFT JOIN concept_name durationUnitsName ON durationUnitsName.concept_id = do.du
 LEFT JOIN concept_name quantityUnitsName ON quantityUnitsName.concept_id = do.quantity_units
   AND quantityUnitsName.voided = 0 AND quantityUnitsName.locale = 'en' AND quantityUnitsName.locale_preferred = 1
 LEFT JOIN provider pr ON pr.provider_id = o.orderer
+-- Grouped once over the dispense transactions of orders in the date range, rather than looked up per row.
+LEFT JOIN (
+  SELECT
+    sit.order_id,
+    -SUM(sit.quantity * puom.factor) AS stockQuantity,
+    -SUM(CASE WHEN COALESCE(bpi.purchase_price / bpu.factor, si.purchase_price / ipu.factor) IS NOT NULL
+              THEN sit.quantity * puom.factor END) AS pricedQuantity,
+    -SUM(sit.quantity * puom.factor * COALESCE(bpi.purchase_price / bpu.factor, si.purchase_price / ipu.factor)) AS dispensedCost
+  FROM stockmgmt_stock_item_transaction sit
+  JOIN orders so_order ON so_order.order_id = sit.order_id
+  JOIN stockmgmt_stock_operation so ON so.stock_operation_id = sit.stock_operation_id
+  JOIN stockmgmt_stock_item_packaging_uom puom ON puom.stock_item_packaging_uom_id = sit.stock_item_packaging_uom_id
+  JOIN stockmgmt_stock_item si ON si.stock_item_id = sit.stock_item_id
+  LEFT JOIN stockmgmt_stock_operation_item bpi ON bpi.stock_operation_item_id = (
+    SELECT soi2.stock_operation_item_id
+    FROM stockmgmt_stock_operation_item soi2
+    JOIN stockmgmt_stock_operation so2 ON so2.stock_operation_id = soi2.stock_operation_id
+    JOIN stockmgmt_stock_operation_type sot2 ON sot2.stock_operation_type_id = so2.operation_type_id
+    JOIN stockmgmt_stock_item_packaging_uom pu2 ON pu2.stock_item_packaging_uom_id = soi2.stock_item_packaging_uom_id
+    WHERE soi2.stock_batch_id = sit.stock_batch_id
+      AND soi2.purchase_price IS NOT NULL
+      AND pu2.factor > 0
+      AND COALESCE(soi2.voided, 0) = 0
+      AND sot2.operation_type IN ('initial', 'receipt')
+      AND so2.status = 'COMPLETED'
+      AND COALESCE(so2.voided, 0) = 0
+    ORDER BY COALESCE(so2.completed_date, so2.operation_date), so2.stock_operation_id, soi2.stock_operation_item_id
+    LIMIT 1
+  )
+  LEFT JOIN stockmgmt_stock_item_packaging_uom bpu ON bpu.stock_item_packaging_uom_id = bpi.stock_item_packaging_uom_id
+  LEFT JOIN stockmgmt_stock_item_packaging_uom ipu ON ipu.stock_item_packaging_uom_id = si.purchase_price_uom_id
+    AND ipu.factor > 0
+  WHERE sit.patient_id IS NOT NULL
+    AND so.status = 'COMPLETED'
+    AND COALESCE(so.voided, 0) = 0
+    AND (:startDate IS NULL OR so_order.date_activated >= :startDate)
+    AND (:endDate IS NULL OR so_order.date_activated < DATE_ADD(:endDate, INTERVAL 1 DAY))
+  GROUP BY sit.order_id
+) cost ON cost.order_id = o.order_id
 WHERE o.voided = 0
   AND o.order_action <> 'DISCONTINUE'
   AND (:startDate IS NULL OR o.date_activated >= :startDate)

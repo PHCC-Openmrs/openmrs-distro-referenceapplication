@@ -6,9 +6,19 @@ import BackToReportsLink from '../reports-shell/back-to-reports-link.component';
 import KpiTiles from '../reports-shell/kpi-tiles.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
 import LocationFilter from '../reports-shell/location-filter.component';
+import PriceRangeFilter from '../reports-shell/price-range-filter.component';
 import type { ExportSheet } from '../reports-shell/export-utils';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
 import { bulkExportCells, formatQuantity } from '../reports-shell/format-quantity';
+import {
+  EMPTY_PRICE_RANGE,
+  formatMoney,
+  formatUnitPrice,
+  matchesPriceRange,
+  resolveUnitPrice,
+  type ResolvedPrice,
+  type PriceRange,
+} from '../reports-shell/purchase-price';
 import pageStyles from '../reports-shell/reports-page.scss';
 import { useStockBatchBalanceReport } from '../stock-batch-balance/stock-batch-balance.resource';
 import { useStockBatchHistoryReport, type StockBatchHistoryRow } from './stock-batch-history.resource';
@@ -70,10 +80,18 @@ interface LocationSummary {
   opening: number;
   byActivity: Map<string, number>;
   closing: number;
+  // The batch's purchase price per dispensing unit, or null when it has none.
+  price: ResolvedPrice | null;
 }
 
 function batchLocationKey(row: StockBatchHistoryRow): string {
   return `${row.stockBatchId}-${row.locationId}`;
+}
+
+/** What a quantity of the row's batch cost to buy, or null when the batch has no price. */
+function valueOf(row: StockBatchHistoryRow, quantity: number): number | null {
+  const price = resolveUnitPrice(row);
+  return price ? quantity * price.unitPrice : null;
 }
 
 function formatDay(value: string | null): string {
@@ -97,6 +115,7 @@ export default function StockBatchHistoryReport() {
   const [startDateInput, setStartDateInput] = useState('');
   const [endDateInput, setEndDateInput] = useState('');
   const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>({});
+  const [priceRange, setPriceRange] = useState<PriceRange>(EMPTY_PRICE_RANGE);
 
   // The item and batch pickers are fed from the batch-balance endpoint, which lists every batch
   // that has had a completed movement anywhere - exactly the batches that have a history to show.
@@ -129,14 +148,17 @@ export default function StockBatchHistoryReport() {
   const entries = useMemo<Array<HistoryEntry>>(() => {
     const balances = new Map<string, number>();
     return rows
+      // A price belongs to the batch, so this keeps or drops whole batches and every running
+      // balance that is left still adds up.
       .filter((row) => !locationUuid || row.locationUuid === locationUuid)
+      .filter((row) => matchesPriceRange(resolveUnitPrice(row)?.unitPrice, priceRange))
       .map((row) => {
         const key = batchLocationKey(row);
         const balanceAfter = (balances.get(key) ?? 0) + row.quantity;
         balances.set(key, balanceAfter);
         return { row, balanceAfter };
       });
-  }, [rows, locationUuid]);
+  }, [rows, locationUuid, priceRange]);
 
   const inRangeEntries = useMemo(
     () =>
@@ -163,6 +185,7 @@ export default function StockBatchHistoryReport() {
           opening: 0,
           byActivity: new Map(),
           closing: 0,
+          price: resolveUnitPrice(row),
         };
         byKey.set(key, summary);
       }
@@ -249,6 +272,37 @@ export default function StockBatchHistoryReport() {
     [t],
   );
 
+  const priceSourceLabel = useCallback(
+    (price: ResolvedPrice | null): string => {
+      if (!price) {
+        return '';
+      }
+      return price.source === 'batch'
+        ? t('priceFromBatch', 'Batch (Opening Stock)')
+        : t('priceFromItem', 'Item default');
+    },
+    [t],
+  );
+
+  function priceCell(price: ResolvedPrice | null) {
+    if (!price) {
+      return '—';
+    }
+    return (
+      <span title={priceSourceLabel(price)}>
+        {formatUnitPrice(price.unitPrice, unitRow?.unitName, unitRow?.bulkUnitName, unitRow?.bulkFactor)}
+        {price.source === 'item' && (
+          <>
+            {' '}
+            <Tag type="cool-gray" size="sm">
+              {priceSourceLabel(price)}
+            </Tag>
+          </>
+        )}
+      </span>
+    );
+  }
+
   function batchLabel(batchNo: string, expirationDate: string | null): string {
     return expirationDate
       ? t('batchWithExpiry', '{{batchNo}} (exp. {{expiry}})', { batchNo, expiry: formatDay(expirationDate) })
@@ -262,6 +316,11 @@ export default function StockBatchHistoryReport() {
         0,
       );
     const closing = summaries.reduce((sum, summary) => sum + summary.closing, 0);
+    // Positive balances only, as on the Batch Balance report: a negative one is a data problem.
+    const closingValue = summaries.reduce(
+      (sum, summary) => sum + (summary.price && summary.closing > 0 ? summary.closing * summary.price.unitPrice : 0),
+      0,
+    );
     return [
       { label: t('received', 'Received'), value: qty(total(['OPENING_STOCK', 'RECEIVED'])) },
       { label: t('batchActivityDispensed', 'Dispensed'), value: qty(total(['DISPENSED'])) },
@@ -271,6 +330,10 @@ export default function StockBatchHistoryReport() {
       {
         label: endDate ? t('balanceAtEndDate', 'Balance at End Date') : t('currentBalance', 'Current Balance'),
         value: qty(closing),
+      },
+      {
+        label: endDate ? t('balanceValueAtEndDate', 'Balance Value at End Date') : t('balanceValue', 'Balance Value'),
+        value: formatMoney(closingValue),
       },
     ];
   }, [t, summaries, endDate, qty, signedQty]);
@@ -292,6 +355,9 @@ export default function StockBatchHistoryReport() {
         t('unit', 'Unit'),
         t('bulkUnit', 'Bulk Unit'),
         t('unitsPerBulk', 'Units per Bulk'),
+        t('unitPrice', 'Unit Price'),
+        t('priceSource', 'Price Source'),
+        t('value', 'Value'),
         t('operationNumber', 'Operation No'),
         t('reason', 'Reason'),
         t('recordedBy', 'Recorded By'),
@@ -309,12 +375,15 @@ export default function StockBatchHistoryReport() {
         balanceAfter,
         row.unitName ?? '',
         ...bulkExportCells(row.bulkUnitName, row.bulkFactor),
+        resolveUnitPrice(row)?.unitPrice ?? '',
+        priceSourceLabel(resolveUnitPrice(row)),
+        roundMoney(valueOf(row, row.quantity)),
         row.operationNumber ?? '',
         row.reasonName ?? '',
         row.recordedBy ?? '',
       ]),
     }),
-    [t, inRangeEntries, activityLabel, counterpartLabel],
+    [t, inRangeEntries, activityLabel, counterpartLabel, priceSourceLabel],
   );
 
   const summaryExportSheet = useMemo<ExportSheet>(
@@ -328,6 +397,9 @@ export default function StockBatchHistoryReport() {
         ...summaryActivities.map((activity) => activityLabel(activity)),
         t('balance', 'Balance'),
         t('unit', 'Unit'),
+        t('unitPrice', 'Unit Price'),
+        t('priceSource', 'Price Source'),
+        t('balanceValue', 'Balance Value'),
       ],
       rows: summaries.map((summary) => [
         summary.batchNo,
@@ -337,9 +409,12 @@ export default function StockBatchHistoryReport() {
         ...summaryActivities.map((activity) => summary.byActivity.get(activity) ?? 0),
         summary.closing,
         unitRow?.unitName ?? '',
+        summary.price?.unitPrice ?? '',
+        priceSourceLabel(summary.price),
+        roundMoney(summary.price ? summary.closing * summary.price.unitPrice : null),
       ]),
     }),
-    [t, summaries, summaryActivities, startDate, unitRow, activityLabel],
+    [t, summaries, summaryActivities, startDate, unitRow, activityLabel, priceSourceLabel],
   );
 
   function selectItem(id: number | undefined) {
@@ -351,8 +426,8 @@ export default function StockBatchHistoryReport() {
     setAppliedDates({ startDate: startDateInput || undefined, endDate: endDateInput || undefined });
   }
 
-  const detailColumnCount = 9 + (showBatchColumn ? 1 : 0) + (showLocationColumn ? 1 : 0);
-  const summaryColumnCount = 3 + (startDate ? 1 : 0) + summaryActivities.length;
+  const detailColumnCount = 10 + (showBatchColumn ? 1 : 0) + (showLocationColumn ? 1 : 0);
+  const summaryColumnCount = 5 + (startDate ? 1 : 0) + summaryActivities.length;
 
   return (
     <div>
@@ -418,6 +493,7 @@ export default function StockBatchHistoryReport() {
           <Button size="md" onClick={applyFilter}>
             {t('filter', 'Filter')}
           </Button>
+          <PriceRangeFilter id="priceRange" value={priceRange} onChange={setPriceRange} />
         </div>
 
         {!stockItemId && (
@@ -450,6 +526,8 @@ export default function StockBatchHistoryReport() {
                       <th key={activity}>{activityLabel(activity)}</th>
                     ))}
                     <th>{t('balance', 'Balance')}</th>
+                    <th>{t('unitPrice', 'Unit Price')}</th>
+                    <th>{t('balanceValue', 'Balance Value')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -469,6 +547,8 @@ export default function StockBatchHistoryReport() {
                       <td>
                         <strong>{qty(summary.closing)}</strong>
                       </td>
+                      <td>{priceCell(summary.price)}</td>
+                      <td>{summary.price ? formatMoney(summary.closing * summary.price.unitPrice) : '—'}</td>
                     </tr>
                   ))}
                   {summaries.length === 0 && (
@@ -495,6 +575,7 @@ export default function StockBatchHistoryReport() {
                     <th>{t('quantityIn', 'Quantity In')}</th>
                     <th>{t('quantityOut', 'Quantity Out')}</th>
                     <th>{t('balanceAtLocation', 'Balance at Location')}</th>
+                    <th>{t('value', 'Value')}</th>
                     <th className="left">{t('operationNumber', 'Operation No')}</th>
                     <th className="left">{t('reason', 'Reason')}</th>
                     <th className="left">{t('recordedBy', 'Recorded By')}</th>
@@ -515,6 +596,7 @@ export default function StockBatchHistoryReport() {
                       <td>{row.quantity > 0 ? qty(row.quantity) : ''}</td>
                       <td>{row.quantity < 0 ? qty(-row.quantity) : ''}</td>
                       <td>{qty(balanceAfter)}</td>
+                      <td>{signedMoney(valueOf(row, row.quantity))}</td>
                       <td className="left">{row.operationNumber ?? '—'}</td>
                       <td className="left">{row.reasonName ?? ''}</td>
                       <td className="left">{row.recordedBy ?? ''}</td>
@@ -535,4 +617,17 @@ export default function StockBatchHistoryReport() {
       </div>
     </div>
   );
+}
+
+/** A money cell for the spreadsheet: a number rounded to cents, or blank when there is no price. */
+function roundMoney(value: number | null): number | string {
+  return value === null ? '' : Math.round(value * 100) / 100;
+}
+
+/** A movement's value, signed like its quantity: "+100.00" in, "-30.00" out. */
+function signedMoney(value: number | null): string {
+  if (value === null) {
+    return '—';
+  }
+  return `${value < 0 ? '-' : value > 0 ? '+' : ''}${formatMoney(Math.abs(value))}`;
 }
