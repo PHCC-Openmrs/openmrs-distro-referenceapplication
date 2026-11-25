@@ -1,7 +1,7 @@
 name: Deploy to Prod
 
 # Builds and pushes the selected images, then pins each newly built image's
-# immutable <branch>-<sha> tag in the SOPS-encrypted .env and commits it.
+# immutable <branch>-<sha> tag in the SOPS-encrypted prod.env and commits it.
 # doco-cd on the prod VM picks up that commit and redeploys -- see
 # ops/doco-cd/README.md.
 
@@ -123,7 +123,7 @@ jobs:
         run: docker logout "$REGISTRY" || true
 
   update-env-tags:
-    name: Pin built image tags in .env
+    name: Pin built image tags in prod.env
     needs: [changes, build-and-push]
     runs-on: ubuntu-latest
     environment:
@@ -133,7 +133,7 @@ jobs:
     env:
       # The branch doco-cd deploys prod from, set as a variable on the `prod`
       # environment (keep it in sync with Key Vault openmrs-vm-deploy-branch).
-      # .env is only updated when the pipeline runs on this branch.
+      # prod.env is only updated when the pipeline runs on this branch.
       DEPLOY_BRANCH: ${{ vars.PROD_DEPLOY_BRANCH }}
     steps:
       - name: Check deploy branch
@@ -145,7 +145,7 @@ jobs:
             exit 1
           fi
           if [ "$GITHUB_REF_NAME" != "$DEPLOY_BRANCH" ]; then
-            echo "::notice::Ran on ${GITHUB_REF_NAME}, but prod deploys from ${DEPLOY_BRANCH}; .env not updated."
+            echo "::notice::Ran on ${GITHUB_REF_NAME}, but prod deploys from ${DEPLOY_BRANCH}; prod.env not updated."
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
             echo "run=true" >> "$GITHUB_OUTPUT"
@@ -178,7 +178,7 @@ jobs:
           sudo install -m 0755 /tmp/sops /usr/local/bin/sops
           sops --version
 
-      - name: Set image tags in .env
+      - name: Set image tags in prod.env
         id: set
         if: steps.gate.outputs.run == 'true'
         env:
@@ -190,7 +190,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$SOPS_AGE_KEY" ]; then
-            echo "::error::SOPS_AGE_KEY secret is not set in the prod environment — cannot update .env."
+            echo "::error::SOPS_AGE_KEY secret is not set in the prod environment — cannot update prod.env."
             exit 1
           fi
 
@@ -198,7 +198,7 @@ jobs:
           for svc in backend frontend gateway; do
             built_var="BUILT_${svc^^}"
             if [ "${!built_var}" = "true" ]; then
-              sops set .env "[\"${svc^^}_TAG\"]" "\"${SHA_TAG}\""
+              sops set prod.env "[\"${svc^^}_TAG\"]" "\"${SHA_TAG}\""
               updated+=("$svc")
             fi
           done
@@ -214,14 +214,14 @@ jobs:
           BRANCH: ${{ env.DEPLOY_BRANCH }}
         run: |
           set -euo pipefail
-          if git diff --quiet -- .env; then
+          if git diff --quiet -- prod.env; then
             echo "No tag changes to commit."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Pin ${SERVICES// /, } image tag to ${SHA_TAG}" -- .env
+          git commit -m "Pin ${SERVICES// /, } image tag to ${SHA_TAG}" -- prod.env
 
           for attempt in 1 2 3; do
             if git push origin "HEAD:${BRANCH}"; then
@@ -230,5 +230,5 @@ jobs:
             echo "Push rejected (attempt ${attempt}); rebasing onto origin/${BRANCH}."
             git pull --rebase origin "$BRANCH"
           done
-          echo "::error::Could not push the .env update to ${BRANCH}."
+          echo "::error::Could not push the prod.env update to ${BRANCH}."
           exit 1

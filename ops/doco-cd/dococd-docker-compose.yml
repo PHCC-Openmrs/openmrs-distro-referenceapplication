@@ -28,7 +28,7 @@ services:
           interval: ${POLL_INTERVAL:-60}
       GIT_ACCESS_TOKEN: ${GIT_ACCESS_TOKEN:?Set GIT_ACCESS_TOKEN in .env}
       GIT_AUTH_DOMAINS: "${GIT_AUTH_DOMAINS:-- domains: [github.com]}"
-      # Private age key that decrypts the repo's .env. An env var rather than a
+      # Private age key that decrypts the repo's prod.env. An env var rather than a
       # file secret: with cap_drop ALL, root here can't read a 0600 file it doesn't own.
       SOPS_AGE_KEY: ${SOPS_AGE_KEY:?Set SOPS_AGE_KEY in .env}
       # Key Vault holding the secrets in ../../.doco-cd.yml. AZURE_CLIENT_ID selects the

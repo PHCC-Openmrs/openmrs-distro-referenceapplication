@@ -13,11 +13,11 @@ compose_files:
 
 # Non-secret settings, including the image and tag, SOPS-encrypted in git. doco-cd
 # decrypts it with SOPS_AGE_KEY in its own copy of the repo. To change a value:
-# sops edit .env
+# sops edit prod.env
 env_files:
-  - .env
+  - prod.env
 
-# Read from Azure Key Vault on every poll, and take priority over .env. A changed
+# Read from Azure Key Vault on every poll, and take priority over prod.env. A changed
 # value redeploys the stack with no commit, so update the database first.
 external_secrets:
   OMRS_DB_USER: openmrs-mysql-username
