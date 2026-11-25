@@ -26,12 +26,16 @@ ARG ESM_CORE_SOURCE=esm-core-remote
 ARG PATIENT_MANAGEMENT_SOURCE=patient-management-remote
 ARG PATIENT_CHART_SOURCE=patient-chart-remote
 
-FROM alpine/git:latest AS esm-core-remote
+FROM scratch AS esm-core-remote
 ARG ESM_CORE_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-core.git
 ARG ESM_CORE_REF=main
-ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-core/commits/${ESM_CORE_REF} /tmp/esm-core-commit.json
-WORKDIR /repo
-RUN git clone --branch ${ESM_CORE_REF} --depth 1 ${ESM_CORE_REPO} .
+# ADD <git-url>#<ref> fetches the branch with git (not the GitHub REST API,
+# whose 60-requests-an-hour anonymous limit, shared across a hosted runner's IP,
+# made builds fail with "invalid response status 403"). BuildKit resolves the ref
+# to a commit on every build, so this layer -- and every step that uses it -- is
+# rebuilt automatically whenever the branch moves. --keep-git-dir keeps .git, as
+# the previous `git clone --depth 1` did.
+ADD --keep-git-dir=true ${ESM_CORE_REPO}#${ESM_CORE_REF} /repo
 
 # Aliases the "esm-core-local" additional build context (see above) to the
 # same /repo path esm-core-remote uses, so the two candidates are
@@ -41,15 +45,11 @@ COPY --from=esm-core-local . /repo
 
 FROM ${ESM_CORE_SOURCE} AS esm-core-source
 
-FROM alpine/git:latest AS patient-management-remote
+FROM scratch AS patient-management-remote
 ARG PATIENT_MANAGEMENT_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-patient-management.git
 ARG PATIENT_MANAGEMENT_REF=main
-# ADD from a URL is revalidated against its ETag/Last-Modified on every build,
-# so this layer (and every RUN after it) is invalidated automatically whenever
-# the branch moves -- no need to remember a manual cache-bust build-arg.
-ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-patient-management/commits/${PATIENT_MANAGEMENT_REF} /tmp/patient-management-commit.json
-WORKDIR /repo
-RUN git clone --branch ${PATIENT_MANAGEMENT_REF} --depth 1 ${PATIENT_MANAGEMENT_REPO} .
+# See esm-core-remote above for why this is ADD from git.
+ADD --keep-git-dir=true ${PATIENT_MANAGEMENT_REPO}#${PATIENT_MANAGEMENT_REF} /repo
 
 # Aliases the "patient-management-local" additional build context to the same
 # /repo path patient-management-remote uses -- see the ESM_CORE_SOURCE comment
@@ -59,12 +59,11 @@ COPY --from=patient-management-local . /repo
 
 FROM ${PATIENT_MANAGEMENT_SOURCE} AS patient-management-source
 
-FROM alpine/git:latest AS patient-chart-remote
+FROM scratch AS patient-chart-remote
 ARG PATIENT_CHART_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-patient-chart.git
 ARG PATIENT_CHART_REF=main
-ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-patient-chart/commits/${PATIENT_CHART_REF} /tmp/patient-chart-commit.json
-WORKDIR /repo
-RUN git clone --branch ${PATIENT_CHART_REF} --depth 1 ${PATIENT_CHART_REPO} .
+# See esm-core-remote above for why this is ADD from git.
+ADD --keep-git-dir=true ${PATIENT_CHART_REPO}#${PATIENT_CHART_REF} /repo
 
 # Aliases the "patient-chart-local" additional build context to the same
 # /repo path patient-chart-remote uses -- see the ESM_CORE_SOURCE comment
@@ -165,9 +164,9 @@ RUN corepack enable && \
 # package, so the auto-complete-on-dispense and dispensed-quantity fixes ship.
 ARG DISPENSING_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-dispensing-app.git
 ARG DISPENSING_REF=main
-ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-dispensing-app/commits/${DISPENSING_REF} /tmp/dispensing-commit.json
-RUN git clone --branch ${DISPENSING_REF} --depth 1 ${DISPENSING_REPO} openmrs-esm-dispensing-app && \
-    corepack enable && \
+# See esm-core-remote above for why this is ADD from git.
+ADD --keep-git-dir=true ${DISPENSING_REPO}#${DISPENSING_REF} openmrs-esm-dispensing-app
+RUN corepack enable && \
     cd openmrs-esm-dispensing-app && \
     yarn install && \
     yarn build && \
@@ -177,9 +176,9 @@ RUN git clone --branch ${DISPENSING_REF} --depth 1 ${DISPENSING_REPO} openmrs-es
 # package, so the Add test order button's privilege gate ships.
 ARG LABORATORY_REPO=https://github.com/PHCC-Openmrs/openmrs-esm-laboratory-app.git
 ARG LABORATORY_REF=main
-ADD https://api.github.com/repos/PHCC-Openmrs/openmrs-esm-laboratory-app/commits/${LABORATORY_REF} /tmp/laboratory-commit.json
-RUN git clone --branch ${LABORATORY_REF} --depth 1 ${LABORATORY_REPO} openmrs-esm-laboratory-app && \
-    corepack enable && \
+# See esm-core-remote above for why this is ADD from git.
+ADD --keep-git-dir=true ${LABORATORY_REPO}#${LABORATORY_REF} openmrs-esm-laboratory-app
+RUN corepack enable && \
     cd openmrs-esm-laboratory-app && \
     yarn install && \
     yarn build && \
