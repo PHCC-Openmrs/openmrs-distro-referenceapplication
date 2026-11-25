@@ -53,6 +53,18 @@ export interface StockOperationItemData {
   purchasePrice?: number;
 }
 
+// Same "Box - 20" label the quantity unit dropdown shows, so the printed unit says how many units it holds.
+export const formatPackagingUnit = (
+  name: string | null | undefined,
+  factor: number | string | null | undefined,
+): string | undefined => {
+  if (!name) {
+    return undefined;
+  }
+  const size = factor === null || factor === undefined || factor === '' ? NaN : Number(factor);
+  return Number.isFinite(size) ? `${name} - ${size}` : name;
+};
+
 export const BuildStockOperationData = async (
   currentOperation: StockOperationDTO,
   stockOperationItems: StockOperationItemDTO[],
@@ -121,15 +133,18 @@ export const BuildStockOperationData = async (
     item.expiryDate = p?.expiration;
     if (parentOperation) {
       item.quantityRequired = p?.quantityRequested;
-      item.quantityRequiredUoM = p?.quantityRequestedPackagingUOMName;
+      item.quantityRequiredUoM = formatPackagingUnit(
+        p?.quantityRequestedPackagingUOMName,
+        p?.quantityRequestedPackagingUOMFactor,
+      );
       item.quantityIssued = p?.quantity;
-      item.quantityIssuedUoM = p?.stockItemPackagingUOMName;
+      item.quantityIssuedUoM = formatPackagingUnit(p?.stockItemPackagingUOMName, p?.stockItemPackagingUOMFactor);
     } else if (OperationType.STOCK_ISSUE_OPERATION_TYPE === currentOperation.operationType) {
       item.quantityIssued = p?.quantity;
-      item.quantityIssuedUoM = p?.stockItemPackagingUOMName;
+      item.quantityIssuedUoM = formatPackagingUnit(p?.stockItemPackagingUOMName, p?.stockItemPackagingUOMFactor);
     } else {
       item.quantityRequired = p?.quantity;
-      item.quantityRequiredUoM = p?.stockItemPackagingUOMName;
+      item.quantityRequiredUoM = formatPackagingUnit(p?.stockItemPackagingUOMName, p?.stockItemPackagingUOMFactor);
     }
     if (operationItemsCost) {
       const operationItemCost = operationItemsCost.find((x) => x.uuid === p.uuid);
