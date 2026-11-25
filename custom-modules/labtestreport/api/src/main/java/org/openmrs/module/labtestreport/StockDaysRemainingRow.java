@@ -130,4 +130,19 @@ public class StockDaysRemainingRow {
 	public void setBulkFactor(Double bulkFactor) {
 		this.bulkFactor = bulkFactor;
 	}
+
+	/** True when the stock item is linked to a drug (pharmaceutical); false for other commodities. */
+	private Boolean isDrug;
+
+	/**
+	 * Named getIsDrug rather than isDrug so the serialised field stays "isDrug" - Jackson would
+	 * publish an isDrug() getter as plain "drug", which is not what the frontend reads.
+	 */
+	public Boolean getIsDrug() {
+		return isDrug;
+	}
+
+	public void setIsDrug(Boolean isDrug) {
+		this.isDrug = isDrug;
+	}
 }

@@ -8,6 +8,8 @@ export interface StockoutFrequencyRow {
   locationName: string | null;
   stockoutDays: number;
   activeDays: number;
+  // True for a pharmaceutical (stock item linked to a drug), false for other commodities.
+  isDrug: boolean | null;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {

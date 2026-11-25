@@ -34,6 +34,8 @@ export interface StockLedgerRow {
   purchaseOrderNo: string | null;
   purchaseRequestNo: string | null;
   projectFundCode: string | null;
+  // True for a pharmaceutical (stock item linked to a drug), false for other commodities.
+  isDrug: boolean | null;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {

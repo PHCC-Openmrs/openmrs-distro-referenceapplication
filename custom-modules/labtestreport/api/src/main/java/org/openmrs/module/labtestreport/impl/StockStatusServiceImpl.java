@@ -51,6 +51,7 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 			row.setUnitName((String) r[8]);
 			row.setBulkUnitName((String) r[9]);
 			row.setBulkFactor(toNullableDouble(r[10]));
+			row.setIsDrug(toBoolean(r[11]));
 			rows.add(row);
 		}
 		return rows;
@@ -74,6 +75,7 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 			row.setBulkFactor(toNullableDouble(r[10]));
 			row.setBatchUnitPrice(toNullableDouble(r[11]));
 			row.setItemUnitPrice(toNullableDouble(r[12]));
+			row.setIsDrug(toBoolean(r[13]));
 			rows.add(row);
 		}
 		return rows;
@@ -141,6 +143,7 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 			row.setUnitName((String) r[6]);
 			row.setBulkUnitName((String) r[7]);
 			row.setBulkFactor(toNullableDouble(r[8]));
+			row.setIsDrug(toBoolean(r[9]));
 
 			double totalConsumed = consumedByKey.getOrDefault(rowKey(stockItemId, locationId), 0d);
 			double avgDailyConsumption = totalConsumed / windowDays;
@@ -176,6 +179,7 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 			row.setUnitName((String) r[8]);
 			row.setBulkUnitName((String) r[9]);
 			row.setBulkFactor(toNullableDouble(r[10]));
+			row.setIsDrug(toBoolean(r[11]));
 			rows.add(row);
 		}
 		return rows;
@@ -192,6 +196,7 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 			row.setLocationName((String) r[3]);
 			row.setStockoutDays(toInteger(r[4]));
 			row.setActiveDays(toInteger(r[5]));
+			row.setIsDrug(toBoolean(r[6]));
 			rows.add(row);
 		}
 		return rows;
@@ -215,6 +220,17 @@ public class StockStatusServiceImpl extends BaseOpenmrsService implements StockS
 
 	private static Integer toInteger(Object value) {
 		return value == null ? null : ((Number) value).intValue();
+	}
+
+	/** A SQL predicate such as "drug_id IS NOT NULL" arrives as a Boolean or as a 1/0 Number. */
+	private static Boolean toBoolean(Object value) {
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof Boolean) {
+			return (Boolean) value;
+		}
+		return ((Number) value).intValue() != 0;
 	}
 
 	private static double toDouble(Object value) {

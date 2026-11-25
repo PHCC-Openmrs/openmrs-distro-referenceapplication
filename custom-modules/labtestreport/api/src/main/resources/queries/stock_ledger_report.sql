@@ -105,7 +105,9 @@ SELECT
   un.name AS unitName,
   br.externalReference AS externalReference,
   bun.name AS bulkUnitName,
-  bulk.factor AS bulkFactor
+  bulk.factor AS bulkFactor,
+  -- Pharmaceutical (stock item linked to a drug) vs non-pharmaceutical, for the Item Type filter.
+  si.drug_id IS NOT NULL AS isDrug
 FROM daily d
 JOIN stockmgmt_stock_item si ON si.stock_item_id = d.stockItemId
 JOIN stockmgmt_party p ON p.party_id = d.partyId

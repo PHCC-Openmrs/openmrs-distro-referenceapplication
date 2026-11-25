@@ -52,6 +52,7 @@ public class HibernateStockLedgerDAO implements StockLedgerDAO {
 		// Likewise appended, after batchId.
 		query.addScalar("bulkUnitName", StandardBasicTypes.STRING);
 		query.addScalar("bulkFactor", StandardBasicTypes.BIG_DECIMAL);
+		query.addScalar("isDrug", StandardBasicTypes.BOOLEAN);
 		query.setParameter("startDate", startDate);
 		query.setParameter("endDate", endDate);
 		query.setParameter("locationUuid", locationUuid);

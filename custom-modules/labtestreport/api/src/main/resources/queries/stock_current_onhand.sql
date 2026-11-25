@@ -28,7 +28,9 @@ SELECT
            THEN sit.quantity * puom.factor ELSE 0 END) AS expiredQty,
   un.name          AS unitName,
   bun.name         AS bulkUnitName,
-  bulk.factor      AS bulkFactor
+  bulk.factor      AS bulkFactor,
+  -- Pharmaceutical (stock item linked to a drug) vs non-pharmaceutical, for the Item Type filter.
+  si.drug_id IS NOT NULL AS isDrug
 FROM stockmgmt_stock_item_transaction sit
 JOIN stockmgmt_stock_item si ON si.stock_item_id = sit.stock_item_id
 JOIN stockmgmt_stock_item_packaging_uom puom ON puom.stock_item_packaging_uom_id = sit.stock_item_packaging_uom_id
@@ -51,5 +53,5 @@ WHERE si.voided = 0
   AND so.status = 'COMPLETED'
   AND COALESCE(so.voided, 0) = 0
   AND (:locationUuid IS NULL OR l.uuid = :locationUuid)
-GROUP BY si.stock_item_id, si.common_name, p.party_id, l.name, un.name, bun.name, bulk.factor
+GROUP BY si.stock_item_id, si.common_name, p.party_id, l.name, un.name, bun.name, bulk.factor, si.drug_id
 ORDER BY si.common_name, l.name

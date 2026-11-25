@@ -59,10 +59,12 @@ SELECT
   d.partyId      AS locationId,
   l.name         AS locationName,
   SUM(CASE WHEN d.dayEndBalance <= 0 THEN 1 ELSE 0 END) AS stockoutDays,
-  COUNT(*) AS activeDays
+  COUNT(*) AS activeDays,
+  -- Pharmaceutical (stock item linked to a drug) vs non-pharmaceutical, for the Item Type filter.
+  si.drug_id IS NOT NULL AS isDrug
 FROM daily d
 JOIN stockmgmt_stock_item si ON si.stock_item_id = d.stockItemId
 JOIN stockmgmt_party p ON p.party_id = d.partyId
 LEFT JOIN location l ON l.location_id = p.location_id
-GROUP BY d.stockItemId, si.common_name, d.partyId, l.name
+GROUP BY d.stockItemId, si.common_name, d.partyId, l.name, si.drug_id
 ORDER BY stockoutDays DESC

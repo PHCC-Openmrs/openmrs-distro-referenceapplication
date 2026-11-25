@@ -7,11 +7,12 @@ import KpiTiles from '../reports-shell/kpi-tiles.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
 import type { ExportSheet } from '../reports-shell/export-utils';
 import { bulkExportCells, formatQuantity } from '../reports-shell/format-quantity';
-import { filterByItemAndSearch, distinctItemNames } from '../reports-shell/row-filter';
+import { filterByItemAndSearch, distinctItemNames, useItemTypeRows, type ItemType } from '../reports-shell/row-filter';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
 import { useStockExpiryRiskReport, type StockBatchExpiryRow } from './stock-expiry-risk.resource';
+import ItemTypeFilter from '../reports-shell/item-type-filter.component';
 
 const STOCK_LOCATION_TAG = 'Login Location';
 
@@ -72,11 +73,15 @@ export default function StockExpiryRiskReport() {
   const [locationUuid, setLocationUuid] = useState('');
   const [daysAheadInput, setDaysAheadInput] = useState('180');
   const [itemFilter, setItemFilter] = useState('');
+  const [itemType, setItemType] = useState<ItemType>('');
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<'' | ExpiryStatus>('');
 
   const daysAhead = daysAheadInput === '' ? undefined : Number(daysAheadInput);
-  const { rows: rawRows, isLoading } = useStockExpiryRiskReport(daysAhead, locationUuid || undefined);
+  const { rows: fetchedRows, isLoading } = useStockExpiryRiskReport(daysAhead, locationUuid || undefined);
+  // Narrowed by item type before anything else, so the item list, table, KPIs, charts and exports
+  // all follow the Pharmaceuticals / Non Pharmaceuticals choice.
+  const rawRows = useItemTypeRows(fetchedRows, itemType);
   const showLocationColumn = !locationUuid;
 
   const itemOptions = useMemo(() => distinctItemNames(rawRows), [rawRows]);
@@ -174,6 +179,13 @@ export default function StockExpiryRiskReport() {
               onClear={() => setSearchText('')}
             />
           </div>
+          <ItemTypeFilter
+            value={itemType}
+            onChange={(value) => {
+              setItemType(value);
+              setItemFilter('');
+            }}
+          />
           <div className={pageStyles.filterField}>
             <Select
               id="itemFilter"

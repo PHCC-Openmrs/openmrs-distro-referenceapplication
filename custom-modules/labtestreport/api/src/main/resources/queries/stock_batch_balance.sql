@@ -25,7 +25,9 @@
 SELECT
   bal.*,
   bpi.purchase_price / bpu.factor AS batchUnitPrice,
-  si.purchase_price / ipu.factor  AS itemUnitPrice
+  si.purchase_price / ipu.factor  AS itemUnitPrice,
+  -- Pharmaceutical (stock item linked to a drug) vs non-pharmaceutical, for the Item Type filter.
+  si.drug_id IS NOT NULL AS isDrug
 FROM (
   SELECT
     si.stock_item_id AS stockItemId,

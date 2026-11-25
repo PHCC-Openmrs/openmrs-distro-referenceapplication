@@ -11,7 +11,7 @@ import ExportButtons from '../reports-shell/export-buttons.component';
 import { buildKpiExportSheet, buildComparisonExportSheet, type ExportSheet } from '../reports-shell/export-utils';
 import { useMonthComparison } from '../reports-shell/month-compare';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
-import { filterByItemAndSearch, distinctItemNames } from '../reports-shell/row-filter';
+import { filterByItemAndSearch, distinctItemNames, useItemTypeRows, type ItemType } from '../reports-shell/row-filter';
 import { bulkExportCells, formatQuantity } from '../reports-shell/format-quantity';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
@@ -19,6 +19,7 @@ import pageStyles from '../reports-shell/reports-page.scss';
 import StockMovementDrilldownModal from '../reports-shell/stock-movement-drilldown-modal.component';
 import { useStockWastageReport, useStockWastageDrilldown, type StockLocationQtyRow } from './stock-wastage.resource';
 import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
+import ItemTypeFilter from '../reports-shell/item-type-filter.component';
 
 const STOCK_LOCATION_TAG = 'Login Location';
 
@@ -43,6 +44,7 @@ export default function StockWastageReport() {
   const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>(defaultRange);
   const [viewMode, setViewMode] = useState<'table' | 'graph'>('table');
   const [itemFilter, setItemFilter] = useState('');
+  const [itemType, setItemType] = useState<ItemType>('');
   const [searchText, setSearchText] = useState('');
   const [selectedRow, setSelectedRow] = useState<StockLocationQtyRow | null>(null);
   const compare = useMonthComparison();
@@ -50,13 +52,17 @@ export default function StockWastageReport() {
   const primaryStartDate = compare.enabled ? compare.primary.startDate : appliedDates.startDate;
   const primaryEndDate = compare.enabled ? compare.primary.endDate : appliedDates.endDate;
 
-  const { rows: rawRows, isLoading } = useStockWastageReport(primaryStartDate, primaryEndDate, locationUuid || undefined);
-  const { rows: compareRawRows, isLoading: compareLoading } = useStockWastageReport(
+  const { rows: fetchedRows, isLoading } = useStockWastageReport(primaryStartDate, primaryEndDate, locationUuid || undefined);
+  // Narrowed by item type before anything else, so the item list, table, KPIs, charts and exports
+  // all follow the Pharmaceuticals / Non Pharmaceuticals choice.
+  const rawRows = useItemTypeRows(fetchedRows, itemType);
+  const { rows: compareFetchedRows, isLoading: compareLoading } = useStockWastageReport(
     compare.comparison.startDate,
     compare.comparison.endDate,
     locationUuid || undefined,
     compare.enabled,
   );
+  const compareRawRows = useItemTypeRows(compareFetchedRows, itemType);
   const dataLoading = isLoading || (compare.enabled && compareLoading);
   const showLocationInLabel = !locationUuid;
 
@@ -213,6 +219,13 @@ export default function StockWastageReport() {
               onClear={() => setSearchText('')}
             />
           </div>
+          <ItemTypeFilter
+            value={itemType}
+            onChange={(value) => {
+              setItemType(value);
+              setItemFilter('');
+            }}
+          />
           <div className={pageStyles.filterField}>
             <Select
               id="itemFilter"

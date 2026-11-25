@@ -18,7 +18,9 @@ SELECT
   COALESCE(onhand.expiredQty, 0) AS expiredQty,
   un.name          AS unitName,
   bun.name         AS bulkUnitName,
-  bulk.factor      AS bulkFactor
+  bulk.factor      AS bulkFactor,
+  -- Pharmaceutical (stock item linked to a drug) vs non-pharmaceutical, for the Item Type filter.
+  si.drug_id IS NOT NULL AS isDrug
 FROM (
   -- A reorder threshold can be configured in two places in the Stock Management app, and both
   -- count here:

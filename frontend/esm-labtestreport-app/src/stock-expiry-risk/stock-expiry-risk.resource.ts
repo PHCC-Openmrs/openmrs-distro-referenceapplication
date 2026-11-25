@@ -16,6 +16,8 @@ export interface StockBatchExpiryRow {
   // pack configured.
   bulkUnitName: string | null;
   bulkFactor: number | null;
+  // True for a pharmaceutical (stock item linked to a drug), false for other commodities.
+  isDrug: boolean | null;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>): string {

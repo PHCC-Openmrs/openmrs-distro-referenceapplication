@@ -161,6 +161,7 @@ public class StockFlowServiceImpl extends BaseOpenmrsService implements StockFlo
 			row.setRemainingQty(toDouble(r[7]));
 			row.setBulkUnitName((String) r[8]);
 			row.setBulkFactor(toNullableDouble(r[9]));
+			row.setIsDrug(toBoolean(r[10]));
 			rows.add(row);
 		}
 		return rows;
