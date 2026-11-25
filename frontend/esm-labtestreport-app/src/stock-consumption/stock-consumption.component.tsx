@@ -11,7 +11,7 @@ import ExportButtons from '../reports-shell/export-buttons.component';
 import { buildKpiExportSheet, buildComparisonExportSheet, type ExportSheet } from '../reports-shell/export-utils';
 import { useMonthComparison } from '../reports-shell/month-compare';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
-import { filterByItemAndSearch, distinctItemNames } from '../reports-shell/row-filter';
+import { filterByItemAndSearch, distinctItemNames, useItemTypeRows, type ItemType } from '../reports-shell/row-filter';
 import { bulkExportCells, formatQuantity } from '../reports-shell/format-quantity';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
@@ -23,6 +23,7 @@ import {
   type StockLocationQtyRow,
 } from './stock-consumption.resource';
 import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
+import ItemTypeFilter from '../reports-shell/item-type-filter.component';
 
 // Stock locations are tagged this way throughout the stock management module (matches the
 // tag used for the session location switcher), so this is the same set a user would pick
@@ -50,6 +51,7 @@ export default function StockConsumptionReport() {
   const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>(defaultRange);
   const [viewMode, setViewMode] = useState<'table' | 'graph'>('table');
   const [itemFilter, setItemFilter] = useState('');
+  const [itemType, setItemType] = useState<ItemType>('');
   const [searchText, setSearchText] = useState('');
   const [selectedRow, setSelectedRow] = useState<StockLocationQtyRow | null>(null);
   const compare = useMonthComparison();
@@ -57,17 +59,21 @@ export default function StockConsumptionReport() {
   const primaryStartDate = compare.enabled ? compare.primary.startDate : appliedDates.startDate;
   const primaryEndDate = compare.enabled ? compare.primary.endDate : appliedDates.endDate;
 
-  const { rows: rawRows, isLoading } = useStockConsumptionReport(
+  const { rows: fetchedRows, isLoading } = useStockConsumptionReport(
     primaryStartDate,
     primaryEndDate,
     locationUuid || undefined,
   );
-  const { rows: compareRawRows, isLoading: compareLoading } = useStockConsumptionReport(
+  // Narrowed by item type before anything else, so the item list, table, KPIs, charts and exports
+  // all follow the Pharmaceuticals / Non Pharmaceuticals choice.
+  const rawRows = useItemTypeRows(fetchedRows, itemType);
+  const { rows: compareFetchedRows, isLoading: compareLoading } = useStockConsumptionReport(
     compare.comparison.startDate,
     compare.comparison.endDate,
     locationUuid || undefined,
     compare.enabled,
   );
+  const compareRawRows = useItemTypeRows(compareFetchedRows, itemType);
   const dataLoading = isLoading || (compare.enabled && compareLoading);
   const showLocationInLabel = !locationUuid;
 
@@ -228,6 +234,13 @@ export default function StockConsumptionReport() {
               onClear={() => setSearchText('')}
             />
           </div>
+          <ItemTypeFilter
+            value={itemType}
+            onChange={(value) => {
+              setItemType(value);
+              setItemFilter('');
+            }}
+          />
           <div className={pageStyles.filterField}>
             <Select
               id="itemFilter"

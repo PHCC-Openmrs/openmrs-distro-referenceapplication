@@ -17,6 +17,8 @@ import { bulkExportCells, formatQuantity } from '../reports-shell/format-quantit
 import pageStyles from '../reports-shell/reports-page.scss';
 import { useStockLedgerReport, type StockLedgerRow } from './stock-ledger.resource';
 import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
+import ItemTypeFilter from '../reports-shell/item-type-filter.component';
+import { useItemTypeRows, type ItemType } from '../reports-shell/row-filter';
 
 interface LedgerItem {
   key: string;
@@ -33,6 +35,7 @@ interface LedgerItem {
   purchaseOrderNo: string | null;
   purchaseRequestNo: string | null;
   projectFundCode: string | null;
+  isDrug: boolean | null;
 }
 
 interface DayBlock {
@@ -115,6 +118,7 @@ function buildItemList(rows: Array<StockLedgerRow>): Array<LedgerItem> {
         purchaseOrderNo: row.purchaseOrderNo,
         purchaseRequestNo: row.purchaseRequestNo,
         projectFundCode: row.projectFundCode,
+        isDrug: row.isDrug,
       });
     }
   });
@@ -214,6 +218,7 @@ function buildDayBlocks(rows: Array<StockLedgerRow>, items: Array<LedgerItem>): 
             purchaseOrderNo: item.purchaseOrderNo,
             purchaseRequestNo: item.purchaseRequestNo,
             projectFundCode: item.projectFundCode,
+            isDrug: item.isDrug,
           };
         });
       return { date, cells };
@@ -418,6 +423,7 @@ export default function StockLedgerReport() {
   const [viewMode, setViewMode] = useState<'table' | 'graph' | 'trend'>('table');
   const [trendItemKey, setTrendItemKey] = useState<string | null>(null);
   const [itemFilter, setItemFilter] = useState('');
+  const [itemType, setItemType] = useState<ItemType>('');
   const [searchText, setSearchText] = useState('');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
@@ -427,13 +433,17 @@ export default function StockLedgerReport() {
   const primaryStartDate = compare.enabled ? compare.primary.startDate : appliedDates.startDate;
   const primaryEndDate = compare.enabled ? compare.primary.endDate : appliedDates.endDate;
 
-  const { rows: rawRows, isLoading } = useStockLedgerReport(primaryStartDate, primaryEndDate, locationUuid || undefined);
-  const { rows: compareRawRows, isLoading: compareLoading } = useStockLedgerReport(
+  const { rows: fetchedRows, isLoading } = useStockLedgerReport(primaryStartDate, primaryEndDate, locationUuid || undefined);
+  // Narrowed by item type before anything else, so the item list, table, KPIs, charts and exports
+  // all follow the Pharmaceuticals / Non Pharmaceuticals choice.
+  const rawRows = useItemTypeRows(fetchedRows, itemType);
+  const { rows: compareFetchedRows, isLoading: compareLoading } = useStockLedgerReport(
     compare.comparison.startDate,
     compare.comparison.endDate,
     locationUuid || undefined,
     compare.enabled,
   );
+  const compareRawRows = useItemTypeRows(compareFetchedRows, itemType);
   const dataLoading = isLoading || (compare.enabled && compareLoading);
 
   const itemOptions = useMemo(
@@ -683,6 +693,13 @@ export default function StockLedgerReport() {
               onClear={() => setSearchText('')}
             />
           </div>
+          <ItemTypeFilter
+            value={itemType}
+            onChange={(value) => {
+              setItemType(value);
+              setItemFilter('');
+            }}
+          />
           <div className={pageStyles.filterField}>
             <Select
               id="itemFilter"

@@ -19,6 +19,8 @@ export interface StockBatchBalanceRow extends BatchPriceFields {
   // pack configured.
   bulkUnitName: string | null;
   bulkFactor: number | null;
+  // True for a pharmaceutical (stock item linked to a drug), false for other commodities.
+  isDrug: boolean | null;
 }
 
 export function useStockBatchBalanceReport(locationUuid?: string) {

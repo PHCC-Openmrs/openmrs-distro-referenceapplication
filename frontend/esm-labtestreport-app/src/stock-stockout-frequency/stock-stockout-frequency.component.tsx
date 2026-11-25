@@ -7,12 +7,13 @@ import KpiTiles from '../reports-shell/kpi-tiles.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
 import type { ExportSheet } from '../reports-shell/export-utils';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
-import { filterByItemAndSearch, distinctItemNames } from '../reports-shell/row-filter';
+import { filterByItemAndSearch, distinctItemNames, useItemTypeRows, type ItemType } from '../reports-shell/row-filter';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
 import { useStockoutFrequencyReport, type StockoutFrequencyRow } from './stock-stockout-frequency.resource';
 import { useDefaultReportDateRange } from '../reports-shell/use-default-report-date-range';
+import ItemTypeFilter from '../reports-shell/item-type-filter.component';
 
 const STOCK_LOCATION_TAG = 'Login Location';
 
@@ -32,14 +33,18 @@ export default function StockoutFrequencyReport() {
   const [endDateInput, setEndDateInput] = useState(defaultRange.endDate);
   const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>(defaultRange);
   const [itemFilter, setItemFilter] = useState('');
+  const [itemType, setItemType] = useState<ItemType>('');
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<'' | StockoutStatus>('');
 
-  const { rows: rawRows, isLoading } = useStockoutFrequencyReport(
+  const { rows: fetchedRows, isLoading } = useStockoutFrequencyReport(
     appliedDates.startDate,
     appliedDates.endDate,
     locationUuid || undefined,
   );
+  // Narrowed by item type before anything else, so the item list, table, KPIs, charts and exports
+  // all follow the Pharmaceuticals / Non Pharmaceuticals choice.
+  const rawRows = useItemTypeRows(fetchedRows, itemType);
   const showLocationColumn = !locationUuid;
 
   const itemOptions = useMemo(() => distinctItemNames(rawRows), [rawRows]);
@@ -114,6 +119,13 @@ export default function StockoutFrequencyReport() {
               onClear={() => setSearchText('')}
             />
           </div>
+          <ItemTypeFilter
+            value={itemType}
+            onChange={(value) => {
+              setItemType(value);
+              setItemFilter('');
+            }}
+          />
           <div className={pageStyles.filterField}>
             <Select
               id="itemFilter"

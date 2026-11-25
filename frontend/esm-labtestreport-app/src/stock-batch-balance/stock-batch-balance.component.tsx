@@ -17,11 +17,12 @@ import {
   resolveUnitPrice,
   type PriceRange,
 } from '../reports-shell/purchase-price';
-import { filterByItemAndSearch, distinctItemNames } from '../reports-shell/row-filter';
+import { filterByItemAndSearch, distinctItemNames, useItemTypeRows, type ItemType } from '../reports-shell/row-filter';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
 import { useStockBatchBalanceReport, type StockBatchBalanceRow } from './stock-batch-balance.resource';
+import ItemTypeFilter from '../reports-shell/item-type-filter.component';
 
 type ExpiryFilter = '' | 'expired' | 'emptyExpired' | 'notExpired' | 'noExpiry';
 type StockFilter = '' | 'inStock' | 'outOfStock';
@@ -87,12 +88,16 @@ export default function StockBatchBalanceReport() {
   const { t } = useTranslation();
   const [locationUuid, setLocationUuid] = useState('');
   const [itemFilter, setItemFilter] = useState('');
+  const [itemType, setItemType] = useState<ItemType>('');
   const [searchText, setSearchText] = useState('');
   const [expiryFilter, setExpiryFilter] = useState<ExpiryFilter>('');
   const [stockFilter, setStockFilter] = useState<StockFilter>('');
   const [priceRange, setPriceRange] = useState<PriceRange>(EMPTY_PRICE_RANGE);
 
-  const { rows: rawRows, isLoading } = useStockBatchBalanceReport(locationUuid || undefined);
+  const { rows: fetchedRows, isLoading } = useStockBatchBalanceReport(locationUuid || undefined);
+  // Narrowed by item type before anything else, so the item list, table, KPIs, charts and exports
+  // all follow the Pharmaceuticals / Non Pharmaceuticals choice.
+  const rawRows = useItemTypeRows(fetchedRows, itemType);
   const showLocationColumn = !locationUuid;
 
   const itemOptions = useMemo(() => distinctItemNames(rawRows), [rawRows]);
@@ -211,6 +216,13 @@ export default function StockBatchBalanceReport() {
               onClear={() => setSearchText('')}
             />
           </div>
+          <ItemTypeFilter
+            value={itemType}
+            onChange={(value) => {
+              setItemType(value);
+              setItemFilter('');
+            }}
+          />
           <div className={pageStyles.filterField}>
             <Select
               id="itemFilter"

@@ -53,6 +53,7 @@ public class StockLedgerServiceImpl extends BaseOpenmrsService implements StockL
 			row.setBatchId(toInteger(r[13]));
 			row.setBulkUnitName((String) r[14]);
 			row.setBulkFactor(toNullableDouble(r[15]));
+			row.setIsDrug(toBoolean(r[16]));
 			rows.add(row);
 		}
 		return rows;
@@ -60,6 +61,17 @@ public class StockLedgerServiceImpl extends BaseOpenmrsService implements StockL
 
 	private static Integer toInteger(Object value) {
 		return value == null ? null : ((Number) value).intValue();
+	}
+
+	/** A SQL predicate such as "drug_id IS NOT NULL" arrives as a Boolean or as a 1/0 Number. */
+	private static Boolean toBoolean(Object value) {
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof Boolean) {
+			return (Boolean) value;
+		}
+		return ((Number) value).intValue() != 0;
 	}
 
 	private static double toDouble(Object value) {

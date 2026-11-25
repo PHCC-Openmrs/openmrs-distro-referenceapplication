@@ -8,7 +8,8 @@ import ExportButtons from '../reports-shell/export-buttons.component';
 import type { ExportSheet } from '../reports-shell/export-utils';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
 import { bulkExportCells, formatQuantity } from '../reports-shell/format-quantity';
-import { filterByItemAndSearch, distinctItemNames } from '../reports-shell/row-filter';
+import { filterByItemAndSearch, distinctItemNames, useItemTypeRows, type ItemType } from '../reports-shell/row-filter';
+import ItemTypeFilter from '../reports-shell/item-type-filter.component';
 import SortableHeader from '../reports-shell/sortable-header.component';
 import { useSortableRows } from '../reports-shell/use-sortable-rows';
 import pageStyles from '../reports-shell/reports-page.scss';
@@ -22,7 +23,6 @@ import { useDefaultReportDateRange } from '../reports-shell/use-default-report-d
 
 const STOCK_LOCATION_TAG = 'Login Location';
 
-type ItemTypeFilter = '' | 'drug' | 'other';
 
 /** Signed, so an increase reads as "+30 Tablet" rather than being mistaken for a decrease. */
 function signedQuantity(row: StockAdjustmentRow): string {
@@ -52,15 +52,18 @@ export default function StockAdjustmentsReport() {
   const [itemFilter, setItemFilter] = useState('');
   const [searchText, setSearchText] = useState('');
   const [purposeFilter, setPurposeFilter] = useState<'' | AdjustmentPurpose>('');
-  const [itemTypeFilter, setItemTypeFilter] = useState<ItemTypeFilter>('');
+  const [itemType, setItemType] = useState<ItemType>('');
   const [reasonFilter, setReasonFilter] = useState('');
   const [responsiblePersonFilter, setResponsiblePersonFilter] = useState('');
 
-  const { rows: rawRows, isLoading } = useStockAdjustmentsReport(
+  const { rows: fetchedRows, isLoading } = useStockAdjustmentsReport(
     appliedDates.startDate,
     appliedDates.endDate,
     locationUuid || undefined,
   );
+  // Narrowed by item type first, as in the other stock reports, so the item, reason and responsible
+  // person dropdowns only offer what the chosen type actually has.
+  const rawRows = useItemTypeRows(fetchedRows, itemType);
   const showLocationColumn = !locationUuid;
 
   const itemOptions = useMemo(() => distinctItemNames(rawRows), [rawRows]);
@@ -86,9 +89,6 @@ export default function StockAdjustmentsReport() {
     if (purposeFilter) {
       filtered = filtered.filter((row) => row.purpose === purposeFilter);
     }
-    if (itemTypeFilter) {
-      filtered = filtered.filter((row) => (itemTypeFilter === 'drug' ? !!row.isDrug : !row.isDrug));
-    }
     if (reasonFilter) {
       filtered = filtered.filter((row) => row.reasonName === reasonFilter);
     }
@@ -96,7 +96,7 @@ export default function StockAdjustmentsReport() {
       filtered = filtered.filter((row) => row.responsiblePerson === responsiblePersonFilter);
     }
     return filtered;
-  }, [rawRows, itemFilter, searchText, purposeFilter, itemTypeFilter, reasonFilter, responsiblePersonFilter]);
+  }, [rawRows, itemFilter, searchText, purposeFilter, reasonFilter, responsiblePersonFilter]);
 
   const kpiItems = useMemo(() => {
     // Counts rather than summed quantities: a report spanning tablets, gloves and syringes has no
@@ -167,7 +167,7 @@ export default function StockAdjustmentsReport() {
         row.operationNumber ?? '',
         ...(showLocationColumn ? [row.locationName ?? ''] : []),
         row.itemName,
-        row.isDrug ? t('drug', 'Drug') : t('other', 'Other'),
+        row.isDrug ? t('pharmaceutical', 'Pharmaceutical') : t('nonPharmaceutical', 'Non Pharmaceutical'),
         row.batchNo ?? '',
         row.expirationDate ? formatDate(parseDate(row.expirationDate), { mode: 'standard', time: false }) : '',
         // Left signed and numeric so the column stays summable per item in the spreadsheet.
@@ -257,18 +257,15 @@ export default function StockAdjustmentsReport() {
               <SelectItem value="CORRECTION" text={t('correction', 'Correction')} />
             </Select>
           </div>
-          <div className={pageStyles.filterField}>
-            <Select
-              id="itemTypeFilter"
-              labelText={t('itemType', 'Item Type')}
-              value={itemTypeFilter}
-              onChange={(e) => setItemTypeFilter(e.target.value as ItemTypeFilter)}
-            >
-              <SelectItem value="" text={t('allItemTypes', 'All item types')} />
-              <SelectItem value="drug" text={t('drug', 'Drug')} />
-              <SelectItem value="other" text={t('other', 'Other')} />
-            </Select>
-          </div>
+          <ItemTypeFilter
+            value={itemType}
+            onChange={(value) => {
+              setItemType(value);
+              setItemFilter('');
+              setReasonFilter('');
+              setResponsiblePersonFilter('');
+            }}
+          />
           <div className={pageStyles.filterField}>
             <Select
               id="reasonFilter"
@@ -420,7 +417,7 @@ export default function StockAdjustmentsReport() {
                     <td className="left">{row.itemName}</td>
                     <td className="left">
                       <Tag type={row.isDrug ? 'blue' : 'gray'} size="sm">
-                        {row.isDrug ? t('drug', 'Drug') : t('other', 'Other')}
+                        {row.isDrug ? t('pharmaceutical', 'Pharmaceutical') : t('nonPharmaceutical', 'Non Pharmaceutical')}
                       </Tag>
                     </td>
                     <td className="left">{row.batchNo ?? '—'}</td>

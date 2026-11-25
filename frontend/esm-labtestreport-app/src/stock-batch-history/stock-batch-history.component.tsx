@@ -7,6 +7,8 @@ import KpiTiles from '../reports-shell/kpi-tiles.component';
 import ExportButtons from '../reports-shell/export-buttons.component';
 import LocationFilter from '../reports-shell/location-filter.component';
 import PriceRangeFilter from '../reports-shell/price-range-filter.component';
+import ItemTypeFilter from '../reports-shell/item-type-filter.component';
+import { useItemTypeRows, type ItemType } from '../reports-shell/row-filter';
 import type { ExportSheet } from '../reports-shell/export-utils';
 import { getTodayDateString, clampToToday } from '../reports-shell/date-utils';
 import { bulkExportCells, formatQuantity } from '../reports-shell/format-quantity';
@@ -112,6 +114,7 @@ export default function StockBatchHistoryReport() {
   const [stockItemId, setStockItemId] = useState<number | undefined>(initialSelection.stockItemId);
   const [stockBatchId, setStockBatchId] = useState<number | undefined>(initialSelection.stockBatchId);
   const [locationUuid, setLocationUuid] = useState('');
+  const [itemType, setItemType] = useState<ItemType>('');
   const [startDateInput, setStartDateInput] = useState('');
   const [endDateInput, setEndDateInput] = useState('');
   const [appliedDates, setAppliedDates] = useState<{ startDate?: string; endDate?: string }>({});
@@ -119,7 +122,9 @@ export default function StockBatchHistoryReport() {
 
   // The item and batch pickers are fed from the batch-balance endpoint, which lists every batch
   // that has had a completed movement anywhere - exactly the batches that have a history to show.
-  const { rows: balanceRows, isLoading: optionsLoading } = useStockBatchBalanceReport();
+  const { rows: allBalanceRows, isLoading: optionsLoading } = useStockBatchBalanceReport();
+  // The history itself is for one chosen item, so the item type only narrows which items can be picked.
+  const balanceRows = useItemTypeRows(allBalanceRows, itemType);
   const { rows, isLoading } = useStockBatchHistoryReport(stockItemId, stockBatchId);
 
   const itemOptions = useMemo(() => {
@@ -422,6 +427,15 @@ export default function StockBatchHistoryReport() {
     setStockBatchId(undefined);
   }
 
+  function selectItemType(value: ItemType) {
+    setItemType(value);
+    // Keep the chosen item only if it is still offered under the new type.
+    const current = allBalanceRows.find((row) => row.stockItemId === stockItemId);
+    if (current && value && !!current.isDrug !== (value === 'pharma')) {
+      selectItem(undefined);
+    }
+  }
+
   function applyFilter() {
     setAppliedDates({ startDate: startDateInput || undefined, endDate: endDateInput || undefined });
   }
@@ -442,6 +456,7 @@ export default function StockBatchHistoryReport() {
         </p>
 
         <div className={pageStyles.filterTile}>
+          <ItemTypeFilter value={itemType} onChange={selectItemType} />
           <div className={pageStyles.filterField} style={{ minWidth: '18rem' }}>
             <ComboBox
               id="itemFilter"

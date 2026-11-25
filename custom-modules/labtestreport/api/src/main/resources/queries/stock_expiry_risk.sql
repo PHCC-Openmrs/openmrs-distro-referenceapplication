@@ -15,7 +15,9 @@ SELECT
   DATEDIFF(sb.expiration, CURDATE()) AS daysUntilExpiry,
   un.name          AS unitName,
   bun.name         AS bulkUnitName,
-  bulk.factor      AS bulkFactor
+  bulk.factor      AS bulkFactor,
+  -- Pharmaceutical (stock item linked to a drug) vs non-pharmaceutical, for the Item Type filter.
+  si.drug_id IS NOT NULL AS isDrug
 FROM stockmgmt_stock_item_transaction sit
 JOIN stockmgmt_stock_batch sb ON sb.stock_batch_id = sit.stock_batch_id
 JOIN stockmgmt_stock_item si ON si.stock_item_id = sit.stock_item_id
@@ -33,6 +35,6 @@ WHERE si.voided = 0
   AND sb.expiration IS NOT NULL
   AND (:locationUuid IS NULL OR l.uuid = :locationUuid)
   AND (:daysAhead IS NULL OR DATEDIFF(sb.expiration, CURDATE()) <= :daysAhead)
-GROUP BY si.stock_item_id, si.common_name, p.party_id, l.name, sb.batch_no, sb.expiration, un.name, bun.name, bulk.factor
+GROUP BY si.stock_item_id, si.common_name, p.party_id, l.name, sb.batch_no, sb.expiration, un.name, bun.name, bulk.factor, si.drug_id
 HAVING remainingQty > 0
 ORDER BY daysUntilExpiry ASC

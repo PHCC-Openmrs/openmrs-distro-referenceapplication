@@ -25,7 +25,9 @@ SELECT
      AND so2.status = 'COMPLETED'
      AND COALESCE(so2.voided, 0) = 0) AS remainingQty,
   bun.name         AS bulkUnitName,
-  bulk.factor      AS bulkFactor
+  bulk.factor      AS bulkFactor,
+  -- Pharmaceutical (stock item linked to a drug) vs non-pharmaceutical, for the Item Type filter.
+  si.drug_id IS NOT NULL AS isDrug
 FROM stockmgmt_stock_item_transaction sit
 JOIN stockmgmt_stock_item si ON si.stock_item_id = sit.stock_item_id
 JOIN stockmgmt_stock_item_packaging_uom puom ON puom.stock_item_packaging_uom_id = sit.stock_item_packaging_uom_id
@@ -49,5 +51,5 @@ WHERE si.voided = 0
     OR (so.completed_date IS NULL AND so.operation_date >= :startDate))
   AND (:endDate IS NULL OR so.completed_date < DATE_ADD(:endDate, INTERVAL 1 DAY)
     OR (so.completed_date IS NULL AND so.operation_date < DATE_ADD(:endDate, INTERVAL 1 DAY)))
-GROUP BY si.stock_item_id, si.common_name, p.party_id, l.name, un.name, bun.name, bulk.factor
+GROUP BY si.stock_item_id, si.common_name, p.party_id, l.name, un.name, bun.name, bulk.factor, si.drug_id
 ORDER BY quantity DESC
