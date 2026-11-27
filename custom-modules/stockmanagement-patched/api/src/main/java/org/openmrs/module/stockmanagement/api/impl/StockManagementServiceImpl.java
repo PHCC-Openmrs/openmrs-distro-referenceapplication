@@ -1466,29 +1466,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         return DateUtils.truncate(expiration, Calendar.DATE);
     }
 
-    /**
-     * The externalReference an operation that draws from existing batches carries: its batches'
-     * origin codes when every item's batch came from the same codes, otherwise none (the codes are
-     * then only shown per item, from each batch).
-     */
     private String deriveExternalReferenceFromBatches(Collection<StockOperationItem> items) {
-        Set<Integer> batchIds = new HashSet<>();
-        for (StockOperationItem item : items) {
-            if (item.getStockBatch() == null || item.getStockBatch().getId() == null) {
-                return null;
-            }
-            batchIds.add(item.getStockBatch().getId());
-        }
-        if (batchIds.isEmpty()) {
-            return null;
-        }
-        Map<Integer, String> origins = dao.getBatchOriginExternalReferences(batchIds);
-        Set<String> references = new HashSet<>();
-        for (Integer batchId : batchIds) {
-            String reference = origins.get(batchId);
-            references.add(StringUtils.isBlank(reference) ? null : reference);
-        }
-        return references.size() == 1 ? references.iterator().next() : null;
+        return dao.getCommonBatchOriginExternalReference(items);
     }
 
     public Result<StockBatchDTO> findStockBatches(StockBatchSearchFilter filter) {
@@ -2683,6 +2662,9 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 stockOperation.addStockItemTransaction(stockItemTransaction);
             }
 
+            // The pharmacist picks the batch; the issue carries that batch's Opening Stock codes
+            // (PO / PR / Fund) like any other operation that draws from existing batches.
+            stockOperation.setExternalReference(deriveExternalReferenceFromBatches(stockOperation.getStockOperationItems()));
             dao.saveStockOperation(stockOperation);
             stockOperation.setOperationNumber(String.format("%1s-%2s", stockIssueType.getAcronym(),
                     StringUtils.leftPad(Integer.toString(stockOperation.getId()), 4, '0')));

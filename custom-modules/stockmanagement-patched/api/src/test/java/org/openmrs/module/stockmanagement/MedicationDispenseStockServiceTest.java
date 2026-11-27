@@ -16,14 +16,20 @@ import org.openmrs.module.stockmanagement.api.model.StockBatch;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
 import org.openmrs.module.stockmanagement.api.model.StockItemTransaction;
+import org.openmrs.module.stockmanagement.api.model.StockOperation;
+import org.openmrs.module.stockmanagement.api.model.StockOperationItem;
+import org.openmrs.module.stockmanagement.api.model.StockOperationStatus;
+import org.openmrs.module.stockmanagement.api.model.StockOperationType;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -50,6 +56,8 @@ public class MedicationDispenseStockServiceTest extends BaseModuleContextSensiti
 
 	private StockItemPackagingUOM packagingUom;
 
+	private EntityUtil eu;
+
 	@Before
 	public void setup() throws Exception {
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
@@ -64,7 +72,7 @@ public class MedicationDispenseStockServiceTest extends BaseModuleContextSensiti
 		service.setDao(dao);
 		service.setCompletedStatus(completed);
 
-		EntityUtil eu = new EntityUtil(getOrder().getDrug(), Context.getUserService().getUser(501), Context
+		eu = new EntityUtil(getOrder().getDrug(), Context.getUserService().getUser(501), Context
 		        .getLocationService().getLocation(1), null, getOrder().getDrug().getConcept(), getOrder().getPatient());
 		stockItem = eu.newStockItem(dao, false);
 		stockItem.setVoided(false);
@@ -169,5 +177,73 @@ public class MedicationDispenseStockServiceTest extends BaseModuleContextSensiti
 		save(request(13, 3));
 
 		assertEquals(0, BigDecimal.valueOf(77).compareTo(batchBalance()));
+	}
+
+	/** A completed Opening Stock that brought {@code stockBatch} in with the given codes. */
+	private void openingStock(String externalReference) {
+		StockOperation operation = eu.newStockOperation(dao);
+		operation.setStockOperationType(dao.getStockOperationTypeByType(StockOperationType.INITIAL));
+		operation.setStatus(StockOperationStatus.COMPLETED);
+		operation.setVoided(false);
+		operation.setExternalReference(externalReference);
+		dao.saveStockOperation(operation);
+		StockOperationItem item = new StockOperationItem();
+		item.setCreator(Context.getUserService().getUser(501));
+		item.setDateCreated(operation.getOperationDate());
+		item.setStockItem(stockItem);
+		item.setStockBatch(stockBatch);
+		item.setStockItemPackagingUOM(packagingUom);
+		item.setQuantity(BigDecimal.valueOf(100));
+		item.setStockOperation(operation);
+		dao.saveStockOperationItem(item);
+		sessionFactory.getCurrentSession().flush();
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<StockOperation> dispenseOperations(String operationType) {
+		return sessionFactory
+		        .getCurrentSession()
+		        .createQuery(
+		            "select distinct t.stockOperation from org.openmrs.module.stockmanagement.api.model.StockItemTransaction t"
+		                    + " where t.medicationDispense is not null and t.stockOperation.stockOperationType.operationType = :type")
+		        .setParameter("type", operationType).list();
+	}
+
+	@Test
+	public void save_shouldGiveTheStockIssueTheCodesOfTheBatchOpeningStock() {
+		openingStock("PO:PO-7|PR:PR-7|FC:FC-7");
+
+		save(request(10, 0));
+
+		List<StockOperation> issues = dispenseOperations(StockOperationType.STOCK_ISSUE);
+		assertEquals(1, issues.size());
+		assertEquals("PO:PO-7|PR:PR-7|FC:FC-7", issues.get(0).getExternalReference());
+	}
+
+	@Test
+	public void save_shouldLeaveTheStockIssueWithoutCodesWhenTheBatchHasNone() {
+		save(request(10, 0));
+
+		List<StockOperation> issues = dispenseOperations(StockOperationType.STOCK_ISSUE);
+		assertEquals(1, issues.size());
+		assertNull(issues.get(0).getExternalReference());
+	}
+
+	@Test
+	public void void_shouldGiveTheReturnAdjustmentTheCodesOfTheBatchOpeningStock() {
+		// The shared data set has a second adjustment type; a real dictionary has one, which the return looks up.
+		Context.getAdministrationService().executeSQL(
+		    "delete from stockmgmt_stock_operation_type where stock_operation_type_id = 6", false);
+		sessionFactory.getCurrentSession().clear();
+		openingStock("PO:PO-7|PR:PR-7|FC:FC-7");
+		MedicationDispenseRequest request = request(10, 0);
+		save(request);
+
+		service.voidMedicationDispense(request.getUuid(), false, null, "Entered in error");
+		sessionFactory.getCurrentSession().flush();
+
+		List<StockOperation> adjustments = dispenseOperations(StockOperationType.ADJUSTMENT);
+		assertEquals(1, adjustments.size());
+		assertEquals("PO:PO-7|PR:PR-7|FC:FC-7", adjustments.get(0).getExternalReference());
 	}
 }

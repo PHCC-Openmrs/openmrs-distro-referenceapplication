@@ -413,6 +413,7 @@ public class MedicationDispenseStockServiceImpl extends BaseOpenmrsService imple
 				transaction.setQuantity(quantity);
 				operation.addStockItemTransaction(transaction);
 			}
+			operation.setExternalReference(dao.getCommonBatchOriginExternalReference(operation.getStockOperationItems()));
 			dao.saveStockOperation(operation);
 			operation.setOperationNumber(String.format("%1s-%2s", adjustment.getAcronym(),
 			    StringUtils.leftPad(Integer.toString(operation.getId()), 4, '0')));

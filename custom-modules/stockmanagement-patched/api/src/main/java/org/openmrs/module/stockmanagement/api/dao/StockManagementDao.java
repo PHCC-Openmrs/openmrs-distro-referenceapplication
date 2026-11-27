@@ -1979,6 +1979,34 @@ public class StockManagementDao extends DaoBase {
 		return result;
 	}
 	
+	/**
+	 * The externalReference an operation that draws from existing batches carries: its batches'
+	 * origin codes when every item's batch came from the same codes, otherwise none (the codes are
+	 * then only shown per item, from each batch).
+	 */
+	public String getCommonBatchOriginExternalReference(Collection<StockOperationItem> items) {
+		if (items == null) {
+			return null;
+		}
+		Set<Integer> batchIds = new HashSet<>();
+		for (StockOperationItem item : items) {
+			if (item.getStockBatch() == null || item.getStockBatch().getId() == null) {
+				return null;
+			}
+			batchIds.add(item.getStockBatch().getId());
+		}
+		if (batchIds.isEmpty()) {
+			return null;
+		}
+		Map<Integer, String> origins = getBatchOriginExternalReferences(batchIds);
+		Set<String> references = new HashSet<>();
+		for (Integer batchId : batchIds) {
+			String reference = origins.get(batchId);
+			references.add(StringUtils.isBlank(reference) ? null : reference);
+		}
+		return references.size() == 1 ? references.iterator().next() : null;
+	}
+	
 	public List<StockItemPackagingUOM> getStockItemPackagingUOMsByUuids(List<String> uuids) {
         if (uuids.isEmpty()) return new ArrayList<>();
         Criteria criteria = getSession().createCriteria(StockItemPackagingUOM.class);
